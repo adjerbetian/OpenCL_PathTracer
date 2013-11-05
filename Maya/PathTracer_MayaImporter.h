@@ -2,6 +2,8 @@
 #define PATHTRACER_PATHTRACERLUMENRTIMPORTER
 
 #include "../Controleur/PathTracer_Importer.h"
+#include <maya\MString.h>
+#include <maya\MDagPath.h>
 
 namespace PathTracerNS
 {

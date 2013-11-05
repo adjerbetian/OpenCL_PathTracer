@@ -1,4 +1,7 @@
 #include "RayTracer.h"
+#include "../Controleur/PathTracer.h"
+#include "PathTracer_MayaImporter.h"
+
 #include <maya/MItDag.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIOStream.h>
@@ -108,96 +111,8 @@ MPoint RayTracer::computeBarycenter(const MDagPath& obj)
 
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
-
-	cout << endl << endl;
-	cout << "*****************************************************************" << endl;
-	cout << "                         RAYTRACER" << endl;
-	cout << "*****************************************************************" << endl;
-	cout << endl;
-
-	// 1 - Create Image
-
-	MImage image;
-	image.create(1920,1080);
-
-	// 2 - Get the camera and the its projection information
-
-	const MString cameraFrontName = "frontShape";
-	MDagPath camera;
-	if(!getCamera(cameraName, camera))
-		if(!getCamera(cameraFrontName, camera))
-			MS::kFailure;
-	cout << endl;
-
-	MFnCamera		fnCamera(camera);
-	MFnTransform	fnTransformCamera(camera);
-	MMatrix			MCamera = fnTransformCamera.transformationMatrix();
-
-	fnCamera.setAspectRatio(16.0/9.0);
-	fnCamera.setIsOrtho(true);
-
-	MPoint	C		= fnCamera.eyePoint		  (MSpace::kWorld);
-	MVector D		= fnCamera.viewDirection  (MSpace::kWorld);
-	MVector Up		= fnCamera.upDirection	  (MSpace::kWorld);
-	MVector Right	= fnCamera.rightDirection (MSpace::kWorld);
-
-	float w = fnCamera.orthoWidth();
-	float h = ( w * 9.0 / 16.0 );
-
-	cout << "Camera : " << endl;
-	cout << "\tposition : " << toString(C) << endl;
-	cout << "\tdirection : " << toString(D) << endl;
-	cout << "\tw x h : " << w << " x " << h << endl;
-	cout << endl;
-
-	// 3 - Mesh traversal
-
-	MItDag itMesh(MItDag::kDepthFirst,MFn::kMesh);
-	MDagPath objPath;
-	while(!itMesh.isDone())
-	{
-		itMesh.getPath(objPath);
-		MFnMesh fnMesh(objPath);
-		cout << "Object : " << fnMesh.name() << endl;
-
-		// Get the barycenter
-		MPoint M = computeBarycenter(objPath);
-		cout << "\tBarycenter : " << toString(M) << endl;
-
-		// Compute the projection on the camera orthographic plane
-		MPoint P = M - (MVector(M - C)*D)*D;
-		cout << "\tProjection : " << toString(P) << endl;
-
-		// Compute the coordinates in the camera's basis
-		float x = MVector(P-C)*Right;
-		float y = MVector(P-C)*Up;
-		cout << "\tCoordinates in Camera : [ " << x << " , " << y << " ]" << endl;
-
-		// normalize the coordinates in [ -1 , 1 ]
-		x = (x / w) + 0.5;
-		y = (y / h) + 0.5;
-		cout << "\tNormalized coordinates : [ " << x << " , " << y << " ]" << endl;
-
-		// compute the pixel position and print it
-		if( -1 < x && x < 1 && -1 < y && y < 1 )
-		{
-			int yPixel = y * 1080;
-			int xPixel = x * 1920;
-			cout << "\tPixel : [ " << xPixel << " , " << yPixel << " ]" << endl;
-
-			plotOnImage(image, xPixel, yPixel);
-		}
-
-		itMesh.next();
-		cout << endl;
-	}
-
-	cout << "writting to file " << destinationFile << " ... " ;
-	if(image.writeToFile(destinationFile, fileExtension) == MS::kSuccess)
-		cout << "success." << endl;
-	else
-		cout << "fail to save file." << endl;
-
+	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerMayaImporter());
+	PathTracerNS::PathTracer_Main();
 	return MS::kSuccess;
 }
 

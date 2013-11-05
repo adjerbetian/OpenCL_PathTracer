@@ -7,18 +7,8 @@
 //							PARTIE SPECIFIQUE A LA MACHINE
 
 
-//#define PATHTRACER_FOLDER "m:\\LumenRT_src\\viewer\\Code\\Viewer\\pathtracer\\"
-//#define PATHTRACER_SCENE_FOLDER "C:\\Users\\matrem\\Desktop\\Alexandre\\PathTracer_VS2010\\"
-
-//#define PATHTRACER_FOLDER "k:\\lumenRT\\viewer\\Code\\Viewer\\pathtracer\\"
-//#define PATHTRACER_SCENE_FOLDER "C:\\Users\\Viewer\\Desktop\\Alexandre\\PathTracer_VS2010\\"
-
-//#define PATHTRACER_FOLDER "C:\\Users\\Alexandre\\Documents\\Visual_Studio_2010\\Projects\\PathTracer\\PathTracer\\src\\"
-//#define PATHTRACER_SCENE_FOLDER "C:\\Users\\Alexandre\\Documents\\Visual_Studio_2010\\Projects\\PathTracer\\PathTracer\\"
-
-#if !defined(PATHTRACER_FOLDER) || !defined(PATHTRACER_SCENE_FOLDER)
-#error "variables PATHTRACER_FOLDER or PATHTRACER_SCENE_FOLDER are not defined."
-#endif
+#define PATHTRACER_FOLDER "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\raytracer\\src\\"
+#define PATHTRACER_SCENE_FOLDER "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\raytracer\\Scene\\"
 
 /***********************************************************************************/
 

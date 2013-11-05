@@ -18,7 +18,7 @@ namespace PathTracerNS
 		size_t nWritte = 0;
 
 		FILE* fichier = NULL;
-		fichier = fopen(fileSizesPath.c_str(), "wb");
+		fopen_s(&fichier, fileSizesPath.c_str(), "wb");
 
 		if(fichier != NULL)
 		{
@@ -40,7 +40,7 @@ namespace PathTracerNS
 		}
 
 		FILE* fichierPtr = NULL;
-		fichierPtr = fopen(filePointersPath.c_str(), "wb");
+		 fopen_s(&fichierPtr, filePointersPath.c_str(), "wb");
 
 		if(fichierPtr != NULL)
 		{
@@ -56,7 +56,7 @@ namespace PathTracerNS
 		}
 
 		FILE* fichierTex = NULL;
-		fichierTex = fopen(fileTextureDataPath.c_str(), "wb");
+		fopen_s(&fichierTex, fileTextureDataPath.c_str(), "wb");
 
 		if(fichierTex != NULL)
 		{
@@ -71,7 +71,7 @@ namespace PathTracerNS
 	void PathTracerFileImporter::Import()
 	{
 		FILE* fichierSizes = NULL;
-		fichierSizes = fopen(fileSizesPath.c_str(), "rb");
+		fopen_s(&fichierSizes, fileSizesPath.c_str(), "rb");
 
 		size_t nRead = 0;
 
@@ -101,7 +101,7 @@ namespace PathTracerNS
 		*ptr__global__textures		= new Texture	[(*ptr__global__texturesSize)];
 
 		FILE* fichierPtr = NULL;
-		fichierPtr = fopen(filePointersPath.c_str(), "rb");
+		fopen_s(&fichierPtr, filePointersPath.c_str(), "rb");
 
 		if(fichierPtr != NULL)
 		{
@@ -118,7 +118,7 @@ namespace PathTracerNS
 
 
 		FILE* fichierTex = NULL;
-		fichierTex = fopen(fileTextureDataPath.c_str(), "rb");
+		fopen_s(&fichierTex, fileTextureDataPath.c_str(), "rb");
 
 		if(fichierTex != NULL)
 		{

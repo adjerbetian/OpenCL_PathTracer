@@ -21,9 +21,9 @@ namespace PathTracerNS
 		SetCam();
 		ImportScene();
 
-		*ptr__global__lights = new Light;
-		*ptr__global__materiaux = new Material;
-		*ptr__global__textures = new Texture;
+		*ptr__global__lights = new Light[1];
+		*ptr__global__materiaux = new Material[1];
+		*ptr__global__textures = new Texture[1];
 	}
 
 	bool PathTracerMayaImporter::GetCam(const MString &cameraName, MDagPath &camera)

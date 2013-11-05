@@ -626,7 +626,7 @@ namespace PathTracerNS
 		/////////////////////////////////////////////////////////////////////////////////
 
 		i = 1;
-		cout << "Taille de Float4 : " << sizeof(Float4) << endl;
+		cout <<"TAILLE : " << sizeof(Float4) << " - " << 4*sizeof(float) << endl;
 		return false;
 
 		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;

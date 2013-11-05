@@ -386,7 +386,7 @@ inline float BoundingBox_Area ( BoundingBox const *This )
 	if(This->isEmpty)
 		return 0;
 
-	float4 p1p2 = FLOAT4(This->pMax - This->pMin);
+	Float4 p1p2 = FLOAT4(This->pMax - This->pMin);
 	return p1p2.x*p1p2.y + p1p2.y*p1p2.z + p1p2.z*p1p2.x;
 }
 

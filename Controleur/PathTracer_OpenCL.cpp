@@ -180,11 +180,11 @@ namespace PathTracerNS
 						localWorkSize_1  = 256;
 						globalOffset_1   = constGlobalOffset_1;
 
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						errCode = clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_1_ComputeHashValues_Part1	, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						errCode = clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_2_ComputeHashValues_Part2	, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						errCode = clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						clFinish(opencl__queue);
 
@@ -202,7 +202,7 @@ namespace PathTracerNS
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__headFlags);	if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum1);	if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 
 						// DEBUG ********************************************************
@@ -226,7 +226,7 @@ namespace PathTracerNS
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__blockSum1); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						// DEBUG ********************************************************
 						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : SOMMATION PARRALLELE PAR BLOCK ROUND 2" << ENDL << ENDL;
@@ -245,7 +245,7 @@ namespace PathTracerNS
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						// DEBUG ********************************************************
 						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : SOMMATION PARRALLELE PAR BLOCK ROUND 3" << ENDL << ENDL;
@@ -270,7 +270,7 @@ namespace PathTracerNS
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 0, sizeof(cl_mem), (void*) &kernel__blockSum1); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						// DEBUG ********************************************************
 						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : REMISE A NIVEAU DES BLOCKS ROUND 2" << ENDL << ENDL;
@@ -290,7 +290,7 @@ namespace PathTracerNS
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 0, sizeof(cl_mem), (void*) &kernel__headFlags);		if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, sizeof(cl_mem), (void*) &kernel__blockSum1);		if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						// DEBUG ********************************************************
 						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : REMISE A NIVEAU DES BLOCKS ROUND 1" << ENDL << ENDL;
@@ -308,9 +308,9 @@ namespace PathTracerNS
 						globalOffset_1   = constGlobalOffset_1;
 
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_5_Compress , 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_6_ChunkSize, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						// DEBUG ********************************************************
 						//CONSOLE << ENDL << ENDL << ENDL << "COMPUTE CHUNK" << ENDL << ENDL;
@@ -326,9 +326,9 @@ namespace PathTracerNS
 						globalOffset_1   = constGlobalOffset_1;
 
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_5_Compress , 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_6_ChunkSize, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
+						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 						// SORT CHUNK
 
@@ -615,54 +615,10 @@ namespace PathTracerNS
 		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Triangle)	* global__triangulationSize	,1u), (void *) global__triangulation,	&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Light)		* global__lightsSize		,1u), (void *) global__lights,			&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Material)	* global__materiauxSize		,1u), (void *) global__materiaux,		&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Texture)		* global__texturesSize		,1u), (void *) global__textures,			&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Texture)		* global__texturesSize		,1u), (void *) global__textures,		&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 
 		kernel__sun				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, sizeof(SunLight), (void *) global__sun, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, sizeof(Sky)		, (void *) global__sky, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-
-
-		//	Pour les textures, on les stocke sous forme d'image3D
-
-		_cl_image_format imageFormat;
-		imageFormat.image_channel_data_type = CL_UNORM_INT8;
-		imageFormat.image_channel_order = CL_RGBA;
-
-		size_t maxTextureWidth = 0;
-		size_t maxTextureHeight = 0;
-		for(i=0; i<6; i++)
-		{
-			maxTextureWidth	 = max( (uint) maxTextureWidth  , global__sky->skyTextures[i].width  );
-			maxTextureHeight = max( (uint) maxTextureHeight , global__sky->skyTextures[i].height );
-		}
-		for(i=0; i<global__texturesSize; i++)
-		{
-			maxTextureWidth	 = max( (uint) maxTextureWidth  , global__textures[i].width  );
-			maxTextureHeight = max( (uint) maxTextureHeight , global__textures[i].height );
-		}
-		kernel__textures3DData = clCreateImage3D(opencl__context,	CL_MEM_READ_ONLY, &imageFormat, maxTextureWidth, maxTextureHeight, global__texturesSize + 6, 0, 0, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		size_t origin[3] = {0,0,0};
-		size_t region[3] = {1,1,1};
-
-		for(i=0; i<6; i++)
-		{
-			origin[2] = i;
-			region[0] = global__sky->skyTextures[i].width;
-			region[1] = global__sky->skyTextures[i].height;
-
-			errCode = clEnqueueWriteImage (opencl__queue, kernel__textures3DData, true, origin, region, 0, 0, &global__textureData[global__sky->skyTextures[i].offset], 0, NULL, NULL);
-			if(OpenCL_ErrorHandling(errCode)) return false;
-		}
-
-		for(i=0; i<global__texturesSize; i++)
-		{
-			origin[2] = i + 6;
-			region[0] = global__textures[i].width;
-			region[1] = global__textures[i].height;
-
-			errCode = clEnqueueWriteImage (opencl__queue, kernel__textures3DData, true, origin, region, 0, 0, &global__textureData[global__textures[i].offset], 0, NULL, NULL);
-			if(OpenCL_ErrorHandling(errCode)) return false;
-		}
 
 
 		/////////////////////////////////////////////////////////////////////////////////
@@ -670,6 +626,9 @@ namespace PathTracerNS
 		/////////////////////////////////////////////////////////////////////////////////
 
 		i = 1;
+		cout << "Taille de Float4 : " << sizeof(Float4) << endl;
+		return false;
+
 		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraScreenX	);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraScreenY	);	if(OpenCL_ErrorHandling(errCode)) return false;
@@ -784,7 +743,7 @@ namespace PathTracerNS
 		const char *Kernel_CustomDebug							= "Kernel_CustomDebug";
 
 		cl_platform_id *platform_ids;
-		cl_platform_id platform_id;
+		cl_platform_id platform_id = 0;
 		cl_device_id *device_ids;
 
 		cl_uint ret_num_devices;
@@ -799,7 +758,7 @@ namespace PathTracerNS
 		/* Load the sources code containing the kernel*/
 		for(int i=0; i < nbProgramFiles; i++)
 		{
-			fp = fopen(kernelFileName[i], "r");
+			fopen_s(&fp, kernelFileName[i], "r");
 			if (!fp)
 				return 1;
 
@@ -841,8 +800,8 @@ namespace PathTracerNS
 		{
 			CONSOLE << "Quelle plateforme desirez-vous ? ";
 
-			std::cin >> platformIdx;
-			//platformIdx = 1;
+			//std::cin >> platformIdx;
+			platformIdx = 1;
 
 			platformIdx = max( 1 , (int) min( platformIdx, (int) ret_num_platforms ) );
 			platformIdx -= 1;
@@ -960,7 +919,7 @@ namespace PathTracerNS
 		//	2 - Pour des performnace normalement accrue mais moins de précision
 		//char const * buildOptions = "-cl-mad-enable -I "PATHTRACER_FOLDER"Kernel\\";
 		//	3 - Normal
-		char const * buildOptions = "-I "PATHTRACER_FOLDER"Kernel\\";
+		char const * buildOptions = "-I \""PATHTRACER_FOLDER"Kernel\\\"";
 
 		errCode = clBuildProgram(opencl__program, 0, NULL, buildOptions , NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 

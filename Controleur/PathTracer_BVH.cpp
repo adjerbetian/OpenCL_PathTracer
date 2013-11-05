@@ -168,7 +168,7 @@ namespace PathTracerNS
 			{
 				BoundingBox_Reset( &elementaryBoundingBoxes[cutAxis][i] );
 				elementaryNTriangles[cutAxis][i] = 0;
-				SAH[cutAxis][i] = std::numeric_limits<int>::max();
+				SAH[cutAxis][i] = INT_MAX;
 			}
 		}
 

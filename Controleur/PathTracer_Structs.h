@@ -127,6 +127,7 @@ namespace PathTracerNS
 		BoundingBox AABB;
 		uint materialWithPositiveNormalIndex;
 		uint materialWithNegativeNormalIndex;
+
 	} Triangle;
 
 
@@ -150,8 +151,8 @@ namespace PathTracerNS
 	{
 		This->isEmpty = false;
 
-		This->pMin = min(min(*s1, *s2), *s3);
-		This->pMax = max(max(*s1, *s2), *s3);
+		This->pMin = ppmin(ppmin(*s1, *s2), *s3);
+		This->pMax = ppmax(ppmax(*s1, *s2), *s3);
 
 		This->centroid = (This->pMin + This->pMax) / 2;
 	}
@@ -183,8 +184,8 @@ namespace PathTracerNS
 			return;
 		}
 
-		This->pMin = min(This->pMin, bb->pMin);
-		This->pMax = max(This->pMax, bb->pMax);
+		This->pMin = ppmin(This->pMin, bb->pMin);
+		This->pMax = ppmax(This->pMax, bb->pMax);
 
 		This->centroid = (This->pMin + This->pMax) / 2;
 	}
@@ -207,8 +208,8 @@ namespace PathTracerNS
 			return;
 		}
 
-		This->pMin = min(This->pMin, *v);
-		This->pMax = max(This->pMax, *v);
+		This->pMin = ppmin(This->pMin, *v);
+		This->pMax = ppmax(This->pMax, *v);
 
 		This->centroid = (This->pMin + This->pMax) / 2;
 	}
@@ -267,8 +268,8 @@ namespace PathTracerNS
 		Ray3D r;
 
 		r.origin = This->origin;
-		r.direction = - This->direction;
-		r.inverse = - This->inverse;
+		r.direction = This->direction * (-1);
+		r.inverse = This->inverse * (-1);
 		r.isInWater = This->isInWater;
 		r.reflectionId = This->reflectionId;
 

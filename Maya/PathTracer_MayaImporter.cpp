@@ -1,5 +1,6 @@
 
 #include "PathTracer_MayaImporter.h"
+#include "../Controleur/PathTracer_Utils.h"
 #include <maya/MItDag.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIOStream.h>
@@ -18,6 +19,11 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Import()
 	{
 		SetCam();
+		ImportScene();
+
+		*ptr__global__lights = new Light;
+		*ptr__global__materiaux = new Material;
+		*ptr__global__textures = new Texture;
 	}
 
 	bool PathTracerMayaImporter::GetCam(const MString &cameraName, MDagPath &camera)
@@ -63,8 +69,8 @@ namespace PathTracerNS
 		float	pinHole	= fnCamera.focusDistance  ();
 
 
-		*ptr__global__imageWidth = 1920;
-		*ptr__global__imageHeight = 1080;
+		*ptr__global__imageWidth = 1280;
+		*ptr__global__imageHeight = 720;
 		*ptr__global__imageSize = (*ptr__global__imageWidth) * (*ptr__global__imageHeight);
 
 		ptr__global__cameraDirection->x = D.x;
@@ -93,6 +99,8 @@ namespace PathTracerNS
 		MItDag itMesh(MItDag::kDepthFirst,MFn::kMesh);
 		MDagPath objPath;
 
+		// First we get the total number of triangles in the scene
+		*ptr__global__triangulationSize = 0;
 		while(!itMesh.isDone())
 		{
 			itMesh.getPath(objPath);
@@ -103,6 +111,46 @@ namespace PathTracerNS
 			MIntArray TraingleVertices;
 
 			fnMesh.getTriangles(TriangleCount, TraingleVertices);
+
+			for(int i=0; i<TriangleCount.length(); i++)
+				*ptr__global__triangulationSize += TriangleCount[i];
+
+			itMesh.next();
+			cout << endl;
+		}
+
+		itMesh.reset();
+		*ptr__global__triangulation = new Triangle[*ptr__global__triangulationSize];
+		uint triangleId = 0;
+
+		while(!itMesh.isDone())
+		{
+			itMesh.getPath(objPath);
+			MFnMesh fnMesh(objPath);
+			cout << "Object : " << fnMesh.name() << endl;
+
+			MIntArray TriangleCount;
+			MIntArray TriangleVertices;
+			MPointArray Points;
+
+			fnMesh.getPoints(Points, MSpace::kWorld);
+			fnMesh.getTriangles(TriangleCount, TriangleVertices);
+			Float2 temp2;
+			Float4 temp4;
+			for(int i=0; i<TriangleVertices.length(); i+=3)
+			{
+				Triangle_Create(
+					*ptr__global__triangulation + triangleId,
+					&Points[TriangleVertices[i]],
+					&Points[TriangleVertices[i+1]],
+					&Points[TriangleVertices[i+2]],
+					&temp2,&temp2,&temp2,
+					&temp4, &temp4, &temp4,
+					&temp4, &temp4, &temp4,
+					&temp4, &temp4, &temp4,
+					0);
+				triangleId++;
+			}
 
 			itMesh.next();
 			cout << endl;

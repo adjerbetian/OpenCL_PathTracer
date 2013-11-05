@@ -74,6 +74,8 @@ namespace PathTracerNS
 
 	void PathTracer_Main()
 	{
+		CONSOLE << ENDL;
+
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 		CONSOLE << "                          PATH TRACER" << ENDL;
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
@@ -348,9 +350,9 @@ namespace PathTracerNS
 	void PathTracer_PrintBVHCharacteristics()
 	{
 		uint BVHMaxLeafSize	=	0;
-		uint BVHMinLeafSize	=	std::numeric_limits<int>::max();
+		uint BVHMinLeafSize	=	INT_MAX;
 		uint BVHMaxDepth	=	0;
-		uint BVHMinDepth	=	std::numeric_limits<int>::max();
+		uint BVHMinDepth	=	INT_MAX;
 		uint nNodes			=	0;
 		uint nLeafs			=	0;
 		std::string BVHMaxLeafSizeComments;

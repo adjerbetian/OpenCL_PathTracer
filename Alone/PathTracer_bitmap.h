@@ -138,7 +138,7 @@ namespace PathTracerNS
 
 
 
-	bool SaveBMP ( BYTE* buffer, int width, int height, long paddedsize, LPCWSTR bmpfile )
+	bool SaveBMP ( BYTE* buffer, int width, int height, long paddedsize, LPCSTR bmpfile )
 	{
 		BITMAPFILEHEADER bmfh;
 		BITMAPINFOHEADER info;

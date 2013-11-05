@@ -20,7 +20,7 @@ namespace PathTracerNS
 	{
 		static int numImage = 1;
 		
-		std::wostringstream oss;
+		std::ostringstream oss;
 		oss << exportFolderPath;
 		if(numImage / 100 == 0)
 		{
@@ -30,8 +30,8 @@ namespace PathTracerNS
 		}
 		oss << numImage << ".bmp";
 
-		std::wstring wFilePath = oss.str();
-		LPCWSTR filePath = wFilePath.c_str();
+		std::string sFilePath = oss.str();
+		LPCSTR filePath = sFilePath.c_str();
 
 		long newBufferSize = 0;
 		BYTE* buffer = ConvertRGBAToBMPBuffer(imageColor, imageRay, pathTracerWidth, pathTracerHeight, &newBufferSize);

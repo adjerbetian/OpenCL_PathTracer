@@ -17,10 +17,6 @@ MStatus initializePlugin(MObject obj)
 { 
 	MFnPlugin plugin(obj, "IS", "1.0", "Any");
 
-	PathTracerNS::PathTracer::SetImporter(new PathTracerNS::PathTracerMayaImporter());
-
-	MStatus status = plugin.registerCommand("raytrace", PathTracerNS::creator);
-
 	MStatus status = plugin.registerCommand("raytrace", RayTracer::creator);
 	CHECK_MSTATUS_AND_RETURN_IT(status);
 	return status;

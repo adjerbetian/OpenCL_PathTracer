@@ -40,7 +40,7 @@
 typedef double4 RGBAColor;
 
 #define KERNEL_GLOBAL_VAR		 \
-	p__itemSeed					,\
+	seed						,\
 	global__bvh					,\
 	global__triangulation		,\
 	global__lights				,\
@@ -49,18 +49,12 @@ typedef double4 RGBAColor;
 	global__textures3DData		,\
 	global__lightsSize			,\
 	global__sun					,\
-	global__sky					,\
-	local__currentReadStackIdx	,\
-	local__son1					,\
-	local__son2					,\
-	local__currentNode			,\
-	local__stack				,\
-	local__M
+	global__sky					
 
 
 
 #define KERNEL_GLOBAL_VAR_DECLARATION							 \
-	int								*p__itemSeed				,\
+	int								*seed						,\
 	Node		__global	const	*global__bvh				,\
 	Triangle	__global	const	*global__triangulation		,\
 	Light		__global	const	*global__lights				,\
@@ -69,13 +63,7 @@ typedef double4 RGBAColor;
 	IMAGE3D							 global__textures3DData		,\
 	uint							 global__lightsSize			,\
 	SunLight	__global const		*global__sun				,\
-	Sky			__global const		*global__sky				,\
-	int			__local  volatile	*local__currentReadStackIdx	,\
-	Node		__local  volatile	*local__son1				,\
-	Node		__local  volatile	*local__son2				,\
-	Node		__local  volatile	*local__currentNode			,\
-	Node		__local  volatile	*local__stack				,\
-	int			__local  volatile	*local__M
+	Sky			__global const		*global__sky				
 
 
 
@@ -88,11 +76,8 @@ typedef struct
 	double4 origin;
 	double4 direction;
 	double4 inverse;
-	RGBAColor transferFunction;
-	int reflectionId;
-	char positiveDirection[3];
-	char isInWater;
-	char isActive;
+	char	positiveDirection[3];
+	char	isInWater;
 } Ray3D;
 
 typedef struct
@@ -249,7 +234,7 @@ inline float random	(int *seed)
 inline int InitializeRandomSeed(uint x, uint y, uint width, uint height, uint iterationNum)
 {
 	int seed = 0;
-	seed = x + y * width + iterationNum * width * height;
+	seed = x + ( y * width ) + ( iterationNum * width * height );
 	seed *= 2011;	//	Nombre premier, pour plus répartir les nombres
 	seed *= seed;
 	if(seed == 0)
@@ -285,9 +270,6 @@ inline void Ray3D_Create( Ray3D *This, double4 const *o, double4 const *d, bool 
 {
 	This->origin = *o;
 	This->isInWater = _isInWater;
-	This->reflectionId = 0;
-	This->isActive = true;
-	This->transferFunction = RGBACOLOR(1,1,1,1);
 
 	Ray3D_SetDirection(This, d);
 };
@@ -300,7 +282,6 @@ inline Ray3D Ray3D_Opposite( Ray3D const *This )
 	r.direction = - This->direction;
 	r.inverse = - This->inverse;
 	r.isInWater = This->isInWater;
-	r.reflectionId = This->reflectionId;
 
 	for(int i=0; i<3; i++)
 		r.positiveDirection[i] = !This->positiveDirection[i];
@@ -505,22 +486,27 @@ bool		Scene_PickLight						(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, con
 ////////////////////////////////////////////////////////////////////////////////////////
 
 __kernel void Kernel_Main(
-	uint	kernel__iterationNum		,
-	uint	kernel__imageWidth			,
-	uint	kernel__imageHeight			,
-	uint	global__lightsSize			,
+	uint     kernel__iterationNum,
+	uint     kernel__imageWidth,
+	uint     kernel__imageHeight,
 
-	double4	__global			*global__imageColor			,
-	uint	__global			*global__imageRayNb			,
-	void	__global	const	*global__void__bvh			,
+	double4  kernel__cameraPosition,
+	double4  kernel__cameraDirection,
+	double4  kernel__cameraRight,
+	double4  kernel__cameraUp,
+
+	uint     global__lightsSize,
+
+	double4	__global			*global__imageColor,
+	uint	__global			*global__imageRayNb,
+	void	__global	const	*global__void__bvh,
 	void	__global	const	*global__void__triangulation,
-	void	__global	const	*global__void__lights		,
-	void	__global	const	*global__void__materiaux	,
-	void	__global	const	*global__void__textures		,
-	IMAGE3D						 global__textures3DData		,
-	void	__global	const	*global__void__sun			,
-	void	__global	const	*global__void__sky			,
-	void	__global	const	*global__void__rays
+	void	__global	const	*global__void__lights,
+	void	__global	const	*global__void__materiaux,
+	void	__global	const	*global__void__textures,
+	IMAGE3D						 global__textures3DData,
+	void	__global	const	*global__void__sun,
+	void	__global	const	*global__void__sky
 	);
 
 

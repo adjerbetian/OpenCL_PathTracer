@@ -18,19 +18,6 @@ namespace PathTracerNS
 	//	Ensemble des noyaux appelable depuis l'hôte
 
 	cl_kernel			 opencl__Kernel_Main								= NULL;	
-	cl_kernel			 opencl__Kernel_CreateRays							= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_1_ComputeHashValues_Part1	= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_2_ComputeHashValues_Part2	= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_3_PrefixSum				= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_4_AdditionBlockOffset		= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_5_Compress 				= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_6_ChunkSize				= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo	= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_9_AddComputedOffsetAndSort	= NULL;
-
-	cl_kernel			 opencl__Kernel_SortRays_0_DebugHashValues			= NULL;
-	cl_kernel			 opencl__Kernel_SortRays_0_DebugRadixSort			= NULL;
-	cl_kernel			 opencl__Kernel_CustomDebug							= NULL;
 
 	//	Objets mémoires aloué sur le device OpenCL
 
@@ -44,18 +31,6 @@ namespace PathTracerNS
 	cl_mem				 kernel__textures3DData			= NULL;
 	cl_mem				 kernel__sun					= NULL;
 	cl_mem				 kernel__sky					= NULL;
-	cl_mem				 kernel__rays					= NULL;
-	cl_mem				 kernel__hashValues				= NULL;
-	cl_mem				 kernel__headFlags				= NULL;
-	cl_mem				 kernel__blockSum1				= NULL;
-	cl_mem				 kernel__blockSum2				= NULL;
-	cl_mem				 kernel__chunkHash				= NULL;
-	cl_mem				 kernel__chunkBase				= NULL;
-	cl_mem				 kernel__chunkSize				= NULL;
-	cl_mem				 kernel__newChunkHash			= NULL;
-	cl_mem				 kernel__newChunkBase			= NULL;
-	cl_mem				 kernel__newChunkSize			= NULL;
-	cl_mem				 kernel__chunk16BaseInfo		= NULL;
 
 	// tableaux utiilisés pour la récupération des données depuis le device
 
@@ -63,25 +38,10 @@ namespace PathTracerNS
 	uint				*opencl__imageRayNbFromDevice	= NULL;
 
 
-	/*	Fonction temportaire utilisée pour trier les rayons chez l'hôte
-	*	en utulisant la librairie standard
-	*/
-
-	bool myComparefunction(std::pair<uint,uint> p1, std::pair<uint,uint> p2) {return (p1.first < p2.first); }
-
-
 	/*	Fonction de lancement des noyaux
-	*		1 - Création d'un tableau de rayons tirés depuis la caméra		<--------------------------------
-	*		2 - Si on trie les rayons :										<----							|
-	*			a)	Calcul des valeurs de hashage des rayons					|							|
-	*			b)	Compression des valeurs de hashage							|							|
-	*			c)	Rappatriement des données compressées chez l'hôte			|							| 
-	*			d)	Trie des données compressées								| x Max reflection number	| x Tant que la fenêtre est active
-	*			e)	Réordonnencement des rayons en fonction du trie				|							|
-	*			f)	Transfert des rayons triés vers le device					|							|
-	*		3 - Lancement du noyeux principal									|							|
-	*		4 - Récupération des données de rendu et affichage				-----	-------------------------
-	*		5 - Libération de la mémoire sur le device et des variables OpenCL
+	*		1 - Lancement du noyeux principal								
+	*		2 - Récupération des données de rendu et affichage				
+	*		3 - Libération de la mémoire sur le device et des variables OpenCL
 	*/
 
 	bool OpenCL_RunKernel(
@@ -94,413 +54,54 @@ namespace PathTracerNS
 		)
 	{
 		cl_int errCode = 0;
-		clock_t start;
-		float kernelMainExecutionTime = 0;
-		float kernelSortExecutionTime = 0;
-		float CopyExecutionTime = 0;
-		float UpdateExecutionTime = 0;
-		cl_event executionEvent;
-		cl_device_type deviceType;
 
-		errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_TYPE, sizeof(cl_device_type), &deviceType, NULL);
-		if(OpenCL_ErrorHandling(errCode)) return false;
+		opencl__imageColorFromDevice = new RGBAColor[global__imageSize];
+		opencl__imageRayNbFromDevice = new uint[global__imageSize];
 
-		opencl__imageColorFromDevice		= new RGBAColor[global__imageSize];
-		opencl__imageRayNbFromDevice		= new uint[global__imageSize];
+		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
+		const size_t constLocalWorkSize[2]  = { 1, 1 };
 
-		const size_t constGlobalWorkSize_2[2]	= { global__imageWidth , global__imageHeight };
-		const size_t constLocalWorkSize_2[2]	= { (deviceType == CL_DEVICE_TYPE_CPU) ? 1 : 8 , (deviceType == CL_DEVICE_TYPE_CPU) ? 1 : 8 };
-		const size_t constGlobalOffset_2[2]		= { 0 , 0 };
-
-		const size_t constGlobalWorkSize_1	= constGlobalWorkSize_2[0] * constGlobalWorkSize_2[1];
-		const size_t constLocalWorkSize_1	= constLocalWorkSize_2[0] * constLocalWorkSize_2[1];
-		const size_t constGlobalOffset_1	= constGlobalOffset_2[0] * constGlobalOffset_2[1];
-
-		cl_double4 dimGrid = {{32,32,32,1}};
-
-		size_t globalWorkSize_1 = constGlobalWorkSize_1	;
-		size_t localWorkSize_1  = constLocalWorkSize_1	;
-		size_t globalOffset_1   = constGlobalOffset_1	;
-
-		cl_uint debug_info = 0;
-		cl_uint reflectionId = 0;
 		cl_uint imageId = 0;
 
-		bool sort = false;
-		if(deviceType != CL_DEVICE_TYPE_CPU)
+		while(true)
 		{
-			CONSOLE << "Voulez vous trier les rayons ? ";
-			std::cin >> sort;
-			CONSOLE << ENDL;
-		}
+			CONSOLE << "Image : " << imageId << ENDL;
 
+			/////////////////////////////////////////////////////////////////////////////////
+			//////////////////// 1 -  MAIN KERNEL  //////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////
 
-		//for(int t=1; t<=64; t*=2)
-		{
-			//localWorkSize_2[0] = t;
-			//localWorkSize_2[1] = t;
-			//dimGrid.s[0] = dimGrid.s[1] = dimGrid.s[2] = t*16;
-			//dimGrid.s[3] = 1;
+			errCode = clSetKernelArg(opencl__Kernel_Main, 0, sizeof(cl_uint), (void*) &imageId);
+			if(OpenCL_ErrorHandling(errCode)) return false;
 
-			errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, 0, sizeof(cl_double4), (void*) &dimGrid);	if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "globalWorkSize : [ " << constGlobalWorkSize_2[0] << " , " << constGlobalWorkSize_2[1] << " ]" << ENDL;
-			CONSOLE << "localWorkSize : "  << constLocalWorkSize_1 << ENDL;
-			CONSOLE << "dimGrid : "  << dimGrid.s[0] << ENDL;
-			CONSOLE << ENDL;
+			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 1, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
+			if(OpenCL_ErrorHandling(errCode)) return false;
+			clFinish(opencl__queue);
 
-			while(true)
+			/////////////////////////////////////////////////////////////////////////////////
+			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize	, (void *) opencl__imageColorFromDevice, 1, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb,	CL_TRUE, 0, sizeof(uint)		* global__imageSize	, (void *) opencl__imageRayNbFromDevice, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+			clFinish(opencl__queue);
+
+			/////////////////////////////////////////////////////////////////////////////////
+			/////////////// 4 - TRAITEMENT DES DONNEES ET AFFICHAGE  ////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////
+			int offset = 0;
+			for(uint y = 0; y < global__imageHeight; y++)
 			{
-
-
-				CONSOLE << "Image : " << imageId << ENDL;
-
-				/////////////////////////////////////////////////////////////////////////////////
-				/////////////   1 - CREATION DES RAYONS  ////////////////////////////////////////
-				/////////////////////////////////////////////////////////////////////////////////
-
-				errCode = clSetKernelArg(opencl__Kernel_CreateRays, 0, sizeof(cl_uint), (void*) &imageId);	if(OpenCL_ErrorHandling(errCode)) return false;
-				errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_CreateRays, 2, constGlobalOffset_2, constGlobalWorkSize_2, constLocalWorkSize_2, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-				reflectionId = 0;
-
-				while(reflectionId <= MAX_REFLECTION_NUMBER)
+				for(uint x = 0; x < global__imageWidth; x++)
 				{
-					CONSOLE << "\tReflection : " << reflectionId << " ...  ";
-
-					if(sort)
-					{
-						/////////////////////////////////////////////////////////////////////////////////
-						//////////////////// 2 - TRI DES RAYONS /////////////////////////////////////////
-						/////////////////////////////////////////////////////////////////////////////////
-						start = clock();
-
-						// COMPUTE HASH VALUES
-
-						globalWorkSize_1 = constGlobalWorkSize_1 / 4;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						errCode = clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_1_ComputeHashValues_Part1	, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_2_ComputeHashValues_Part2	, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						clFinish(opencl__queue);
-
-						// SOMMATION PARRALLELE PAR BLOCK
-
-						// ROUND 1
-
-						globalWorkSize_1 = constGlobalWorkSize_1;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						cl_uint pattern = 0;
-						//errCode = clEnqueueFillBuffer (opencl__queue, kernel__blockSum1, &pattern, sizeof(cl_uint), 0, global__imageSize * 16 / 256, 0, NULL, NULL);
-						//errCode = clEnqueueFillBuffer (opencl__queue, kernel__blockSum2, &pattern, sizeof(cl_uint), 0, 256, 0, NULL, NULL);
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__headFlags);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum1);	if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-
-						// DEBUG ********************************************************
-						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : SOMMATION PARRALLELE PAR BLOCK ROUND 1" << ENDL << ENDL;
-						//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//localWorkSize_1  = 256;
-						//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_Debug, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-						//*********************************************************
-
-						// ROUND 2
-						globalWorkSize_1 = constGlobalWorkSize_1;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						globalWorkSize_1 = globalWorkSize_1 / localWorkSize_1 + (globalWorkSize_1 % localWorkSize_1 != 0);
-						if(globalWorkSize_1 % 256 != 0)
-							globalWorkSize_1 += 256 - (globalWorkSize_1 % 256);
-
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__blockSum1); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						// DEBUG ********************************************************
-						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : SOMMATION PARRALLELE PAR BLOCK ROUND 2" << ENDL << ENDL;
-						//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//localWorkSize_1  = 256;
-						//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_Debug, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-						//*********************************************************
-
-						// ROUND 3
-						globalWorkSize_1 = 64;
-						localWorkSize_1  = 64;
-						globalOffset_1   = 0;
-
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						// DEBUG ********************************************************
-						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : SOMMATION PARRALLELE PAR BLOCK ROUND 3" << ENDL << ENDL;
-						//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//localWorkSize_1  = 256;
-						//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_Debug, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-						//*********************************************************
-
-						// REMISE A NIVEAU DES BLOCKS
-
-						// ROUND 2
-						globalWorkSize_1 = constGlobalWorkSize_1;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						globalWorkSize_1 = globalWorkSize_1 / localWorkSize_1 + (globalWorkSize_1 % localWorkSize_1 != 0);
-						if(globalWorkSize_1 % 256 != 0)
-							globalWorkSize_1 += 256 - (globalWorkSize_1 % 256);
-
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 0, sizeof(cl_mem), (void*) &kernel__blockSum1); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						// DEBUG ********************************************************
-						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : REMISE A NIVEAU DES BLOCKS ROUND 2" << ENDL << ENDL;
-						//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//localWorkSize_1  = 256;
-						//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_Debug, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-						//*********************************************************
-
-						// ROUND 1
-
-						globalWorkSize_1 = constGlobalWorkSize_1;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 0, sizeof(cl_mem), (void*) &kernel__headFlags);		if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, sizeof(cl_mem), (void*) &kernel__blockSum1);		if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						// DEBUG ********************************************************
-						//CONSOLE << ENDL << ENDL << ENDL << "DEBUG START : REMISE A NIVEAU DES BLOCKS ROUND 1" << ENDL << ENDL;
-						//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//localWorkSize_1  = 256;
-						//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_Debug, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-						//*********************************************************
-
-						// COMPUTE CHUNK
-
-						globalWorkSize_1 = constGlobalWorkSize_1;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_5_Compress , 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_6_ChunkSize, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						// DEBUG ********************************************************
-						//CONSOLE << ENDL << ENDL << ENDL << "COMPUTE CHUNK" << ENDL << ENDL;
-						//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//localWorkSize_1  = 256;
-						//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_Debug, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-						//*********************************************************
-
-						globalWorkSize_1 = constGlobalWorkSize_1;
-						localWorkSize_1  = 256;
-						globalOffset_1   = constGlobalOffset_1;
-
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_5_Compress , 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_6_ChunkSize, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						clEnqueueBarrierWithWaitList(opencl__queue, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						// SORT CHUNK
-
-						//for(cl_uint b=0; b < 1; b++)
-						//{
-						//	// Calcul des valeurs en base 16
-
-						//	globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//	localWorkSize_1  = 256;
-						//	globalOffset_1   = globalOffset_2[0]   * globalOffset_2[1];
-
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo	, 0, sizeof(cl_uint), (void*) &b); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort	, 0, sizeof(cl_uint), (void*) &b); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						//	errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo  , 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						//	// DEBUG ********************************************************
-						//	//CONSOLE << ENDL << ENDL << ENDL << "SORT CHUNK 1" << ENDL << ENDL;
-						//	//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//	//localWorkSize_1  = 256;
-						//	//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//	//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_0_DebugRadixSort, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	//clFinish(opencl__queue);
-						//	//*********************************************************
-
-						//	// Somme prefix des valeurs ROUND 1
-
-						//	globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1] * 16 / 256;
-						//	localWorkSize_1  = 256;
-						//	globalOffset_1   = globalOffset_2[0]   * globalOffset_2[1];
-
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__blockSum1); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						//	clFinish(opencl__queue);
-
-						//	// Somme prefix des valeurs ROUND 2
-
-						//	globalWorkSize_1 = 256;
-						//	localWorkSize_1  = 256;
-						//	globalOffset_1   = globalOffset_2[0]   * globalOffset_2[1];
-
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 0, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_3_PrefixSum, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_3_PrefixSum, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						//	clFinish(opencl__queue);
-
-						//	// Remise à niveau ROUND 2
-
-						//	globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1] * 16 / 256;
-						//	localWorkSize_1  = 256;
-						//	globalOffset_1   = globalOffset_2[0]   * globalOffset_2[1];
-
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 0, sizeof(cl_mem), (void*) &kernel__blockSum1); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clSetKernelArg(opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, sizeof(cl_mem), (void*) &kernel__blockSum2); if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_4_AdditionBlockOffset, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						//	clFinish(opencl__queue);
-
-						//	// Remise à niveau des blocks
-
-						//	globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//	localWorkSize_1  = 256;
-						//	globalOffset_1   = globalOffset_2[0]   * globalOffset_2[1];
-
-						//	errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	errCode = clEnqueueBarrier(opencl__queue); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						//	clFinish(opencl__queue);
-
-						//	// DEBUG ********************************************************
-						//	//CONSOLE << ENDL << ENDL << ENDL << "SORT CHUNK 2" << ENDL << ENDL;
-						//	//globalWorkSize_1 = globalWorkSize_2[0] * globalWorkSize_2[1];
-						//	//localWorkSize_1  = 256;
-						//	//globalOffset_1   = globalOffset_2[0] * globalOffset_2[1];
-						//	//errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_SortRays_0_DebugRadixSort, 1, &globalOffset_1, &globalWorkSize_1, &localWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-						//	//clFinish(opencl__queue);
-						//	//*********************************************************
-
-						//}
-
-						uint *hashValues = new uint[global__imageSize];
-						Ray3D *rays		= new Ray3D[global__imageSize];
-						Ray3D *newRays	= new Ray3D[global__imageSize];
-
-						for(uint r=0; r<global__imageSize; r++)
-						{
-							hashValues[r] = 0;
-							rays[r].isActive = true;
-							newRays[r].isActive = true;
-						}
-
-						errCode = clEnqueueReadBuffer(opencl__queue, kernel__hashValues	, CL_TRUE, 0, sizeof(uint)  * global__imageSize, (void *) hashValues, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-						errCode = clEnqueueReadBuffer(opencl__queue, kernel__rays		, CL_TRUE, 0, sizeof(Ray3D) * global__imageSize, (void *) rays, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-						clFinish(opencl__queue);
-
-						int sizeofRay3D = sizeof(Ray3D);
-						int nbInactiveRays = 0;
-						int nbActiveRays = 0;
-
-						std::vector<std::pair<uint,uint>> arrayToSort;
-						for(uint r=0; r<global__imageSize; r++)
-							arrayToSort.push_back(std::pair<uint,uint>(hashValues[r], r));
-
-						std::sort(arrayToSort.begin(), arrayToSort.end(), myComparefunction);
-
-						for(uint r=0; r<global__imageSize; r++)
-							newRays[r] = rays[arrayToSort[r].second];
-
-						errCode = clEnqueueWriteBuffer(opencl__queue, kernel__rays, CL_TRUE, 0, sizeof(Ray3D) * global__imageSize, (void *) newRays, 0, NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-						clFinish(opencl__queue);
-
-						delete[] rays		;
-						delete[] newRays	;
-						delete[] hashValues	;
-
-						kernelSortExecutionTime = ((double) (clock() - start) / CLOCKS_PER_SEC);
-					}
-
-					/////////////////////////////////////////////////////////////////////////////////
-					//////////////////// 2 -  MAIN KERNEL  //////////////////////////////////////////
-					/////////////////////////////////////////////////////////////////////////////////
-					start = clock();
-					errCode = clSetKernelArg(opencl__Kernel_Main, 0, sizeof(cl_uint), (void*) &imageId);	if(OpenCL_ErrorHandling(errCode)) return false;
-					errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 1, &constGlobalOffset_1, &constGlobalWorkSize_1, &constLocalWorkSize_1, 0, NULL, &executionEvent);	if(OpenCL_ErrorHandling(errCode)) return false;
-					clFinish(opencl__queue);
-
-					kernelMainExecutionTime = ((double) (clock() - start) / CLOCKS_PER_SEC);
-
-					CONSOLE << "done : " << kernelSortExecutionTime << " : " << kernelMainExecutionTime << " : " << CopyExecutionTime << " : " << UpdateExecutionTime << ENDL;
-					reflectionId++;
+					global__imageColor[x][y] = opencl__imageColorFromDevice[offset];
+					//global__imageRayNb[x][y] = opencl__imageRayNbFromDevice[offset];
+					global__imageRayNb[x][y] = imageId+1;
+					offset++;
 				}
-
-				/////////////////////////////////////////////////////////////////////////////////
-				////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
-				/////////////////////////////////////////////////////////////////////////////////
-				start = clock();
-				errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize	, (void *) opencl__imageColorFromDevice, 1, &executionEvent	, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-				errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb,	CL_TRUE, 0, sizeof(uint)		* global__imageSize	, (void *) opencl__imageRayNbFromDevice, 0, NULL			, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-				clFinish(opencl__queue);
-				CopyExecutionTime = ((double) (clock() - start) / CLOCKS_PER_SEC);
-
-				/////////////////////////////////////////////////////////////////////////////////
-				/////////////// 4 - TRAITEMENT DES DONNEES ET AFFICHAGE  ////////////////////////
-				/////////////////////////////////////////////////////////////////////////////////
-				start = clock();
-				int offset = 0;
-				for(uint y = 0; y < global__imageHeight; y++)
-				{
-					for(uint x = 0; x < global__imageWidth; x++)
-					{
-						global__imageColor[x][y] = opencl__imageColorFromDevice[offset];
-						//global__imageRayNb[x][y] = opencl__imageRayNbFromDevice[offset];
-						global__imageRayNb[x][y] = imageId+1;
-						offset++;
-					}
-				}
-				(*UpdateWindowFunc)();
-
-				UpdateExecutionTime = ((double) (clock() - start) / CLOCKS_PER_SEC);
-
-
-				imageId++;
 			}
+			(*UpdateWindowFunc)();
+
+			imageId++;
 
 			CONSOLE << ENDL << ENDL;
 		}
@@ -520,33 +121,14 @@ namespace PathTracerNS
 		errCode = clReleaseMemObject(kernel__textures3DData);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__sun);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__rays);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__hashValues);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__headFlags);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__chunkHash);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__chunkBase);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__chunkSize);		if(OpenCL_ErrorHandling(errCode)) return false;
 
-		/* Finalization */
-		errCode = clFlush				(opencl__queue										);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clFinish				(opencl__queue										);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clFlush				(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clFinish				(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseKernel		(opencl__Kernel_Main ); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseProgram		(opencl__program	 ); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseCommandQueue	(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseContext		(opencl__context	 ); if(OpenCL_ErrorHandling(errCode)) return false;
 
-		errCode = clReleaseKernel		(opencl__Kernel_Main								);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_CreateRays							);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_1_ComputeHashValues_Part1	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_2_ComputeHashValues_Part2	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_3_PrefixSum				);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_4_AdditionBlockOffset		);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_5_Compress					);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_6_ChunkSize				);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_0_DebugHashValues			);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_SortRays_0_DebugRadixSort				);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-		errCode = clReleaseProgram		(opencl__program									);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseCommandQueue	(opencl__queue										);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseContext		(opencl__context									);	if(OpenCL_ErrorHandling(errCode)) return false;
 		return true;
 	}
 
@@ -595,107 +177,20 @@ namespace PathTracerNS
 		cl_int errCode = 0;
 		cl_uint i = 0;
 
-		kernel__imageColor		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(RGBAColor)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__imageRayNb		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__rays			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(Ray3D)		* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__hashValues		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__headFlags		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__blockSum1		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize * 16 / 256	, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__blockSum2		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* 256							, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__chunkHash		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__chunkBase		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__chunkSize		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__newChunkHash	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__newChunkBase	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__newChunkSize	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__newChunkSize	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize				, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__chunk16BaseInfo	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE, sizeof(cl_uint)	* global__imageSize	* 16		, NULL, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;		
-
-		kernel__bvh				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Node)		* global__bvhSize			,1u), (void *) global__bvh,				&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Triangle)	* global__triangulationSize	,1u), (void *) global__triangulation,	&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Light)		* global__lightsSize		,1u), (void *) global__lights,			&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Material)	* global__materiauxSize		,1u), (void *) global__materiaux,		&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, max(sizeof(Texture)		* global__texturesSize		,1u), (void *) global__textures,		&errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		kernel__sun				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, sizeof(SunLight), (void *) global__sun, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR, sizeof(Sky)		, (void *) global__sky, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__imageColor		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(RGBAColor)    * global__imageSize			    , NULL                            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__imageRayNb		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(cl_uint)      * global__imageSize			    , NULL                            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__bvh				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Node)	  * global__bvhSize             ,1u), (void *) global__bvh            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Triangle) * global__triangulationSize   ,1u), (void *) global__triangulation  , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Light)	  * global__lightsSize          ,1u), (void *) global__lights         , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Material) * global__materiauxSize		,1u), (void *) global__materiaux      , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Texture)  * global__texturesSize		,1u), (void *) global__textures       , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__sun				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(SunLight)                                       , (void *) global__sun            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)                                            , (void *) global__sky            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 
 
 		/////////////////////////////////////////////////////////////////////////////////
 		///////////  1 - ARGUEMENTS POUR LES NOYAUX  ////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////
-
-		i = 1;
-
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraScreenX	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraScreenY	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraPosition	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(cl_uint),			(void*) &global__imageWidth		);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(cl_uint),			(void*) &global__imageHeight	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(cl_mem),			(void*) &kernel__rays			);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-		//	La bounding box totale doit aussi prendre en compte la caméra
-		BoundingBox fullScene = global__bvh[0].trianglesAABB;
-		BoundingBox_AddPoint ( &fullScene , &global__cameraPosition );
-		cl_double4 sceneMin = {{ fullScene.pMin.x , fullScene.pMin.y , fullScene.pMin.z , 0 }};
-		cl_double4 sceneMax = {{ fullScene.pMax.x , fullScene.pMax.y , fullScene.pMax.z , 1.f }};
-
-		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_double4),	(void*) &sceneMin);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_double4),	(void*) &sceneMax);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_mem),	(void*) &kernel__rays);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_mem),	(void*) &kernel__hashValues);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_mem),	(void*) &kernel__headFlags);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 0;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_2_ComputeHashValues_Part2, i++, sizeof(cl_mem), (void*) &kernel__hashValues);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_2_ComputeHashValues_Part2, i++, sizeof(cl_mem), (void*) &kernel__headFlags);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 0;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_5_Compress, i++, sizeof(cl_mem), (void*) &kernel__hashValues);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_5_Compress, i++, sizeof(cl_mem), (void*) &kernel__headFlags);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_5_Compress, i++, sizeof(cl_mem), (void*) &kernel__chunkHash);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_5_Compress, i++, sizeof(cl_mem), (void*) &kernel__chunkBase);		if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 0;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_6_ChunkSize, i++, sizeof(cl_mem), (void*) &kernel__headFlags);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_6_ChunkSize, i++, sizeof(cl_mem), (void*) &kernel__chunkBase);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_6_ChunkSize, i++, sizeof(cl_mem), (void*) &kernel__chunkSize);		if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo, i++, sizeof(cl_mem), (void*) &kernel__chunkHash);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo, i++, sizeof(cl_mem), (void*) &kernel__chunk16BaseInfo);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo, i++, sizeof(cl_mem), (void*) &kernel__blockSum1);		if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__chunk16BaseInfo);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__blockSum1);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__chunkHash);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__chunkBase);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__chunkSize);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__newChunkHash);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__newChunkBase);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_9_AddComputedOffsetAndSort, i++, sizeof(cl_mem), (void*) &kernel__newChunkSize);		if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 0;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__hashValues);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__headFlags );	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__blockSum1 );	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__blockSum2 );	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__chunkHash );	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__chunkBase );	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugHashValues, i++, sizeof(cl_mem), (void*) &kernel__chunkSize );	if(OpenCL_ErrorHandling(errCode)) return false;
-
-		i = 0;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__chunkHash		);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__chunkBase		);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__chunkSize		);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__newChunkHash	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__newChunkBase	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__newChunkSize	);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_0_DebugRadixSort, i++, sizeof(cl_mem), (void*) &kernel__chunk16BaseInfo);	if(OpenCL_ErrorHandling(errCode)) return false;
-
 
 		// ARGUMENTS POUR global__kernelSortedMain
 		i = 1;
@@ -713,7 +208,6 @@ namespace PathTracerNS
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures3DData),	(void*) &kernel__textures3DData);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sun),				(void*) &kernel__sun);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),				(void*) &kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rays),			(void*) &kernel__rays);				if(OpenCL_ErrorHandling(errCode)) return false;
 
 		return true;
 	}
@@ -922,56 +416,11 @@ namespace PathTracerNS
 		errCode = clBuildProgram(opencl__program, 0, NULL, buildOptions , NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 
 		/* Create OpenCL Kernel */
-		opencl__Kernel_Main										= clCreateKernel(opencl__program, Kernel_Main								,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_CreateRays								= clCreateKernel(opencl__program, Kernel_CreateRays							,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_1_ComputeHashValues_Part1		= clCreateKernel(opencl__program, Kernel_SortRays_1_ComputeHashValues_Part1	,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_2_ComputeHashValues_Part2		= clCreateKernel(opencl__program, Kernel_SortRays_2_ComputeHashValues_Part2	,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_3_PrefixSum						= clCreateKernel(opencl__program, Kernel_SortRays_3_PrefixSum				,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_4_AdditionBlockOffset			= clCreateKernel(opencl__program, Kernel_SortRays_4_AdditionBlockOffset		,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_5_Compress						= clCreateKernel(opencl__program, Kernel_SortRays_5_Compress				,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_6_ChunkSize						= clCreateKernel(opencl__program, Kernel_SortRays_6_ChunkSize				,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_7_ComputeChunk16BaseInfo		= clCreateKernel(opencl__program, Kernel_SortRays_7_ComputeChunk16BaseInfo	,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_9_AddComputedOffsetAndSort		= clCreateKernel(opencl__program, Kernel_SortRays_9_AddComputedOffsetAndSort,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_0_DebugHashValues				= clCreateKernel(opencl__program, Kernel_SortRays_0_DebugHashValues			,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_SortRays_0_DebugRadixSort				= clCreateKernel(opencl__program, Kernel_SortRays_0_DebugRadixSort			,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-		opencl__Kernel_CustomDebug								= clCreateKernel(opencl__program, Kernel_CustomDebug						,&errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
+		opencl__Kernel_Main = clCreateKernel(opencl__program, Kernel_Main, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 
 		// Release pointers
 		for(int i=0; i < nbProgramFiles; i++)
 			free(source_str[i]);
-
-		// Informations sur les noyaux
-
-		CONSOLE << "Information sur les noyaux : " << ENDL;			
-
-		size_t		kernel_work_group_size;
-		cl_ulong	kernel_local_mem_size;
-		size_t		kernel_prefered_work_group_size_multiple;
-		cl_ulong	kernel_private_mem_size;
-
-		CONSOLE << "\t" << "opencl__Kernel_Main : " << ENDL;			
-
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_Main, opencl__device, CL_KERNEL_WORK_GROUP_SIZE						, sizeof(size_t)	, &kernel_work_group_size					, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_Main, opencl__device, CL_KERNEL_LOCAL_MEM_SIZE						, sizeof(cl_ulong)	, &kernel_local_mem_size					, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_Main, opencl__device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE	, sizeof(size_t)	, &kernel_prefered_work_group_size_multiple	, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_Main, opencl__device, CL_KERNEL_PRIVATE_MEM_SIZE						, sizeof(cl_ulong)	, &kernel_private_mem_size					, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		CONSOLE << "\t\t" << "CL_KERNEL_WORK_GROUP_SIZE				: " << kernel_work_group_size					 << ENDL;			
-		CONSOLE << "\t\t" << "CL_KERNEL_LOCAL_MEM_SIZE				: " << kernel_local_mem_size					 << ENDL;			
-		CONSOLE << "\t\t" << "CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE		: " << kernel_prefered_work_group_size_multiple << ENDL;			
-		CONSOLE << "\t\t" << "CL_KERNEL_PRIVATE_MEM_SIZE				: " << kernel_private_mem_size					 << ENDL;			
-
-		CONSOLE << "\t" << "opencl__Kernel_CreateRays : " << ENDL;			
-
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_CreateRays, opencl__device, CL_KERNEL_WORK_GROUP_SIZE						, sizeof(size_t)	, &kernel_work_group_size					, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_CreateRays, opencl__device, CL_KERNEL_LOCAL_MEM_SIZE						, sizeof(cl_ulong)	, &kernel_local_mem_size					, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_CreateRays, opencl__device, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE	, sizeof(size_t)	, &kernel_prefered_work_group_size_multiple	, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clGetKernelWorkGroupInfo(opencl__Kernel_CreateRays, opencl__device, CL_KERNEL_PRIVATE_MEM_SIZE						, sizeof(cl_ulong)	, &kernel_private_mem_size					, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		CONSOLE << "\t\t" << "CL_KERNEL_WORK_GROUP_SIZE				: " << kernel_work_group_size					 << ENDL;			
-		CONSOLE << "\t\t" << "CL_KERNEL_LOCAL_MEM_SIZE				: " << kernel_local_mem_size					 << ENDL;			
-		CONSOLE << "\t\t" << "CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE		: " << kernel_prefered_work_group_size_multiple << ENDL;			
-		CONSOLE << "\t\t" << "CL_KERNEL_PRIVATE_MEM_SIZE				: " << kernel_private_mem_size					 << ENDL;			
 
 		return true;
 	}

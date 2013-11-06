@@ -162,7 +162,7 @@ void Material_Create( Material *This, MaterialType _type)
 /************************************************************************/
 
 //	Both ri and rr pointing toward the surface
-float Material_BRDF( Material const *This, Ray3D const *ri, float4 const *N, Ray3D const *rr)
+float Material_BRDF( Material const *This, Ray3D const *ri, double4 const *N, Ray3D const *rr)
 {
 	if(This->type == MAT_STANDART)
 		return PATH_PI_INVERSE;
@@ -183,13 +183,13 @@ float Material_BRDF( Material const *This, Ray3D const *ri, float4 const *N, Ray
 		float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, ri, N, false, NULL);
 
 		//	on cherche la direction de de diffusion originelle de rr
-		float4 originalRefractionDirection;
+		double4 originalRefractionDirection;
 		Material_FresnelVarnishReflectionFraction(This, rr, N, false, &originalRefractionDirection);
 
 		//	Calcul du deuxième coefficient de Fresnel
 		Ray3D insideRay;
-		float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
-		float4 NOpposite = -(*N);
+		double4 originalRefractionDirectionOpposite = -originalRefractionDirection;
+		double4 NOpposite = -(*N);
 
 		Ray3D_Create(&insideRay, &rr->origin, &originalRefractionDirectionOpposite, rr->isInWater, 0, 0);
 		float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &insideRay, &NOpposite, true, NULL);
@@ -202,7 +202,7 @@ float Material_BRDF( Material const *This, Ray3D const *ri, float4 const *N, Ray
 
 };
 
-float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const *r , float4 const *N)
+float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const *r , double4 const *N)
 {
 	ASSERT(This->type == MAT_GLASS);
 
@@ -233,7 +233,7 @@ float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const
 
 }
 
-float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const *r , float4 const *N, float4 *refractionDirection, float *refractionMultCoeff)
+float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const *r , double4 const *N, double4 *refractionDirection, float *refractionMultCoeff)
 {
 	ASSERT(This->type == MAT_WATER);
 
@@ -272,7 +272,7 @@ float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const
 	return rFresnel;
 }
 
-float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D const *r , float4 const *N, bool isInVarnish, float4 *refractionDirection)
+float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D const *r , double4 const *N, bool isInVarnish, double4 *refractionDirection)
 {
 	ASSERT(This->type == MAT_VARNHISHED);
 	ASSERT( dot(r->direction, *N) <= 0 );
@@ -282,7 +282,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D con
 	n1 = isInVarnish ? MATERIAL_N_VARNISH : (r->isInWater ? MATERIAL_N_WATER : 1.0f);
 	n2 = isInVarnish ? (r->isInWater ? MATERIAL_N_WATER : 1.0f) : MATERIAL_N_VARNISH;
 
-	float cos1 = min(1.0f , - dot(r->direction, *N) );
+	float cos1 = fmin(1.0 , - dot(r->direction, *N) );
 	float sin1 = sqrt(1 - cos1 * cos1);
 	float sin2 = n1 * sin1 / n2;
 	if(sin2 >= 1) // Totalement réfléchi
@@ -302,16 +302,16 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D con
 	return rFresnel;
 }
 
-float4 Material_FresnelReflection( Material const *This, float4 const *v, float4 const *N)
+double4 Material_FresnelReflection( Material const *This, double4 const *v, double4 const *N)
 {
 	ASSERT(This->type != MAT_STANDART);
 
-	float4 reflection = (*v) - ( (*N) * ( 2 * dot(*v, *N) ) );
+	double4 reflection = (*v) - ( (*N) * ( 2 * dot(*v, *N) ) );
 	return reflection;
 }
 
 
-float4 Material_CosineSampleHemisphere(int *kernel__seed, float4 const *N)
+double4 Material_CosineSampleHemisphere(int *kernel__seed, double4 const *N)
 {
 	ASSERT(fabs(length(*N) - 1.0f) < 0.0001f);
 
@@ -321,7 +321,7 @@ float4 Material_CosineSampleHemisphere(int *kernel__seed, float4 const *N)
 	Material_ConcentricSampleDisk(kernel__seed, &x, &y);
 	z = 1 - x*x - y*y;
 	z = (z<0) ? 0 : sqrt(z);
-	const float4 v = FLOAT4(x,y,z,0);
+	const double4 v = DOUBLE4(x,y,z,0);
 
 	//	2 - Rotation suivant l'axe *N
 
@@ -331,14 +331,14 @@ float4 Material_CosineSampleHemisphere(int *kernel__seed, float4 const *N)
 		return -v;
 
 	//	Création d'un base directe pour le nouvel hémisphère
-	float4 sn = normalize(FLOAT4( - (*N).y , (*N).x , 0 , 0 )); // = float4(0,0,1) ^ N
-	float4 tn = normalize(cross(*N, sn));
+	double4 sn = normalize(DOUBLE4( - (*N).y , (*N).x , 0 , 0 )); // = double4(0,0,1) ^ N
+	double4 tn = normalize(cross(*N, sn));
 
 	//	Rotation
-	float4 vWorld = normalize(FLOAT4(
-		dot(FLOAT4(sn.x, tn.x, (*N).x, 0), v),
-		dot(FLOAT4(sn.y, tn.y, (*N).y, 0), v),
-		dot(FLOAT4(sn.z, tn.z, (*N).z, 0), v),
+	double4 vWorld = normalize(DOUBLE4(
+		dot(DOUBLE4(sn.x, tn.x, (*N).x, 0), v),
+		dot(DOUBLE4(sn.y, tn.y, (*N).y, 0), v),
+		dot(DOUBLE4(sn.z, tn.z, (*N).z, 0), v),
 		0));
 
 	ASSERT( dot(vWorld, *N) >= 0);
@@ -570,13 +570,13 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, IMAGE3D global__textu
 ///						TRIANGLE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, Ray3D const *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
+bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
 {
 	// REMARQUE : Les triangles sont orientés avec la normale
 	//		--> Pas d'intersection si le rayon vient de derrière...
 
-	const float4 u = This->S2 - This->S1;	// Cotes des triangles
-	const float4 v = This->S3 - This->S1;	// Cotes des triangles
+	const double4 u = This->S2 - This->S1;	// Cotes des triangles
+	const double4 v = This->S3 - This->S1;	// Cotes des triangles
 
 	const float d = dot(This->N, This->S1);					// Coordonnée d du plan : n.x = d
 
@@ -585,9 +585,9 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	if( (nd > -0.00001f) && (nd < 0.00001f) )			// Rayon parallele au triangle
 		return false;
 
-	const float4 q = r->origin + (r->direction*((d-dot(This->N, r->origin))/nd)); // Point d'intersection du rayon dans le plan du triangle
+	const double4 q = r->origin + (r->direction*((d-dot(This->N, r->origin))/nd)); // Point d'intersection du rayon dans le plan du triangle
 
-	float4 fullRay = q - r->origin;
+	double4 fullRay = q - r->origin;
 	const float newSquaredDistance = Vector_SquaredNorm( &fullRay );
 
 	if(newSquaredDistance > *squaredDistance) // Trop loin
@@ -595,7 +595,7 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	if(newSquaredDistance < 0.00001f) //Trop près
 		return false;
 
-	const float4 w = q - This->S1;
+	const double4 w = q - This->S1;
 
 	float uv = dot(u,v),
 		wv = dot(w,v),
@@ -642,9 +642,9 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 	return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__textures3DData, uvText.x, uvText.y );
 }
 
-float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
+double4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
-	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
+	double4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
 	if(positiveNormal)
 		return smoothNormal;
 	return -smoothNormal;
@@ -660,7 +660,7 @@ float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float
  *	Les données comme local__currentNode sont communes au groupe, pour éviter la divergence
  */
 
-bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
+bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, double4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
 {
 	float squaredDistance = INFINITY;
 	*local__currentReadStackIdx = -1;
@@ -998,13 +998,13 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, float4 const *Ng,  float4 const *Ns)
+RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, double4 const *Ng,  double4 const *Ns)
 {
-	float4 N = r->direction;
+	double4 N = r->direction;
 
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 
-	float4 outDirection = r->direction;
+	double4 outDirection = r->direction;
 
 	if(mat->type == MAT_STANDART)
 	{
@@ -1033,7 +1033,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 
 	else if(mat->type == MAT_WATER)
 	{
-		float4 refractedDirection;
+		double4 refractedDirection;
 		float refractionMultCoeff;
 		float rFresnel = Material_FresnelWaterReflectionFraction(mat, r, Ns, &refractedDirection, &refractionMultCoeff);
 
@@ -1066,7 +1066,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	//	//	Illumination directe
 	//	*radianceToCompute += directIlluminationRadiance * materialColor * (*transferFunction);
 
-	//	float4 refractedDirection;
+	//	double4 refractedDirection;
 	//	float rFresnel1 = Material_FresnelVarnishReflectionFraction(&mat, r, &Ns, false, &refractedDirection);
 
 	//	//	Reflection
@@ -1085,7 +1085,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	//	r->origin = *p;
 
 	//	float rFresnel2;
-	//	float4 NsOposite = -Ns;
+	//	double4 NsOposite = -Ns;
 
 	//	outDirection = Material_CosineSampleHemisphere(p__itemSeed, &Ns);
 	//	Ray3D_SetDirection(r, &outDirection);
@@ -1116,7 +1116,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
  *			- Pour des scène en exterieur, il est préférable de tout le temps tester le soleil
  */
 
-RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N)
+RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N)
 {
 	RGBAColor L		= RGBACOLOR(0,0,0,0);				//	Radiance à calculer
 	RGBAColor tint	= RGBACOLOR(1,1,1,1);				//	Teinte lors d'un shadow ray
@@ -1128,7 +1128,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 	if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
 	{
 		Ray3D lightRay;
-		float4 fullRay = light.position - (*p);
+		double4 fullRay = light.position - (*p);
 		Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater, 0, 0);
 
 		if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, Vector_SquaredDistanceTo(&light.position, p), &tint))		//Lumière visible
@@ -1139,7 +1139,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 
 	tint = RGBACOLOR(1,1,1,1);
 	Ray3D sunRay;
-	float4 sunOpositeDirection = - global__sun->direction;
+	double4 sunOpositeDirection = - global__sun->direction;
 	Ray3D_Create(&sunRay, p, &sunOpositeDirection, cameraRay->isInWater, 0, 0);
 	float G = dot(sunRay.direction, *N);
 	float BRDF = Material_BRDF( mat, &sunRay, N, cameraRay);
@@ -1173,7 +1173,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
  *	
  *
  */
-RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const float4 *intersectionPoint)
+RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const double4 *intersectionPoint)
 {
 	RGBAColor L = RGBACOLOR(0,0,0,0);
 
@@ -1192,7 +1192,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 
 		RGBAColor transferFunction = RGBACOLOR(1,1,1,1);
 
-		float4 scatteringPoint = cameraRay->origin;
+		double4 scatteringPoint = cameraRay->origin;
 		float fullRayDist = distance(*intersectionPoint, cameraRay->origin);
 		float xsi = random(p__itemSeed);
 		xsi = (0.98f * xsi) + 0.01f; // On met xsi entre 0.01 et 0.99
@@ -1216,7 +1216,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 		RGBAColor tint = RGBACOLOR(1,1,1,1);
 		Ray3D sunRay;			//Pointing toward the sun
 		Ray3D sunOpositeRay;	//Pointing away from the sun
-		float4 sunOpositeDirection = -global__sun->direction;
+		double4 sunOpositeDirection = -global__sun->direction;
 		Ray3D_Create( &sunRay, &scatteringPoint, &sunOpositeDirection, cameraRay->isInWater, 0, 0);
 		float BRDF;
 
@@ -1241,7 +1241,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 		{
 			light = global__lights[il];
 			tint = RGBACOLOR(1,1,1,1);
-			float4 fullRay = light.position - scatteringPoint;
+			double4 fullRay = light.position - scatteringPoint;
 			Ray3D_Create(&lightRay, &scatteringPoint, &fullRay, cameraRay->isInWater, 0, 0);
 
 			if( !BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, INFINITY, &tint) )
@@ -1265,7 +1265,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 /*	Cette fonction tire une lampe au hasard selon sa ccontribution potentielle
  */
 
-bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N, Light *lightToChoose, float *lightContribution)
+bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N, Light *lightToChoose, float *lightContribution)
 {
 	float lightContributions[MAX_LIGHT_SIZE+1];
 	float distribution[MAX_LIGHT_SIZE+1];
@@ -1286,7 +1286,7 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 	{
 		light = global__lights[i];
 		Ray3D lightRay;
-		float4 fullRay = (*p) - light.position;
+		double4 fullRay = (*p) - light.position;
 		Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater, 0, 0);
 		Ray3D lightOpositeRay = Ray3D_Opposite(&lightRay);
 
@@ -1327,17 +1327,12 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 }
 
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-///						KERNEL
-////////////////////////////////////////////////////////////////////////////////////////
-
 __kernel void Kernel_CreateRays(
 	uint	kernel__iterationNum,
-	float4	kernel__cameraDirection,
-	float4	kernel__cameraScreenX,
-	float4	kernel__cameraScreenY,
-	float4	kernel__cameraPosition,
+	double4	kernel__cameraDirection,
+	double4	kernel__cameraScreenX,
+	double4	kernel__cameraScreenY,
+	double4	kernel__cameraPosition,
 	uint	kernel__imageWidth,
 	uint	kernel__imageHeight,
 
@@ -1370,7 +1365,7 @@ __kernel void Kernel_CreateRays(
 	float xScreenSpacePosition = (2.0f * x)/kernel__imageWidth - 1.0f;
 	float yScreenSpacePosition = (2.0f * y)/kernel__imageHeight - 1.0f;
 
-	float4 shotDirection = kernel__cameraDirection + ( kernel__cameraScreenX * xScreenSpacePosition ) + ( kernel__cameraScreenY * yScreenSpacePosition );
+	double4 shotDirection = kernel__cameraDirection + ( kernel__cameraScreenX * xScreenSpacePosition ) + ( kernel__cameraScreenY * yScreenSpacePosition );
 	Ray3D r;
 	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false, x, y);
 
@@ -1378,318 +1373,9 @@ __kernel void Kernel_CreateRays(
 }
 
 
-/*	Ce noyaux calcule les valueur de hashage de 4 rayons à la fois.
- *	La valeur de hashage est fonction de la position et la direction des rayons
- *
- *	Ce calcul puis tri des rayons est basé sur le papier :
- *
- *		Fast Ray Sorting and Breadth-First Packet Traversal for GPU Ray Tracing
- *						Kirill Garanzha and Charles Loop
- *
- *
- */
-
-__kernel void Kernel_SortRays_1_ComputeHashValues_Part1(
-	float4	kernel__dimGrid,
-	float4	kernel__sceneMin,
-	float4	kernel__sceneMax,
-	void	__global const	*global__void__rays,
-	uint4	__global		*global__hashValues,
-	uint4	__global		*global__headFlags
-	)
-{
-	Ray3D __global const	*global__rays				= (Ray3D __global const	*) global__void__rays;
-
-	const uint globalArrayOffset = 4*get_global_id(0);
-
-	PRINT_DEBUG_INFO("Kernel_SortRays_1_ComputeHashValues_Part1", globalArrayOffset : %u, globalArrayOffset);
-
-	Ray3D rays[4] = {
-		global__rays[globalArrayOffset + 0],
-		global__rays[globalArrayOffset + 1],
-		global__rays[globalArrayOffset + 2],
-		global__rays[globalArrayOffset + 3]
-	};
-
-	uint4 rayHashValues;
-
-
-	if(!rays[0].isActive && !rays[1].isActive && !rays[2].isActive && !rays[3].isActive)	//	Si aucun rayon n'est actif
-	{
-		rayHashValues = (uint4) (0, 0, 0, 0);
-		PRINT_DEBUG_INFO("Kernel_SortRays_1_ComputeHashValues_Part1 inactive all rays", rayHashValues : ( %v4u ), rayHashValues);
-	}
-	else
-	{
-		const uint4 rayGridIndex[4] = {
-			convert_uint4( (rays[0].origin - kernel__sceneMin) / (kernel__sceneMax - kernel__sceneMin) * ( kernel__dimGrid - (float4) (0.001) ) ),
-			convert_uint4( (rays[1].origin - kernel__sceneMin) / (kernel__sceneMax - kernel__sceneMin) * ( kernel__dimGrid - (float4) (0.001) ) ),
-			convert_uint4( (rays[2].origin - kernel__sceneMin) / (kernel__sceneMax - kernel__sceneMin) * ( kernel__dimGrid - (float4) (0.001) ) ),
-			convert_uint4( (rays[3].origin - kernel__sceneMin) / (kernel__sceneMax - kernel__sceneMin) * ( kernel__dimGrid - (float4) (0.001) ) )
-		};
-
-		const uint4 rayPositionHashValues = (uint4) (
-			rayGridIndex[0].x + ( rayGridIndex[0].y * kernel__dimGrid.x ) + ( rayGridIndex[0].z * kernel__dimGrid.x * kernel__dimGrid.y ),
-			rayGridIndex[1].x + ( rayGridIndex[1].y * kernel__dimGrid.x ) + ( rayGridIndex[1].z * kernel__dimGrid.x * kernel__dimGrid.y ),
-			rayGridIndex[2].x + ( rayGridIndex[2].y * kernel__dimGrid.x ) + ( rayGridIndex[2].z * kernel__dimGrid.x * kernel__dimGrid.y ),
-			rayGridIndex[3].x + ( rayGridIndex[3].y * kernel__dimGrid.x ) + ( rayGridIndex[3].z * kernel__dimGrid.x * kernel__dimGrid.y )
-			);
-
-		const uint4 rayDirectionHashValues = (uint4) (
-			dot(convert_float4(-(rays[0].direction > 0)), (float4) (1,2,4,0)),
-			dot(convert_float4(-(rays[1].direction > 0)), (float4) (1,2,4,0)),
-			dot(convert_float4(-(rays[2].direction > 0)), (float4) (1,2,4,0)),
-			dot(convert_float4(-(rays[3].direction > 0)), (float4) (1,2,4,0))
-			);
-
-		//	On trie les rayons d'abord par direction, puis par position.
-		//	Ainsi, comme les valeurs de directions sont faibles par rapport à celle de position
-		//	les rayons contingues seront de même direction pour une disparité spatiale pas beaucoup au dessus
-		//	a celle obtenu en triant d'abord par position puis direction
-
-		//Direction first
-		rayHashValues = rayPositionHashValues + rayDirectionHashValues * ((uint4) ( kernel__dimGrid.x * kernel__dimGrid.y * kernel__dimGrid.z ));
-
-		rayHashValues *= (uint4) (
-			rays[0].isActive,
-			rays[1].isActive,
-			rays[2].isActive,
-			rays[3].isActive
-			);
-	}
-
-	//	Comme on trie 4 rayons à la fois, on peut calculer les valeur du Head Flags pour les 3 valeurs intermédiaires
-	uint4 rayHeadFlags = convert_uint4( - (rayHashValues != rayHashValues.wxyz) ); // Attention : rayHeadFlags.x est faux
-
-	PRINT_DEBUG_INFO("Kernel_SortRays_1_ComputeHashValues_Part1 ray 0", rayHeadFlags : ( %v4u ), rayHeadFlags);
-
-	global__hashValues[get_global_id(0)] = rayHashValues;
-	global__headFlags[get_global_id(0)] = rayHeadFlags;
-}
-
-/*	Calcul de la valeur du Head Flag manquant dans la fonction d'avant
- *	Il ne faut en calculer qu'un quart de la taille totale puisque le reste
- *	est déjà bon.
- */
-__kernel void Kernel_SortRays_2_ComputeHashValues_Part2(
-	uint	__global	*global__hashValues,
-	uint	__global	*global__headFlags
-	)
-{
-	const uint globalArrayOffset = 4*get_global_id(0);
-	global__headFlags[globalArrayOffset] = (globalArrayOffset == 0) || (global__hashValues[globalArrayOffset] != global__hashValues[globalArrayOffset - 1]);
-}
-
-/*	Cette fonction fait une somme prefix sur un tableau de taille inconnue.
- *		1 - On recopie les valeurs qui nous intéressent en mémoire locale
- *		2 - On appelle la fonction de calcul prefix en valeurs locale
- *		3 - On stocke la valeur du totale du groupe dans le tableau global__blockSum à l'indice de notre block
- *		4 - On recopie les valeurs calculées en mémoire globale
- */
-
-__kernel void Kernel_SortRays_3_PrefixSum(
-	uint __global *global__values,
-	uint __global *global__blockSum
-	)
-{
-	PRINT_DEBUG_INFO("Kernel_SortRays_3_PrefixSum START", global__value : %u, global__values[get_global_id(0)]);
-
-	__local uint volatile local__values[16*16];
-	local__values[get_local_id(0)] = global__values[get_global_id(0)];
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	PrefixSum_uint(local__values);
-
-	global__values[get_global_id(0)] = local__values[get_local_id(0)];
-	
-	if(get_local_id(0) == 0 && get_num_groups(0) > 1)
-		global__blockSum[get_group_id(0)] = local__values[get_local_size(0)-1];
-
-	PRINT_DEBUG_INFO("Kernel_SortRays_3_PrefixSum END", global__value : %u, global__values[get_global_id(0)]);
-}
-
-/*	Cette fonction permet d'additionner à global__values la valeur contenue dans global__blockSum
- *	et ce par groupe
- */
-__kernel void Kernel_SortRays_4_AdditionBlockOffset(
-	uint __global		*global__values,
-	uint __global const *global__blockSum
-	)
-{
-	if(get_group_id(0) == 0)
-		return;
-
-	const uint blockOffsset = global__blockSum[get_group_id(0)-1];
-	global__values[get_global_id(0)] += blockOffsset;
-}
-
-__kernel void Kernel_SortRays_5_Compress(
-	uint __global const	*global__hashValues,
-	uint __global const	*global__headFlags,
-	uint __global		*global__chunkHash,
-	uint __global		*global__chunkBase
-	)
-{
-	uint itemHeadFlag = global__headFlags[get_global_id(0)] - 1;
-
-	if( (get_global_id(0) == 0) || (itemHeadFlag == global__headFlags[get_global_id(0)-1]) )
-	{
-		global__chunkHash[itemHeadFlag] = global__hashValues[get_global_id(0)];
-		global__chunkBase[itemHeadFlag] = get_global_id(0);
-	}
-}
-
-__kernel void Kernel_SortRays_6_ChunkSize(
-	uint __global	const	*global__headFlags,
-	uint __global	const	*global__chunkBase,
-	uint __global			*global__chunkSize
-	)
-{
-	const uint endFlag = global__headFlags[get_global_size(0)-1];
-
-	if(get_global_id(0) > endFlag)
-		return;
-
-	const uint nextChange = ( get_global_id(0) == endFlag ) ? get_global_size(0) : global__chunkBase[get_global_id(0) + 1];
-
-	global__chunkSize[get_global_id(0)] = nextChange - global__chunkBase[get_global_id(0)];
-}
-
-
-__kernel void Kernel_SortRays_7_ComputeChunk16BaseInfo(
-	uint passId,
-	uint __global	const	*global__chunkHash,
-	uint __global			*global__chunk16BaseInfo,
-	uint __global			*global__blockSum
-	)
-{
-	uint __local local__chunk16BaseInfo[16*256];
-
-	for(uint i=0; i<16; i++)
-		local__chunk16BaseInfo[16*get_local_id(0)+i] = 0;
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	uint chunkHash = global__chunkHash[get_global_id(0)];
-	for(uint i=0; i<passId; i++)
-		chunkHash >>= 4;
-	chunkHash %= 16;
-
-	local__chunk16BaseInfo[get_local_id(0)+chunkHash*256] = 1;
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	for(uint i=0; i<16; i++)
-		PrefixSum_uint(&local__chunk16BaseInfo[256*i]);
-
-	for(uint i=0; i<16; i++)
-	{
-		global__chunk16BaseInfo[get_global_id(0)+i*get_global_size(0)] = local__chunk16BaseInfo[get_local_id(0)+i*256];
-	}
-
-	if(get_local_id(0) < 16 && get_num_groups(0) > 1)
-		global__blockSum[get_group_id(0) + get_num_groups(0)*get_local_id(0)] = local__chunk16BaseInfo[255 + 256*get_local_id(0)];
-}
-
-__kernel void Kernel_SortRays_9_AddComputedOffsetAndSort(
-	uint passId,
-	uint __global	const	*global__chunk16BaseInfo,
-	uint __global	const	*global__blockSum,
-	uint __global	const	*global__chunkHash,
-	uint __global	const	*global__chunkBase,
-	uint __global	const	*global__chunkSize,
-	uint __global			*global__newChunkHash,
-	uint __global			*global__newChunkBase,
-	uint __global			*global__newChunkSize
-	)
-{
-	const uint chunkHash = global__chunkHash[get_global_id(0)];
-
-	uint chunkHash16Base = chunkHash;
-	for(uint i=0; i<passId; i++)
-		chunkHash16Base /= 16;
-	chunkHash16Base %= 16;
-
-	uint newPosition = global__chunk16BaseInfo[get_global_id(0)+chunkHash16Base*get_global_size(0)];
-	newPosition += global__blockSum[get_group_id(0) + get_num_groups(0)*chunkHash16Base];
-
-	global__newChunkHash[newPosition] = chunkHash;
-	global__newChunkBase[newPosition] = global__chunkBase[get_global_id(0)];
-	global__newChunkSize[newPosition] = global__chunkSize[get_global_id(0)];
-}
-
-
-__kernel void Kernel_SortRays_0_DebugHashValues(
-	uint __global const *global__hashValues,
-	uint __global const *global__headFlags ,
-	uint __global const *global__blockSum1,
-	uint __global const *global__blockSum2,
-	uint __global const *global__chunkHash ,
-	uint __global const *global__chunkBase ,
-	uint __global const *global__chunkSize
-	)
-{
-	printf(
-		"Kernel_SortRays_0_DebugHashValues : group id : %i : local id : %i : global id : %i : hashValue : %u : headFlag : %u : blockSum1 : %u : blockSum2 : %u : chunkHash : %u : chunkBase : %u : chunkSize : %u\n",
-		get_group_id(0),
-		get_local_id(0),
-		get_global_id(0),
-		global__hashValues[get_global_id(0)],
-		global__headFlags [get_global_id(0)],
-		get_global_id(0) < 2880 ? global__blockSum1[get_global_id(0)] : -1,
-		get_global_id(0) < 64   ? global__blockSum2[get_global_id(0)] : -1,
-		global__chunkHash [get_global_id(0)],
-		global__chunkBase [get_global_id(0)],
-		global__chunkSize [get_global_id(0)]
-	);
-}
-
-__kernel void Kernel_SortRays_0_DebugRadixSort(
-	uint __global const *global__chunkHash,
-	uint __global const *global__chunkBase,
-	uint __global const *global__chunkSize,
-	uint __global const *global__newChunkHash,
-	uint __global const *global__newChunkBase,
-	uint __global const *global__newChunkSize,
-	uint __global	const *global__chunk16BaseInfo
-	)
-{
-	printf(
-		"Kernel_SortRays_0_DebugRadixSort : group id : %i : local id : %i : global id : %i : chunkHash : %u : chunkBase : %u : chunkSize : %u : newChunkHash : %u : newChunkBase : %u : newChunkSize : %u : chunk16BaseInfo 0 : %u : chunk16BaseInfo 1 : %u : chunk16BaseInfo 2 : %u : chunk16BaseInfo 3 : %u : chunk16BaseInfo 4 : %u : chunk16BaseInfo 5 : %u : chunk16BaseInfo 6 : %u : chunk16BaseInfo 7 : %u : chunk16BaseInfo 8 : %u : chunk16BaseInfo 9 : %u : chunk16BaseInfo 10 : %u : chunk16BaseInfo 11 : %u : chunk16BaseInfo 12 : %u : chunk16BaseInfo 13 : %u : chunk16BaseInfo 14 : %u : chunk16BaseInfo 15 : %u \n",
-		get_group_id(0),
-		get_local_id(0),
-		get_global_id(0),
-		global__chunkHash		[get_global_id(0)],
-		global__chunkBase		[get_global_id(0)],
-		global__chunkSize		[get_global_id(0)],
-		global__newChunkHash	[get_global_id(0)],
-		global__newChunkBase	[get_global_id(0)],
-		global__newChunkSize	[get_global_id(0)],
-		global__chunk16BaseInfo	[get_global_id(0) + (0  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (1  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (2  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (3  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (4  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (5  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (6  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (7  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (8  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (9  * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (10 * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (11 * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (12 * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (13 * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (14 * get_global_size(0))],
-		global__chunk16BaseInfo	[get_global_id(0) + (15 * get_global_size(0))]
-	);
-}
-
-
-__kernel void Kernel_CustomDebug(__global Ray3D const *rays)
-{
-}
-
+////////////////////////////////////////////////////////////////////////////////////////
+///						KERNEL
+////////////////////////////////////////////////////////////////////////////////////////
 
 
 __kernel void Kernel_Main(
@@ -1698,7 +1384,7 @@ __kernel void Kernel_Main(
 	uint	kernel__imageHeight			,
 	uint	global__lightsSize			,
 
-	float4	__global			*global__imageColor			,
+	double4	__global			*global__imageColor			,
 	uint	__global			*global__imageRayNb			,
 	void	__global	const	*global__void__bvh			,
 	void	__global	const	*global__void__triangulation,
@@ -1707,8 +1393,7 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__textures		,
 	IMAGE3D						 global__textures3DData		,
 	void	__global	const	*global__void__sun			,
-	void	__global	const	*global__void__sky			,
-	void	__global	const	*global__void__rays
+	void	__global	const	*global__void__sky
 	)
 {
 
@@ -1719,9 +1404,21 @@ __kernel void Kernel_Main(
 	PRINT_DEBUG_INFO("KERNEL SORTED MAIN START", , 0);
 
 	bool volatile __local local__boolTest;
-	Ray3D __global *global__rays = (Ray3D __global *) global__void__rays;
 
 	//	Récupération du rayon
+	uint xPixel = get_global_id(0);
+	uint yPixel = get_global_id(1);
+
+	int seed = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
+
+	double x = (2 * (xPixel + rand(seed) - 0.5) / (double) kernel__imageWidth);
+	double y = (2 * (yPixel + rand(seed) - 0.5) / (double) kernel__imageHeight);
+
+
+
+	inline void Ray3D_Create( Ray3D *This, double4 const *o, double4 const *d, bool _isInWater, uint xPixel, uint yPixel)
+
+
 	Ray3D r = global__rays[get_global_id(0)];
 
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -1783,7 +1480,7 @@ __kernel void Kernel_Main(
 
 	//	Variable utiles lors du parcours de l'arbre
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
-	float4 intersectionPoint = FLOAT4(0,0,0,0);
+	double4 intersectionPoint = DOUBLE4(0,0,0,0);
 	float s = 0.0f, t = 0.0f;
 	Triangle intersectedTriangle;
 	Material intersectedMaterial;
@@ -1827,10 +1524,10 @@ __kernel void Kernel_Main(
 
 		bool areRayAndNormalInSameDirection		= ( dot(r.direction, intersectedTriangle.N) > 0 );
 
-		float4 const Ng = Triangle_GetNormal(&intersectedTriangle, !areRayAndNormalInSameDirection);
+		double4 const Ng = Triangle_GetNormal(&intersectedTriangle, !areRayAndNormalInSameDirection);
 
-		float4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,s,t);
-		float4 rOpositeDirection = - r.direction;
+		double4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,s,t);
+		double4 rOpositeDirection = - r.direction;
 		Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
 		Ns = normalize(Ns);
 		ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);

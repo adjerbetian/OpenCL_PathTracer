@@ -32,11 +32,12 @@
 #define INT4 (int4)
 #define FLOAT2 (float2)
 #define FLOAT4 (float4)
+#define DOUBLE4 (double4)
 #define RGBACOLOR (RGBAColor)
 #define NULL 0
 #define IMAGE3D __read_only image3d_t
 
-typedef float4 RGBAColor;
+typedef double4 RGBAColor;
 
 #define KERNEL_GLOBAL_VAR		 \
 	p__itemSeed					,\
@@ -84,11 +85,10 @@ typedef float4 RGBAColor;
 
 typedef struct
 {
-	float4 origin;
-	float4 direction;
-	float4 inverse;
+	double4 origin;
+	double4 direction;
+	double4 inverse;
 	RGBAColor transferFunction;
-	uint2 pixel;
 	int reflectionId;
 	char positiveDirection[3];
 	char isInWater;
@@ -97,9 +97,9 @@ typedef struct
 
 typedef struct
 {
-	float4	pMin;
-	float4	pMax;
-	float4	centroid;
+	double4	pMin;
+	double4	pMax;
+	double4	centroid;
 	char	isEmpty;
 } BoundingBox;
 
@@ -135,8 +135,8 @@ typedef enum
 
 typedef struct
 {
-	float4		position;
-	float4		direction;
+	double4		position;
+	double4		direction;
 	RGBAColor	color;
 	float		power;
 	float		cosOfInnerFallOffAngle;
@@ -146,7 +146,7 @@ typedef struct
 
 typedef struct
 {
-	float4		direction;
+	double4		direction;
 	RGBAColor		color;
 	float			power;
 } SunLight;
@@ -204,11 +204,11 @@ typedef struct
 
 typedef struct
 {
-	float4	S1, S2, S3;			// Sommets 3D dans la scène
-	float4	N1, N2, N3;			// Normales
-	float4	T1, T2, T3;			// Tangentes
-	float4	BT1, BT2, BT3;		// Bitangentes
-	float4	N;					// Vecteur normal
+	double4	S1, S2, S3;			// Sommets 3D dans la scène
+	double4	N1, N2, N3;			// Normales
+	double4	T1, T2, T3;			// Tangentes
+	double4	BT1, BT2, BT3;		// Bitangentes
+	double4	N;					// Vecteur normal
 	float2	UVP1, UVP2, UVP3;	// Position des sommets sur la texture sur la face positive
 	float2	UVN1, UVN2, UVN3;	// Position des sommets sur la texture sur la face positive
 	BoundingBox AABB;
@@ -221,14 +221,14 @@ typedef struct
 ///						UTILITAIRES
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline float Vector_SquaredNorm			(float4 const	*This)					{ return dot(*This, *This);};
-inline float Vector_SquaredDistanceTo	(float4 const	*This, float4 const *v)	{ float4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
-inline bool	 Vector_LexLessThan			(float4 const	*This, float4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
-inline float Vector_Max					(float4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
-inline float Vector_Mean				(float4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
+inline float Vector_SquaredNorm			(double4 const	*This)					{ return dot(*This, *This);};
+inline float Vector_SquaredDistanceTo	(double4 const	*This, double4 const *v)	{ double4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
+inline bool	 Vector_LexLessThan			(double4 const	*This, double4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
+inline float Vector_Max					(double4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
+inline float Vector_Mean				(double4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
 inline bool	 RGBAColor_IsTransparent	(RGBAColor const *This)						{ return (*This).w > 0.5f;};
 
-inline void Vector_PutInSameHemisphereAs(float4 *This, float4 const *N)
+inline void Vector_PutInSameHemisphereAs(double4 *This, double4 const *N)
 {
 	float dotProd = dot(*This, *N);
 	if( dotProd < 0.001f )
@@ -267,7 +267,7 @@ void PrefixSum_int (int __local volatile *values);
 
 
 
-inline void Ray3D_SetDirection( Ray3D *This, float4 const *d)
+inline void Ray3D_SetDirection( Ray3D *This, double4 const *d)
 {
 	This->direction = normalize(*d);
 
@@ -281,14 +281,13 @@ inline void Ray3D_SetDirection( Ray3D *This, float4 const *d)
 	This->positiveDirection[2] = ( This->inverse.z > 0 );
 };
 
-inline void Ray3D_Create( Ray3D *This, float4 const *o, float4 const *d, bool _isInWater, uint xPixel, uint yPixel)
+inline void Ray3D_Create( Ray3D *This, double4 const *o, double4 const *d, bool _isInWater)
 {
 	This->origin = *o;
 	This->isInWater = _isInWater;
 	This->reflectionId = 0;
 	This->isActive = true;
 	This->transferFunction = RGBACOLOR(1,1,1,1);
-	This->pixel = (uint2) (xPixel,yPixel);
 
 	Ray3D_SetDirection(This, d);
 };
@@ -314,7 +313,7 @@ inline Ray3D Ray3D_Opposite( Ray3D const *This )
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-inline void	BoundingBox_Create ( BoundingBox *This, float4 const *s1, float4 const *s2, float4 const *s3)
+inline void	BoundingBox_Create ( BoundingBox *This, double4 const *s1, double4 const *s2, double4 const *s3)
 {
 	This->isEmpty = false;
 
@@ -326,7 +325,7 @@ inline void	BoundingBox_Create ( BoundingBox *This, float4 const *s1, float4 con
 
 inline int BoundingBox_WidestDim ( BoundingBox const *This )
 {
-	float4 p1p2 = This->pMax - This->pMin;
+	double4 p1p2 = This->pMax - This->pMin;
 	if(p1p2.x > p1p2.y)
 		if(p1p2.x > p1p2.z)
 			return 0;
@@ -364,7 +363,7 @@ inline BoundingBox BoundingBox_UnionWith ( BoundingBox const *This, BoundingBox 
 	return result;
 }
 
-inline void BoundingBox_AddPoint ( BoundingBox *This, float4 const *v)
+inline void BoundingBox_AddPoint ( BoundingBox *This, double4 const *v)
 {
 	if(This->isEmpty)
 	{
@@ -386,7 +385,7 @@ inline float BoundingBox_Area ( BoundingBox const *This )
 	if(This->isEmpty)
 		return 0;
 
-	Float4 p1p2 = FLOAT4(This->pMax - This->pMin);
+	double4 p1p2 = DOUBLE4(This->pMax - This->pMin);
 	return p1p2.x*p1p2.y + p1p2.y*p1p2.z + p1p2.z*p1p2.x;
 }
 
@@ -402,7 +401,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 ///						LIGHT
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline float Light_PowerToward( Light const *This, float4 const *v)
+inline float Light_PowerToward( Light const *This, double4 const *v)
 {
 	if(This->type == LIGHT_POINT)
 		return This->power;
@@ -427,7 +426,7 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 {
 	Texture tex = *This;
 
-	float4 bgra;
+	double4 bgra;
 	uint x,y;
 
 	u = u - ((int) u) + ( u<0 ? 1 : 0);
@@ -437,7 +436,7 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 	y = (uint) (v*(tex.height - 1));
 
 	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-	bgra = read_imagef(global__textures3d, sampler, INT4(x,y,textureId,0));
+	bgra = convert_double4(read_imagef(global__textures3d, sampler, INT4(x,y,textureId,0)));
 	bgra.w = 1.f - bgra.w;
 	return bgra.zyxw;
 };
@@ -450,15 +449,15 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 void		Material_Create								( Material *This, MaterialType _type);
-float		Material_BRDF								( Material const *This, Ray3D const *ri, float4 const *N, Ray3D const *rr);
-float		Material_FresnelGlassReflectionFraction		( Material const *This, Ray3D const *r , float4 const *N);
-float		Material_FresnelWaterReflectionFraction		( Material const *This, Ray3D const *r , float4 const *N, float4 *refractionDirection, float *refractionMultCoeff);
-float		Material_FresnelVarnishReflectionFraction	( Material const *This, Ray3D const *r , float4 const *N, bool isInVarnish, float4 *refractionDirection);
-float4		Material_FresnelReflection					( Material const *This, float4 const *v, float4 const *N);
+float		Material_BRDF								( Material const *This, Ray3D const *ri, double4 const *N, Ray3D const *rr);
+float		Material_FresnelGlassReflectionFraction		( Material const *This, Ray3D const *r , double4 const *N);
+float		Material_FresnelWaterReflectionFraction		( Material const *This, Ray3D const *r , double4 const *N, double4 *refractionDirection, float *refractionMultCoeff);
+float		Material_FresnelVarnishReflectionFraction	( Material const *This, Ray3D const *r , double4 const *N, bool isInVarnish, double4 *refractionDirection);
+double4		Material_FresnelReflection					( Material const *This, double4 const *v, double4 const *N);
 
 // Methodes statiques
 
-float4		Material_CosineSampleHemisphere	(int *kernel_itemSeed, float4 const *surfaceNormal);
+double4		Material_CosineSampleHemisphere	(int *kernel_itemSeed, double4 const *surfaceNormal);
 void		Material_ConcentricSampleDisk	(int *kernel_itemSeed, float *dx, float *dy);
 RGBAColor	Material_WaterAbsorption		(float dist);
 
@@ -476,58 +475,34 @@ RGBAColor	Sky_GetFaceColorValue	( Sky __global const *This , IMAGE3D global__tex
 ///						Triangle
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, Ray3D const *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
+bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
 RGBAColor			Triangle_GetColorValueAt	(__global Texture const *global__textures, __global Material const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, bool positiveNormal, float s, float t);
-float4				Triangle_GetSmoothNormal	(Triangle const	*This, bool positiveNormal, float s, float t);
-float4				Triangle_GetNormal			(Triangle const	*This, bool positiveNormal);
+double4				Triangle_GetSmoothNormal	(Triangle const	*This, bool positiveNormal, float s, float t);
+double4				Triangle_GetNormal			(Triangle const	*This, bool positiveNormal);
 
-inline float4		Triangle_GetNormal			(Triangle const *This, bool positiveNormal) { return positiveNormal ? This->N : - This->N; }
+inline double4		Triangle_GetNormal			(Triangle const *This, bool positiveNormal) { return positiveNormal ? This->N : - This->N; }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						BVH
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-bool		BVH_IntersectRay					(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor);
+bool		BVH_IntersectRay					(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, double4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor);
 bool		BVH_IntersectShadowRay				(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float squaredDistance, RGBAColor *tint);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor	Scene_ComputeRadiance				(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, float4 const *Ng,  float4 const *Ns);
-RGBAColor	Scene_ComputeDirectIllumination		(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N);
-RGBAColor	Scene_ComputeScatteringIllumination	(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const float4 *intersectionPoint);
-bool		Scene_PickLight						(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N, Light *light, float *lightContribution);
+RGBAColor	Scene_ComputeRadiance				(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, double4 const *Ng,  double4 const *Ns);
+RGBAColor	Scene_ComputeDirectIllumination		(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N);
+RGBAColor	Scene_ComputeScatteringIllumination	(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const double4 *intersectionPoint);
+bool		Scene_PickLight						(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N, Light *light, float *lightContribution);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Kernel
 ////////////////////////////////////////////////////////////////////////////////////////
-
-__kernel void Kernel_CreateRays(
-	uint	kernel__iterationNum,
-	float4	kernel__cameraDirection,
-	float4	kernel__cameraScreenX,
-	float4	kernel__cameraScreenY,
-	float4	kernel__cameraPosition,
-	uint	kernel__imageWidth,
-	uint	kernel__imageHeight,
-	void	__global	*global__void__rays
-	);
-
-__kernel void Kernel_CustomDebug(__global Ray3D const *rays);
-
-__kernel void Kernel_SortRays_0_DebugHashValues				(uint __global const *global__hashValues, uint __global const *global__headFlags , uint __global const *global__blockSum1 , uint __global const *global__blockSum2 , uint __global const *global__chunkHash , uint __global const *global__chunkBase , uint __global const *global__chunkSize);
-__kernel void Kernel_SortRays_0_DebugRadixSort				(uint __global const *global__hashValues, uint __global const *global__headFlags , uint __global const *global__blockSum1 , uint __global const *global__blockSum2 , uint __global const *global__chunkHash , uint __global const *global__chunkBase , uint __global const *global__chunkSize);
-__kernel void Kernel_SortRays_1_ComputeHashValues_Part1		(float4	kernel__dimGrid, float4 kernel__sceneMin, float4 kernel__sceneMax, void __global const *global__void__rays, uint4 __global *global__hashValues, uint4 __global *global__headFlags);
-__kernel void Kernel_SortRays_2_ComputeHashValues_Part2		(uint __global *global__void__hashValues, uint __global *global__void__headFlags);
-__kernel void Kernel_SortRays_3_PrefixSum					(uint __global *global__values, uint __global *global__blockSum);
-__kernel void Kernel_SortRays_4_AdditionBlockOffset			(uint __global *global__values, uint __global const *global__blockSum);
-__kernel void Kernel_SortRays_5_Compress					(uint __global const *global__hashValues, uint __global const *global__headFlags, uint __global *global__chunkHash, uint __global *global__chunkBase);
-__kernel void Kernel_SortRays_6_ChunkSize					(uint __global const *global__headFlags, uint __global const *global__chunkBase, uint __global *global__chunkSize);
-__kernel void Kernel_SortRays_7_ComputeChunk16BaseInfo		(uint passId, uint __global const *global__chunkHash, uint __global *global__chunk16BaseInfo, uint __global *global__chunk16BaseInfoBlockSum);
-__kernel void Kernel_SortRays_9_AddComputedOffsetAndSort	(uint passId, uint __global const *global__chunk16BaseInfo, uint __global const *global__chunk16BaseInfoBlockSum, uint __global const *global__chunkHash, uint __global const *global__chunkBase, uint __global const *global__chunkSize, uint __global *global__newChunkHash, uint __global *global__newChunkBase, uint __global *global__newChunkSize);
 
 __kernel void Kernel_Main(
 	uint	kernel__iterationNum		,
@@ -535,7 +510,7 @@ __kernel void Kernel_Main(
 	uint	kernel__imageHeight			,
 	uint	global__lightsSize			,
 
-	float4	__global			*global__imageColor			,
+	double4	__global			*global__imageColor			,
 	uint	__global			*global__imageRayNb			,
 	void	__global	const	*global__void__bvh			,
 	void	__global	const	*global__void__triangulation,

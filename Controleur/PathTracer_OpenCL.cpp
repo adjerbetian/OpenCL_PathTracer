@@ -116,7 +116,7 @@ namespace PathTracerNS
 		const size_t constLocalWorkSize_1	= constLocalWorkSize_2[0] * constLocalWorkSize_2[1];
 		const size_t constGlobalOffset_1	= constGlobalOffset_2[0] * constGlobalOffset_2[1];
 
-		cl_float4 dimGrid = {{32,32,32,1}};
+		cl_double4 dimGrid = {{32,32,32,1}};
 
 		size_t globalWorkSize_1 = constGlobalWorkSize_1	;
 		size_t localWorkSize_1  = constLocalWorkSize_1	;
@@ -142,7 +142,7 @@ namespace PathTracerNS
 			//dimGrid.s[0] = dimGrid.s[1] = dimGrid.s[2] = t*16;
 			//dimGrid.s[3] = 1;
 
-			errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, 0, sizeof(cl_float4), (void*) &dimGrid);	if(OpenCL_ErrorHandling(errCode)) return false;
+			errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, 0, sizeof(cl_double4), (void*) &dimGrid);	if(OpenCL_ErrorHandling(errCode)) return false;
 			CONSOLE << "globalWorkSize : [ " << constGlobalWorkSize_2[0] << " , " << constGlobalWorkSize_2[1] << " ]" << ENDL;
 			CONSOLE << "localWorkSize : "  << constLocalWorkSize_1 << ENDL;
 			CONSOLE << "dimGrid : "  << dimGrid.s[0] << ENDL;
@@ -626,8 +626,6 @@ namespace PathTracerNS
 		/////////////////////////////////////////////////////////////////////////////////
 
 		i = 1;
-		cout <<"TAILLE : " << sizeof(Float4) << " - " << 4*sizeof(float) << endl;
-		return false;
 
 		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_CreateRays, i++, sizeof(Float4),			(void*) &global__cameraScreenX	);	if(OpenCL_ErrorHandling(errCode)) return false;
@@ -640,12 +638,12 @@ namespace PathTracerNS
 		//	La bounding box totale doit aussi prendre en compte la caméra
 		BoundingBox fullScene = global__bvh[0].trianglesAABB;
 		BoundingBox_AddPoint ( &fullScene , &global__cameraPosition );
-		cl_float4 sceneMin = {{ fullScene.pMin.x , fullScene.pMin.y , fullScene.pMin.z , 0 }};
-		cl_float4 sceneMax = {{ fullScene.pMax.x , fullScene.pMax.y , fullScene.pMax.z , 1.f }};
+		cl_double4 sceneMin = {{ fullScene.pMin.x , fullScene.pMin.y , fullScene.pMin.z , 0 }};
+		cl_double4 sceneMax = {{ fullScene.pMax.x , fullScene.pMax.y , fullScene.pMax.z , 1.f }};
 
 		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_float4),	(void*) &sceneMin);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_float4),	(void*) &sceneMax);				if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_double4),	(void*) &sceneMin);				if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_double4),	(void*) &sceneMax);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_mem),	(void*) &kernel__rays);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_mem),	(void*) &kernel__hashValues);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_SortRays_1_ComputeHashValues_Part1, i++, sizeof(cl_mem),	(void*) &kernel__headFlags);	if(OpenCL_ErrorHandling(errCode)) return false;

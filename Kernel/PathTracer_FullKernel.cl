@@ -1,7 +1,7 @@
 
 
 
-#include "PathTracer_FullKernel_header.cl"
+#include "C:\Users\Alexandre Djerbetian\Documents\Visual Studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1211,10 +1211,24 @@ __kernel void Kernel_Main(
 	///////////////////////////////////////////////////////////////////////////////////////
 
 
-	PRINT_DEBUG_INFO("KERNEL MAIN START", , 0);
+	//PRINT_DEBUG_INFO("KERNEL MAIN START", , 0);
 
 	uint xPixel = get_global_id(0);
 	uint yPixel = get_global_id(1);
+	if(xPixel == 0 && yPixel == 0)
+		printf("(xPixel, yPixel) : %u , %u \n", xPixel, yPixel);
+
+	/*
+
+	const int globalImageOffset = yPixel * kernel__imageWidth + xPixel;
+
+	global__imageRayNb[globalImageOffset]++;
+	global__imageColor[globalImageOffset] = RGBACOLOR( ((double) xPixel) / kernel__imageWidth, ((double) yPixel) / kernel__imageHeight, 1, 1 );
+
+	//PRINT_DEBUG_INFO2("KERNEL MAIN END", (uint2) (xPixel, yPixel) , (uint2) (xPixel, yPixel));
+	printf("(xPixel, yPixel) : %u , %u \n", xPixel, yPixel);
+
+	/*
 
 	int seedValue = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
 	int *seed = &seedValue;
@@ -1226,6 +1240,8 @@ __kernel void Kernel_Main(
 	Ray3D r;
 	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
 
+
+	/*
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION DES VARIABLES DE PARCOURS
@@ -1323,4 +1339,5 @@ __kernel void Kernel_Main(
 
 	global__imageRayNb[globalImageOffset]++;
 	global__imageColor[globalImageOffset] += radianceToCompute;
+	*/
 }

@@ -39,7 +39,7 @@ namespace PathTracerNS
 
 	std::string		BoundingBox_ToString				(BoundingBox const *This);
 	std::string		Triangle_ToString					(Triangle const *This);
-	std::string		Vector_ToString						(Float4 const *This);
+	std::string		Vector_ToString						(Double4 const *This);
 	void			Node_Print							(Node const *This, uint n);
 	void			PathTracer_PrintBVH					();
 	void			PathTracer_PrintBVHCharacteristics	();

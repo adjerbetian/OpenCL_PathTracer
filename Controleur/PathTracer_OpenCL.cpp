@@ -63,7 +63,7 @@ namespace PathTracerNS
 
 		cl_uint imageId = 0;
 
-		while(true)
+		while(true && imageId < 1)
 		{
 			CONSOLE << "Image : " << imageId << ENDL;
 
@@ -74,14 +74,14 @@ namespace PathTracerNS
 			errCode = clSetKernelArg(opencl__Kernel_Main, 0, sizeof(cl_uint), (void*) &imageId);
 			if(OpenCL_ErrorHandling(errCode)) return false;
 
-			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 1, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
+			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 2, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
 			if(OpenCL_ErrorHandling(errCode)) return false;
 			clFinish(opencl__queue);
 
 			/////////////////////////////////////////////////////////////////////////////////
 			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
 			/////////////////////////////////////////////////////////////////////////////////
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize	, (void *) opencl__imageColorFromDevice, 1, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize	, (void *) opencl__imageColorFromDevice, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb,	CL_TRUE, 0, sizeof(uint)		* global__imageSize	, (void *) opencl__imageRayNbFromDevice, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 			clFinish(opencl__queue);
 
@@ -140,10 +140,10 @@ namespace PathTracerNS
 	*/
 
 	bool OpenCL_InitializeMemory(
-		Float4		const	global__cameraDirection		,
-		Float4		const	global__cameraScreenX		,
-		Float4		const	global__cameraScreenY		,
-		Float4		const	global__cameraPosition		,
+		Double4		const	global__cameraDirection		,
+		Double4		const	global__cameraRight		,
+		Double4		const	global__cameraUp		,
+		Double4		const	global__cameraPosition		,
 
 		Node		const	*global__bvh				,
 		Triangle	const	*global__triangulation		,
@@ -196,6 +196,11 @@ namespace PathTracerNS
 		i = 1;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),	(void*) &global__imageWidth);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),	(void*) &global__imageHeight);			if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraPosition);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraRight);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraUp);			if(OpenCL_ErrorHandling(errCode)) return false;
+
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),	(void*) &global__lightsSize);			if(OpenCL_ErrorHandling(errCode)) return false;
 
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),		(void*) &kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
@@ -252,7 +257,7 @@ namespace PathTracerNS
 		{
 			fopen_s(&fp, kernelFileName[i], "r");
 			if (!fp)
-				return 1;
+				return false;
 
 			source_str[i] = (char*)malloc(0x100000);
 			source_size[i] = fread(source_str[i], 1, 0x100000, fp);
@@ -268,7 +273,7 @@ namespace PathTracerNS
 		errCode = clGetPlatformIDs(ret_num_platforms, platform_ids, NULL);	if(OpenCL_ErrorHandling(errCode)) return false;
 
 		if(ret_num_platforms == 0)
-			return 2;
+			return false;
 
 		char infoString[128];
 		uint platformIdx;
@@ -407,11 +412,12 @@ namespace PathTracerNS
 		/* Build Kernel Program */
 
 		//	1 - Pour le debugger d'intel :
-		//char const * buildOptions = "-I "PATHTRACER_FOLDER"Kernel\\ -g -s C:\\Users\\Alexandre\\Documents\\Visual_Studio_2010\\Projects\\PathTracer\\PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl";
+		char const * buildOptions = "-g -s \"C:\\Users\\alexandre djerbetian\\documents\\visual studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl\"";
 		//	2 - Pour des performnace normalement accrue mais moins de précision
 		//char const * buildOptions = "-cl-mad-enable -I "PATHTRACER_FOLDER"Kernel\\";
 		//	3 - Normal
-		char const * buildOptions = "-I \""PATHTRACER_FOLDER"Kernel\\\"";
+		//char const * buildOptions = "-I \""PATHTRACER_FOLDER"Kernel\\\"";
+		//char const * buildOptions = "";
 
 		errCode = clBuildProgram(opencl__program, 0, NULL, buildOptions , NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 

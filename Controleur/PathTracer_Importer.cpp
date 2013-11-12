@@ -8,8 +8,8 @@ namespace PathTracerNS
 
 	PathTracerImporter::PathTracerImporter()
 		:ptr__global__cameraDirection(NULL),
-		ptr__global__cameraScreenX(NULL),
-		ptr__global__cameraScreenY(NULL),
+		ptr__global__cameraRight(NULL),
+		ptr__global__cameraUp(NULL),
 		ptr__global__cameraPosition(NULL),
 
 		ptr__global__triangulation(NULL),
@@ -32,10 +32,10 @@ namespace PathTracerNS
 
 
 	void PathTracerImporter::Initialize(
-		Float4*		 global__cameraDirection,
-		Float4*		 global__cameraScreenX,
-		Float4*		 global__cameraScreenY,
-		Float4*		 global__cameraPosition,
+		Double4*		 global__cameraDirection,
+		Double4*		 global__cameraRight,
+		Double4*		 global__cameraUp,
+		Double4*		 global__cameraPosition,
 		Triangle*	*global__triangulation,
 		Light*		*global__lights,
 		Material*	*global__materiaux,
@@ -54,8 +54,8 @@ namespace PathTracerNS
 		)
 	{
 		ptr__global__cameraDirection	= global__cameraDirection;
-		ptr__global__cameraScreenX		= global__cameraScreenX;
-		ptr__global__cameraScreenY		= global__cameraScreenY;
+		ptr__global__cameraRight		= global__cameraRight;
+		ptr__global__cameraUp		= global__cameraUp;
 		ptr__global__cameraPosition		= global__cameraPosition;
 
 		ptr__global__triangulation		= global__triangulation;

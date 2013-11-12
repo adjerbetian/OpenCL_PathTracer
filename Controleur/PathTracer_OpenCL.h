@@ -25,10 +25,10 @@ namespace PathTracerNS
 
 
 	bool	OpenCL_InitializeMemory		(
-		Float4		const	global__cameraDirection		,
-		Float4		const	global__cameraScreenX		,
-		Float4		const	global__cameraScreenY		,
-		Float4		const	global__cameraPosition		,
+		Double4		const	global__cameraDirection		,
+		Double4		const	global__cameraRight		,
+		Double4		const	global__cameraUp		,
+		Double4		const	global__cameraPosition		,
 
 		Node		const	*global__bvh				,
 		Triangle	const	*global__triangulation		,

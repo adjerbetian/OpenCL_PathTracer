@@ -87,39 +87,39 @@ namespace PathTracerNS
 
 	};
 
-	typedef MPoint Float4;
+	typedef MPoint Double4;
 	typedef MPoint RGBAColor;
 
-	inline Float4	convert_float4	(const Uchar4& v)							{return Float4(v.x, v.y, v.z, v.w);};
-	inline float	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
-	inline float	dot				(const Float4& v1, const Float4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
-	inline Float4	cross			(const Float4& v1, const Float4& v2)		{return Float4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
-	inline Float4	ppmin			(const Float4& v1, const Float4& v2)		{return Float4( min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z), min(v1.w, v2.w));};
-	inline Float4	ppmax			(const Float4& v1, const Float4& v2)		{return Float4( max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z), max(v1.w, v2.w));};
-	inline Float4	pmin			(const Float4& v1, float a)					{return ppmin(v1, Float4(a,a,a,a));};
-	inline Float4	pmax			(const Float4& v1, float a)					{return ppmax(v1, Float4(a,a,a,a));};
-	inline Float4	exp				(const Float4& v)							{return Float4( std::exp(v.x), std::exp(v.y), std::exp(v.z), std::exp(v.w));};
+	inline Double4	convert_float4	(const Uchar4& v)							{return Double4(v.x, v.y, v.z, v.w);};
+	inline double	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
+	inline double	dot				(const Double4& v1, const Double4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
+	inline Double4	cross			(const Double4& v1, const Double4& v2)		{return Double4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
+	inline Double4	ppmin			(const Double4& v1, const Double4& v2)		{return Double4( min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z), min(v1.w, v2.w));};
+	inline Double4	ppmax			(const Double4& v1, const Double4& v2)		{return Double4( max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z), max(v1.w, v2.w));};
+	inline Double4	pmin			(const Double4& v1, float a)					{return ppmin(v1, Double4(a,a,a,a));};
+	inline Double4	pmax			(const Double4& v1, float a)					{return ppmax(v1, Double4(a,a,a,a));};
+	inline Double4	exp				(const Double4& v)							{return Double4( std::exp(v.x), std::exp(v.y), std::exp(v.z), std::exp(v.w));};
 
 	inline float	exp				(float a)									{return std::exp(a);};
 	inline float	log				(float a)									{return std::log(a);};
 	inline float	sqrt			(float a)									{return std::sqrt(a);};
 
-	inline float	length			(const Float4& v)							{ return std::sqrt(dot(v,v));};
-	inline float	distance		(const Float4& v1, const Float4& v2)		{ return length(v2 - v1);};
-	inline Float4	normalize		(const Float4& v)							{ return v / length(v);};
+	inline double	length			(const Double4& v)							{ return std::sqrt(dot(v,v));};
+	inline double	distance		(const Double4& v1, const Double4& v2)		{ return length(v2 - v1);};
+	inline Double4	normalize		(const Double4& v)							{ return v / length(v);};
 
 
 	//	Vector
 
-	inline float Vector_SquaredNorm			(Float4 const	*This)					{ return dot(*This, *This);};
-	inline float Vector_SquaredDistanceTo	(Float4 const	*This, Float4 const *v)	{ Float4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
-	inline bool	 Vector_LexLessThan			(Float4 const	*This, Float4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
-	inline float Vector_Max					(Float4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
-	inline float Vector_Mean				(Float4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
+	inline double Vector_SquaredNorm			(Double4 const	*This)					{ return dot(*This, *This);};
+	inline double Vector_SquaredDistanceTo	(Double4 const	*This, Double4 const *v)	{ Double4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
+	inline bool	 Vector_LexLessThan			(Double4 const	*This, Double4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
+	inline double Vector_Max					(Double4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
+	inline double Vector_Mean				(Double4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
 
-	inline void Vector_PutInSameHemisphereAs( Float4 *This, Float4 const *N)
+	inline void Vector_PutInSameHemisphereAs( Double4 *This, Double4 const *N)
 	{
-		float dotProd = dot(*This, *N);
+		double dotProd = dot(*This, *N);
 		if( dotProd < 0.001f )
 			(*This) += (*N) * (0.01f - dotProd);
 
@@ -136,9 +136,9 @@ namespace PathTracerNS
 	inline bool RGBAColor_IsTransparent(RGBAColor *This)							{ return (*This).w > 0.5f;};
 
 	//n = coefficient de normalisation pour le cas ou plusieurs rayons ont contribué
-	inline int RGBAColor_GetR(RGBAColor const *This, int n)							{ if(n==0) return 0; float c = (*This).x/n; if(c>1) return 255; return (int) (255*c); };
-	inline int RGBAColor_GetG(RGBAColor const *This, int n)							{ if(n==0) return 0; float c = (*This).y/n; if(c>1) return 255; return (int) (255*c); };
-	inline int RGBAColor_GetB(RGBAColor const *This, int n)							{ if(n==0) return 0; float c = (*This).z/n; if(c>1) return 255; return (int) (255*c); };
+	inline int RGBAColor_GetR(RGBAColor const *This, int n)							{ if(n==0) return 0; double c = (*This).x/n; if(c>1) return 255; return (int) (255*c); };
+	inline int RGBAColor_GetG(RGBAColor const *This, int n)							{ if(n==0) return 0; double c = (*This).y/n; if(c>1) return 255; return (int) (255*c); };
+	inline int RGBAColor_GetB(RGBAColor const *This, int n)							{ if(n==0) return 0; double c = (*This).z/n; if(c>1) return 255; return (int) (255*c); };
 
 }
 

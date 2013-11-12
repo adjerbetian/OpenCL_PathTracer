@@ -30,7 +30,7 @@
 #else
 
 //	Cette variable permet d'enlever le conflit entre STR ou WSTR lorsque le projet est seul
-#define UNICODE
+//#define UNICODE
 
 #include <assert.h>
 #include <iostream>

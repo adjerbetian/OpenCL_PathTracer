@@ -168,7 +168,7 @@ namespace PathTracerNS
 			{
 				BoundingBox_Reset( &elementaryBoundingBoxes[cutAxis][i] );
 				elementaryNTriangles[cutAxis][i] = 0;
-				SAH[cutAxis][i] = INT_MAX;
+				SAH[cutAxis][i] = (float) INT_MAX;
 			}
 		}
 
@@ -176,7 +176,7 @@ namespace PathTracerNS
 		//1 - Choix de l'axe de découpe :
 		for(int cutAxis=0; cutAxis<3; cutAxis++)
 		{
-			float cutLength;
+			double cutLength;
 
 			if(cutAxis == 0)		cutLength = N->centroidsAABB.pMax.x - N->centroidsAABB.pMin.x;
 			else if(cutAxis == 1)	cutLength = N->centroidsAABB.pMax.y - N->centroidsAABB.pMin.y;
@@ -186,7 +186,7 @@ namespace PathTracerNS
 				continue;
 
 			//2 - Precalcul
-			k1[cutAxis] = const__K*(0.999f)/cutLength;
+			k1[cutAxis] = (float) ( const__K*(0.999f)/cutLength );
 
 
 			//4 - Répartition des triangles
@@ -229,10 +229,10 @@ namespace PathTracerNS
 			//6 - Calcul de la SAH
 			for(int i=0; i < const__K-1; i++)
 			{
-				SAH[cutAxis][i] =
+				SAH[cutAxis][i] = (float) (
 					leftToRightNTriangles[cutAxis][i] * BoundingBox_Area( &leftToRightBoundingBoxes[cutAxis][i] )
 					+
-					rightToLeftNTriangles[cutAxis][i+1] * BoundingBox_Area( &rightToLeftBoundingBoxes[cutAxis][i+1] );
+					rightToLeftNTriangles[cutAxis][i+1] * BoundingBox_Area( &rightToLeftBoundingBoxes[cutAxis][i+1] ));
 			}
 
 

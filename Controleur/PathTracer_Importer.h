@@ -19,10 +19,10 @@ namespace PathTracerNS
 		PathTracerImporter();
 
 		void Initialize (
-			Float4*		 global__cameraDirection,
-			Float4*		 global__cameraScreenX,
-			Float4*		 global__cameraScreenY,
-			Float4*		 global__cameraPosition,
+			Double4*		 global__cameraDirection,
+			Double4*		 global__cameraRight,
+			Double4*		 global__cameraUp,
+			Double4*		 global__cameraPosition,
 			Triangle*	*global__triangulation,
 			Light*		*global__lights,
 			Material*	*global__materiaux,
@@ -46,10 +46,10 @@ namespace PathTracerNS
 
 		//	Attributs
 
-		Float4*		 ptr__global__cameraDirection;
-		Float4*		 ptr__global__cameraScreenX;
-		Float4*		 ptr__global__cameraScreenY;
-		Float4*		 ptr__global__cameraPosition;
+		Double4*		 ptr__global__cameraDirection;
+		Double4*		 ptr__global__cameraRight;
+		Double4*		 ptr__global__cameraUp;
+		Double4*		 ptr__global__cameraPosition;
 
 		Triangle*	*ptr__global__triangulation;
 		Light*		*ptr__global__lights;

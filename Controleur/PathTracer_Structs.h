@@ -15,9 +15,9 @@ namespace PathTracerNS
 
 	ALIGN(16) typedef struct
 	{
-		Float4	pMin;
-		Float4	pMax;
-		Float4	centroid;
+		Double4	pMin;
+		Double4	pMax;
+		Double4	centroid;
 		char	isEmpty;
 	} BoundingBox;
 
@@ -31,8 +31,8 @@ namespace PathTracerNS
 
 	ALIGN(16) typedef struct
 	{
-		Float4		position;
-		Float4		direction;
+		Double4		position;
+		Double4		direction;
 		RGBAColor	color;
 		float		power;
 		float		cosOfInnerFallOffAngle;
@@ -44,7 +44,7 @@ namespace PathTracerNS
 
 	ALIGN(16) typedef struct
 	{
-		Float4		direction;
+		Double4		direction;
 		RGBAColor		color;
 		float			power;
 	} SunLight;
@@ -97,9 +97,9 @@ namespace PathTracerNS
 
 	ALIGN(16) typedef struct
 	{
-		Float4 origin;
-		Float4 direction;
-		Float4 inverse;
+		Double4 origin;
+		Double4 direction;
+		Double4 inverse;
 		RGBAColor transferFunction;
 		cl_uint2 pixel;
 		int reflectionId;
@@ -117,11 +117,11 @@ namespace PathTracerNS
 
 		ALIGN(16) typedef struct
 	{
-		Float4	S1, S2, S3;			// Sommets 3D dans la scène
-		Float4	N1, N2, N3;			// Normales
-		Float4	T1, T2, T3;			// Tangentes
-		Float4	BT1, BT2, BT3;		// Bitangentes
-		Float4	N;					// Vecteur normal
+		Double4	S1, S2, S3;			// Sommets 3D dans la scène
+		Double4	N1, N2, N3;			// Normales
+		Double4	T1, T2, T3;			// Tangentes
+		Double4	BT1, BT2, BT3;		// Bitangentes
+		Double4	N;					// Vecteur normal
 		Float2	UVP1, UVP2, UVP3;	// Position des sommets sur la texture sur la face positive
 		Float2	UVN1, UVN2, UVN3;	// Position des sommets sur la texture sur la face positive
 		BoundingBox AABB;
@@ -147,7 +147,7 @@ namespace PathTracerNS
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	inline void	BoundingBox_Create ( BoundingBox *This, Float4 const *s1, Float4 const *s2, Float4 const *s3)
+	inline void	BoundingBox_Create ( BoundingBox *This, Double4 const *s1, Double4 const *s2, Double4 const *s3)
 	{
 		This->isEmpty = false;
 
@@ -159,7 +159,7 @@ namespace PathTracerNS
 
 	inline int BoundingBox_WidestDim ( BoundingBox const *This )
 	{
-		Float4 p1p2 = This->pMax - This->pMin;
+		Double4 p1p2 = This->pMax - This->pMin;
 		if(p1p2.x > p1p2.y)
 			if(p1p2.x > p1p2.z)
 				return 0;
@@ -197,7 +197,7 @@ namespace PathTracerNS
 		return result;
 	}
 
-	inline void BoundingBox_AddPoint ( BoundingBox *This, Float4 const *v)
+	inline void BoundingBox_AddPoint ( BoundingBox *This, Double4 const *v)
 	{
 		if(This->isEmpty)
 		{
@@ -214,12 +214,12 @@ namespace PathTracerNS
 		This->centroid = (This->pMin + This->pMax) / 2;
 	}
 
-	inline float BoundingBox_Area ( BoundingBox const *This )
+	inline double BoundingBox_Area ( BoundingBox const *This )
 	{
 		if(This->isEmpty)
 			return 0;
 
-		Float4 p1p2 = Float4(This->pMax - This->pMin);
+		Double4 p1p2 = Double4(This->pMax - This->pMin);
 		return p1p2.x*p1p2.y + p1p2.y*p1p2.z + p1p2.z*p1p2.x;
 	}
 
@@ -239,7 +239,7 @@ namespace PathTracerNS
 		This->opacity = 1;
 	};
 
-	inline void Ray3D_SetDirection( Ray3D *This, Float4 const *d)
+	inline void Ray3D_SetDirection( Ray3D *This, Double4 const *d)
 	{
 		This->direction = normalize(*d);
 
@@ -253,7 +253,7 @@ namespace PathTracerNS
 		This->positiveDirection[2] = ( This->inverse.z > 0 );
 	};
 
-	inline void Ray3D_Create( Ray3D *This, Float4 const *o, Float4 const *d, bool _isInWater)
+	inline void Ray3D_Create( Ray3D *This, Double4 const *o, Double4 const *d, bool _isInWater)
 	{
 		This->origin = *o;
 		This->isInWater = _isInWater;

@@ -509,6 +509,4 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__sky
 	);
 
-
-
 #endif

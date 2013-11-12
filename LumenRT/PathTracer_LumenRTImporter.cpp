@@ -35,21 +35,21 @@ namespace PathTracerNS
 		camera.ScreenToVector(cameraDirectionX3, float2(1,0));
 		camera.ScreenToVector(cameraDirectionY3, float2(0,1));
 
-		ptr__global__cameraScreenX->x = cameraDirectionX3.x;
-		ptr__global__cameraScreenX->y = cameraDirectionX3.y;
-		ptr__global__cameraScreenX->z = cameraDirectionX3.z;
-		ptr__global__cameraScreenX->w = 0;
+		ptr__global__cameraRight->x = cameraDirectionX3.x;
+		ptr__global__cameraRight->y = cameraDirectionX3.y;
+		ptr__global__cameraRight->z = cameraDirectionX3.z;
+		ptr__global__cameraRight->w = 0;
 
-		ptr__global__cameraScreenY->x = cameraDirectionY3.x;
-		ptr__global__cameraScreenY->y = cameraDirectionY3.y;
-		ptr__global__cameraScreenY->z = cameraDirectionY3.z;
-		ptr__global__cameraScreenY->w = 0;
+		ptr__global__cameraUp->x = cameraDirectionY3.x;
+		ptr__global__cameraUp->y = cameraDirectionY3.y;
+		ptr__global__cameraUp->z = cameraDirectionY3.z;
+		ptr__global__cameraUp->w = 0;
 
-		(*ptr__global__cameraScreenX) /= dot((*ptr__global__cameraScreenX), (*ptr__global__cameraDirection));
-		(*ptr__global__cameraScreenY) /= dot((*ptr__global__cameraScreenY), (*ptr__global__cameraDirection));
+		(*ptr__global__cameraRight) /= dot((*ptr__global__cameraRight), (*ptr__global__cameraDirection));
+		(*ptr__global__cameraUp) /= dot((*ptr__global__cameraUp), (*ptr__global__cameraDirection));
 
-		(*ptr__global__cameraScreenX) -= (*ptr__global__cameraDirection);
-		(*ptr__global__cameraScreenY) -= (*ptr__global__cameraDirection);
+		(*ptr__global__cameraRight) -= (*ptr__global__cameraDirection);
+		(*ptr__global__cameraUp) -= (*ptr__global__cameraDirection);
 
 	}
 

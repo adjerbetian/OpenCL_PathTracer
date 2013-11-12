@@ -66,7 +66,7 @@ namespace PathTracerNS
 		MVector D		= fnCamera.viewDirection  (MSpace::kWorld);
 		MVector Up		= fnCamera.upDirection	  (MSpace::kWorld);
 		MVector Right	= fnCamera.rightDirection (MSpace::kWorld);
-		float	pinHole	= fnCamera.focusDistance  ();
+		double	pinHole	= fnCamera.focusDistance  ();
 
 
 		*ptr__global__imageWidth = 1280;
@@ -82,15 +82,15 @@ namespace PathTracerNS
 		ptr__global__cameraPosition->z  = C.z;
 		ptr__global__cameraPosition->w  = 0;
 
-		ptr__global__cameraScreenX->x = Right.x;
-		ptr__global__cameraScreenX->y = Right.y;
-		ptr__global__cameraScreenX->z = Right.z;
-		ptr__global__cameraScreenX->w = 0;
+		ptr__global__cameraRight->x = Right.x;
+		ptr__global__cameraRight->y = Right.y;
+		ptr__global__cameraRight->z = Right.z;
+		ptr__global__cameraRight->w = 0;
 
-		ptr__global__cameraScreenY->x = Up.x;
-		ptr__global__cameraScreenY->y = Up.y;
-		ptr__global__cameraScreenY->z = Up.z;
-		ptr__global__cameraScreenY->w = 0;
+		ptr__global__cameraUp->x = Up.x;
+		ptr__global__cameraUp->y = Up.y;
+		ptr__global__cameraUp->z = Up.z;
+		ptr__global__cameraUp->w = 0;
 
 	}
 
@@ -112,7 +112,7 @@ namespace PathTracerNS
 
 			fnMesh.getTriangles(TriangleCount, TraingleVertices);
 
-			for(int i=0; i<TriangleCount.length(); i++)
+			for(uint i=0; i<TriangleCount.length(); i++)
 				*ptr__global__triangulationSize += TriangleCount[i];
 
 			itMesh.next();
@@ -136,8 +136,8 @@ namespace PathTracerNS
 			fnMesh.getPoints(Points, MSpace::kWorld);
 			fnMesh.getTriangles(TriangleCount, TriangleVertices);
 			Float2 temp2;
-			Float4 temp4;
-			for(int i=0; i<TriangleVertices.length(); i+=3)
+			Double4 temp4;
+			for(uint i=0; i<TriangleVertices.length(); i+=3)
 			{
 				Triangle_Create(
 					*ptr__global__triangulation + triangleId,
@@ -179,11 +179,11 @@ namespace PathTracerNS
 	}
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,
-		Float4 const *s1, Float4 const *s2, Float4 const *s3,
+		Double4 const *s1, Double4 const *s2, Double4 const *s3,
 		Float2 const *p1, Float2 const *p2, Float2 const *p3,
-		Float4 const *n1, Float4 const *n2, Float4 const *n3,
-		Float4 const *t1, Float4 const *t2, Float4 const *t3,
-		Float4 const *bt1, Float4 const *bt2, Float4 const *bt3,
+		Double4 const *n1, Double4 const *n2, Double4 const *n3,
+		Double4 const *t1, Double4 const *t2, Double4 const *t3,
+		Double4 const *bt1, Double4 const *bt2, Double4 const *bt3,
 		uint matIndex )
 	{
 		This->materialWithPositiveNormalIndex = matIndex;

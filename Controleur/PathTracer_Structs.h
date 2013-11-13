@@ -13,7 +13,7 @@
 namespace PathTracerNS
 {
 
-	ALIGN(16) typedef struct
+	ALIGN(32) typedef struct
 	{
 		Double4	pMin;
 		Double4	pMax;
@@ -29,7 +29,7 @@ namespace PathTracerNS
 	} LightType;
 
 
-	ALIGN(16) typedef struct
+	ALIGN(32) typedef struct
 	{
 		Double4		position;
 		Double4		direction;
@@ -42,7 +42,7 @@ namespace PathTracerNS
 
 
 
-	ALIGN(16) typedef struct
+	ALIGN(32) typedef struct
 	{
 		Double4		direction;
 		RGBAColor		color;
@@ -61,7 +61,7 @@ namespace PathTracerNS
 	} MaterialType;
 
 
-	ALIGN(16) typedef struct
+	ALIGN(32) typedef struct
 	{
 		RGBAColor		simpleColor;
 		float			opacity;				//	Pour le verre
@@ -81,7 +81,7 @@ namespace PathTracerNS
 	} NodeStopType;
 
 
-	ALIGN(16) typedef struct Node
+	ALIGN(32) typedef struct Node
 	{
 		BoundingBox trianglesAABB;
 		BoundingBox centroidsAABB;
@@ -95,7 +95,7 @@ namespace PathTracerNS
 	} Node;
 
 
-	ALIGN(16) typedef struct
+	ALIGN(32) typedef struct
 	{
 		Double4 origin;
 		Double4 direction;
@@ -115,7 +115,7 @@ namespace PathTracerNS
 		uint offset;
 	} Texture;
 
-		ALIGN(16) typedef struct
+	ALIGN(32) typedef struct
 	{
 		Double4	S1, S2, S3;			// Sommets 3D dans la scène
 		Double4	N1, N2, N3;			// Normales

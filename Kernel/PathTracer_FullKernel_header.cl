@@ -22,7 +22,7 @@
 #define PRINT_DEBUG_INFO(X, Y, Z)
 
 // Pour des debug locaux
-#define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t "#Y" \n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0) , Z)
+#define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : local id : ( %v2u ) : \t global id : ( %v2u ) : \t "Y" \n", (uint2) (get_local_id(0),  get_local_id(1)) , (uint2) (get_global_id(0), get_global_id(1)) , Z)
 
 // Assert
 //#define ASSERT(X) if(!(X)) { printf("***************  ERROR ******************* : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#X"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }

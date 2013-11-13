@@ -76,6 +76,7 @@ namespace PathTracerNS
 
 			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 2, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
 			if(OpenCL_ErrorHandling(errCode)) return false;
+
 			clFinish(opencl__queue);
 
 			/////////////////////////////////////////////////////////////////////////////////
@@ -94,8 +95,7 @@ namespace PathTracerNS
 				for(uint x = 0; x < global__imageWidth; x++)
 				{
 					global__imageColor[x][y] = opencl__imageColorFromDevice[offset];
-					//global__imageRayNb[x][y] = opencl__imageRayNbFromDevice[offset];
-					global__imageRayNb[x][y] = imageId+1;
+					global__imageRayNb[x][y] = opencl__imageRayNbFromDevice[offset];
 					offset++;
 				}
 			}
@@ -226,18 +226,6 @@ namespace PathTracerNS
 		};
 
 		const char *Kernel_Main									= "Kernel_Main";
-		const char *Kernel_CreateRays							= "Kernel_CreateRays";
-		const char *Kernel_SortRays_1_ComputeHashValues_Part1	= "Kernel_SortRays_1_ComputeHashValues_Part1";
-		const char *Kernel_SortRays_2_ComputeHashValues_Part2	= "Kernel_SortRays_2_ComputeHashValues_Part2";
-		const char *Kernel_SortRays_3_PrefixSum					= "Kernel_SortRays_3_PrefixSum";
-		const char *Kernel_SortRays_4_AdditionBlockOffset		= "Kernel_SortRays_4_AdditionBlockOffset";
-		const char *Kernel_SortRays_5_Compress					= "Kernel_SortRays_5_Compress";
-		const char *Kernel_SortRays_6_ChunkSize					= "Kernel_SortRays_6_ChunkSize";
-		const char *Kernel_SortRays_7_ComputeChunk16BaseInfo	= "Kernel_SortRays_7_ComputeChunk16BaseInfo";
-		const char *Kernel_SortRays_9_AddComputedOffsetAndSort	= "Kernel_SortRays_9_AddComputedOffsetAndSort";
-		const char *Kernel_SortRays_0_DebugHashValues			= "Kernel_SortRays_0_DebugHashValues";
-		const char *Kernel_SortRays_0_DebugRadixSort			= "Kernel_SortRays_0_DebugRadixSort";
-		const char *Kernel_CustomDebug							= "Kernel_CustomDebug";
 
 		cl_platform_id *platform_ids;
 		cl_platform_id platform_id = 0;

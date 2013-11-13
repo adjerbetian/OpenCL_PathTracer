@@ -195,7 +195,6 @@ namespace PathTracerNS
 		// Les données OpenCL sont prévues pour une image de taille 1280 x 720
 
 		RTASSERT(global__imageWidth > 0 && global__imageHeight > 0);
-		RTASSERT(global__imageWidth <= 1280 && global__imageHeight <= 720);
 
 		global__imageColor = new RGBAColor*[global__imageWidth];
 		global__imageRayNb = new uint*[global__imageWidth];

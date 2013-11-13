@@ -444,6 +444,8 @@ RGBAColor Material_WaterAbsorption(float dist)
 
 RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3DData, Ray3D const *r)
 {
+	return RGBACOLOR(1,1,1,1)*0.5;
+
 	float t;
 
 	// Sol
@@ -697,14 +699,15 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, double4 *in
 			//	On a finit de tester le rayon contre la feuille, il faut dépiler, sauf si la pile est vide
 
 			if(currentReadStackIdx < 0) // La pile est vide
+			{
 				break;
+			}
 
 			currentNode = stack[currentReadStackIdx];
 			currentReadStackIdx--;
 		}
 		else
 		{
-
 			if(r->positiveDirection[currentNode->cutAxis])
 			{
 				son1 = &global__bvh[currentNode->son1Id];
@@ -1206,6 +1209,12 @@ __kernel void Kernel_Main(
 	)
 {
 
+	//printf("Node : %u\n", sizeof(Node));
+	//printf("Double4 : %u\n", sizeof(double4));
+	//printf("Bounding Box : %u\n", sizeof(BoundingBox));
+
+
+
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -1215,33 +1224,21 @@ __kernel void Kernel_Main(
 
 	uint xPixel = get_global_id(0);
 	uint yPixel = get_global_id(1);
-	if(xPixel == 0 && yPixel == 0)
-		printf("(xPixel, yPixel) : %u , %u \n", xPixel, yPixel);
-
-	/*
 
 	const int globalImageOffset = yPixel * kernel__imageWidth + xPixel;
 
-	global__imageRayNb[globalImageOffset]++;
-	global__imageColor[globalImageOffset] = RGBACOLOR( ((double) xPixel) / kernel__imageWidth, ((double) yPixel) / kernel__imageHeight, 1, 1 );
-
 	//PRINT_DEBUG_INFO2("KERNEL MAIN END", (uint2) (xPixel, yPixel) , (uint2) (xPixel, yPixel));
-	printf("(xPixel, yPixel) : %u , %u \n", xPixel, yPixel);
-
-	/*
 
 	int seedValue = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
 	int *seed = &seedValue;
 
-	double xScreen = (xPixel + random(seed) - 0.5) / (double) kernel__imageWidth  - 1.0;
-	double yScreen = (yPixel + random(seed) - 0.5) / (double) kernel__imageHeight - 1.0;
+	double xScreen = (xPixel + random(seed) - 0.5) / (double) kernel__imageWidth  - 0.5;
+	double yScreen = (yPixel + random(seed) - 0.5) / (double) kernel__imageHeight - 0.5;
 
 	double4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * xScreen ) + ( kernel__cameraUp * yScreen );
 	Ray3D r;
 	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
 
-
-	/*
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION DES VARIABLES DE PARCOURS
@@ -1270,10 +1267,12 @@ __kernel void Kernel_Main(
 	bool activeRay = true;
 	int reflectionId = 0;
 
+
 	while(activeRay)
 	{
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
+			radianceToCompute = RGBACOLOR( 1 , 1 , 1 , 1 );
 			//if(r.isInWater)
 			//{
 			//	*radianceToCompute += Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR, r, &intersectionPoint) * (*transferFunction);
@@ -1281,6 +1280,8 @@ __kernel void Kernel_Main(
 			//	float dist = distance(intersectionPoint, r->origin);
 			//	*transferFunction *= Material_WaterAbsorption(dist);
 			//}
+
+			/*
 
 			bool areRayAndNormalInSameDirection		= ( dot(r.direction, intersectedTriangle.N) > 0 );
 
@@ -1297,6 +1298,8 @@ __kernel void Kernel_Main(
 
 			//radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &Ng, &Ns);
 			reflectionId++;
+
+			*/
 		}
 		else // Sky
 		{
@@ -1310,7 +1313,9 @@ __kernel void Kernel_Main(
 		///					MISE A JOUR DE L'ACTIVITE DU RAYON
 		///////////////////////////////////////////////////////////////////////////////////////
 
-	
+		activeRay = false;
+
+		/*
 		float maxContribution;
 
 		if(activeRay)
@@ -1331,13 +1336,14 @@ __kernel void Kernel_Main(
 				transferFunction /= russianRouletteCoeff;
 			}
 		}
+		*/
 	}
+
+	//radianceToCompute = RGBACOLOR( ((double) xPixel) / kernel__imageWidth, ((double) yPixel) / kernel__imageHeight, 1, 1 );
+
 
 	// Si le rayon est termine
 
-	const int globalImageOffset = yPixel * kernel__imageWidth + xPixel;
-
 	global__imageRayNb[globalImageOffset]++;
 	global__imageColor[globalImageOffset] += radianceToCompute;
-	*/
 }

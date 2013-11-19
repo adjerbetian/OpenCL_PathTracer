@@ -1176,7 +1176,7 @@ __kernel void Kernel_Main(
 {
 
 	//printf("Node : %u\n", sizeof(Node));
-	//printf("Double4 : %u\n", sizeof(float4));
+	//printf("Float4 : %u\n", sizeof(Float4));
 	//printf("Bounding Box : %u\n", sizeof(BoundingBox));
 
 

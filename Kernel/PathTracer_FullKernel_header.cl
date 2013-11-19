@@ -32,7 +32,6 @@
 #define INT4 (int4)
 #define FLOAT2 (float2)
 #define FLOAT4 (float4)
-#define FLOAT4 (float4)
 #define RGBACOLOR (RGBAColor)
 #define NULL 0
 #define IMAGE3D __read_only image3d_t

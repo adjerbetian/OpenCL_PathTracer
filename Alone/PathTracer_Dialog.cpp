@@ -73,10 +73,10 @@ namespace PathTracerNS
 		// Fill buffer with uniform color
 		for (unsigned int index = 0; index < pathTracerWidth * pathTracerHeight; ++index )
 		{
-			pixels[index].r = imageColor[index].x * 255.0 / ( imageRay == NULL ? 1 : imageRay[index] );
-			pixels[index].g = imageColor[index].y * 255.0 / ( imageRay == NULL ? 1 : imageRay[index] );
-			pixels[index].b = imageColor[index].z * 255.0 / ( imageRay == NULL ? 1 : imageRay[index] );
-			pixels[index].a = imageColor[index].w * 255.0 / ( imageRay == NULL ? 1 : imageRay[index] );
+			pixels[index].r = imageColor[index].x * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+			pixels[index].g = imageColor[index].y * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+			pixels[index].b = imageColor[index].z * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+			pixels[index].a = imageColor[index].w * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
 		}
 
 		// Pushing buffer to Render View
@@ -120,7 +120,7 @@ namespace PathTracerNS
 		RGBAColor* floatImage = (RGBAColor*) malloc(sizeof(RGBAColor)*texture.width*texture.height);
 		for(uint i=0; i<texture.width*texture.height; i++)
 		{
-			floatImage[i] = global__texturesData[texture.offset+i].toDouble4()/255.0;
+			floatImage[i] = global__texturesData[texture.offset+i].toFloat4()/255.0;
 			floatImage[i].w /= 255.0;
 		}
 

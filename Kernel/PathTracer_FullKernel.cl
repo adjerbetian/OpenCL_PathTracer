@@ -162,7 +162,7 @@ void Material_Create( Material *This, MaterialType _type)
 /************************************************************************/
 
 //	Both ri and rr pointing toward the surface
-float Material_BRDF( Material const *This, Ray3D const *ri, double4 const *N, Ray3D const *rr)
+float Material_BRDF( Material const *This, Ray3D const *ri, float4 const *N, Ray3D const *rr)
 {
 	if(This->type == MAT_STANDART)
 		return PATH_PI_INVERSE;
@@ -183,13 +183,13 @@ float Material_BRDF( Material const *This, Ray3D const *ri, double4 const *N, Ra
 		float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, ri, N, false, NULL);
 
 		//	on cherche la direction de de diffusion originelle de rr
-		double4 originalRefractionDirection;
+		float4 originalRefractionDirection;
 		Material_FresnelVarnishReflectionFraction(This, rr, N, false, &originalRefractionDirection);
 
 		//	Calcul du deuxième coefficient de Fresnel
 		Ray3D insideRay;
-		double4 originalRefractionDirectionOpposite = -originalRefractionDirection;
-		double4 NOpposite = -(*N);
+		float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
+		float4 NOpposite = -(*N);
 
 		Ray3D_Create(&insideRay, &rr->origin, &originalRefractionDirectionOpposite, rr->isInWater);
 		float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &insideRay, &NOpposite, true, NULL);
@@ -202,7 +202,7 @@ float Material_BRDF( Material const *This, Ray3D const *ri, double4 const *N, Ra
 
 };
 
-float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const *r , double4 const *N)
+float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const *r , float4 const *N)
 {
 	ASSERT(This->type == MAT_GLASS);
 
@@ -233,7 +233,7 @@ float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const
 
 }
 
-float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const *r , double4 const *N, double4 *refractionDirection, float *refractionMultCoeff)
+float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const *r , float4 const *N, float4 *refractionDirection, float *refractionMultCoeff)
 {
 	ASSERT(This->type == MAT_WATER);
 
@@ -272,7 +272,7 @@ float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const
 	return rFresnel;
 }
 
-float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D const *r , double4 const *N, bool isInVarnish, double4 *refractionDirection)
+float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D const *r , float4 const *N, bool isInVarnish, float4 *refractionDirection)
 {
 	ASSERT(This->type == MAT_VARNHISHED);
 	ASSERT( dot(r->direction, *N) <= 0 );
@@ -282,7 +282,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D con
 	n1 = isInVarnish ? MATERIAL_N_VARNISH : (r->isInWater ? MATERIAL_N_WATER : 1.0f);
 	n2 = isInVarnish ? (r->isInWater ? MATERIAL_N_WATER : 1.0f) : MATERIAL_N_VARNISH;
 
-	float cos1 = fmin(1.0 , - dot(r->direction, *N) );
+	float cos1 = fmin(1.f , - dot(r->direction, *N) );
 	float sin1 = sqrt(1 - cos1 * cos1);
 	float sin2 = n1 * sin1 / n2;
 	if(sin2 >= 1) // Totalement réfléchi
@@ -302,16 +302,16 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D con
 	return rFresnel;
 }
 
-double4 Material_FresnelReflection( Material const *This, double4 const *v, double4 const *N)
+float4 Material_FresnelReflection( Material const *This, float4 const *v, float4 const *N)
 {
 	ASSERT(This->type != MAT_STANDART);
 
-	double4 reflection = (*v) - ( (*N) * ( 2 * dot(*v, *N) ) );
+	float4 reflection = (*v) - ( (*N) * ( 2 * dot(*v, *N) ) );
 	return reflection;
 }
 
 
-double4 Material_CosineSampleHemisphere(int *kernel__seed, double4 const *N)
+float4 Material_CosineSampleHemisphere(int *kernel__seed, float4 const *N)
 {
 	ASSERT(fabs(length(*N) - 1.0f) < 0.0001f);
 
@@ -321,7 +321,7 @@ double4 Material_CosineSampleHemisphere(int *kernel__seed, double4 const *N)
 	Material_ConcentricSampleDisk(kernel__seed, &x, &y);
 	z = 1 - x*x - y*y;
 	z = (z<0) ? 0 : sqrt(z);
-	const double4 v = DOUBLE4(x,y,z,0);
+	const float4 v = FLOAT4(x,y,z,0);
 
 	//	2 - Rotation suivant l'axe *N
 
@@ -331,14 +331,14 @@ double4 Material_CosineSampleHemisphere(int *kernel__seed, double4 const *N)
 		return -v;
 
 	//	Création d'un base directe pour le nouvel hémisphère
-	double4 sn = normalize(DOUBLE4( - (*N).y , (*N).x , 0 , 0 )); // = double4(0,0,1) ^ N
-	double4 tn = normalize(cross(*N, sn));
+	float4 sn = normalize(FLOAT4( - (*N).y , (*N).x , 0 , 0 )); // = float4(0,0,1) ^ N
+	float4 tn = normalize(cross(*N, sn));
 
 	//	Rotation
-	double4 vWorld = normalize(DOUBLE4(
-		dot(DOUBLE4(sn.x, tn.x, (*N).x, 0), v),
-		dot(DOUBLE4(sn.y, tn.y, (*N).y, 0), v),
-		dot(DOUBLE4(sn.z, tn.z, (*N).z, 0), v),
+	float4 vWorld = normalize(FLOAT4(
+		dot(FLOAT4(sn.x, tn.x, (*N).x, 0), v),
+		dot(FLOAT4(sn.y, tn.y, (*N).y, 0), v),
+		dot(FLOAT4(sn.z, tn.z, (*N).z, 0), v),
 		0));
 
 	ASSERT( dot(vWorld, *N) >= 0);
@@ -538,13 +538,13 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const
 ///						TRIANGLE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
+bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D const *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
 {
 	// REMARQUE : Les triangles sont orientés avec la normale
 	//		--> Pas d'intersection si le rayon vient de derrière...
 
-	const double4 u = This->S2 - This->S1;	// Cotes des triangles
-	const double4 v = This->S3 - This->S1;	// Cotes des triangles
+	const float4 u = This->S2 - This->S1;	// Cotes des triangles
+	const float4 v = This->S3 - This->S1;	// Cotes des triangles
 
 	const float d = dot(This->N, This->S1);					// Coordonnée d du plan : n.x = d
 
@@ -553,9 +553,9 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	if( (nd > -0.00001f) && (nd < 0.00001f) )			// Rayon parallele au triangle
 		return false;
 
-	const double4 q = r->origin + (r->direction*((d-dot(This->N, r->origin))/nd)); // Point d'intersection du rayon dans le plan du triangle
+	const float4 q = r->origin + (r->direction*((d-dot(This->N, r->origin))/nd)); // Point d'intersection du rayon dans le plan du triangle
 
-	double4 fullRay = q - r->origin;
+	float4 fullRay = q - r->origin;
 	const float newSquaredDistance = Vector_SquaredNorm( &fullRay );
 
 	if(newSquaredDistance > *squaredDistance) // Trop loin
@@ -563,7 +563,7 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	if(newSquaredDistance < 0.00001f) //Trop près
 		return false;
 
-	const double4 w = q - This->S1;
+	const float4 w = q - This->S1;
 
 	float uv = dot(u,v),
 		wv = dot(w,v),
@@ -612,11 +612,11 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 	//return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__texturesData, uvText.x, uvText.y );
 }
 
-double4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
+float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
 	return This->N;;
 
-	//double4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
+	//float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
 	//if(positiveNormal)
 	//	return smoothNormal;
 	//return -smoothNormal;
@@ -630,7 +630,7 @@ double4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, floa
  *	La traversée de l'arbre se fait par paquet avec le groupe entier
  */
 
-bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, double4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
+bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
 {
 	float squaredDistance = INFINITY;
 
@@ -717,7 +717,7 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, double4 *in
 
 bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float squaredDistance, RGBAColor *tint)
 {
-	double4 *intersectionPoint = NULL;
+	float4 *intersectionPoint = NULL;
 	Material *intersectedMaterial = NULL;
 	RGBAColor *intersectionColor = NULL;
 	float *s = NULL;
@@ -807,13 +807,13 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, double4 const *Ng,  double4 const *Ns)
+RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, float4 const *Ng,  float4 const *Ns)
 {
-	double4 N = r->direction;
+	float4 N = r->direction;
 
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 
-	double4 outDirection = r->direction;
+	float4 outDirection = r->direction;
 
 	/*
 	if(mat->type == MAT_STANDART)
@@ -842,7 +842,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p,
 
 	else if(mat->type == MAT_WATER)
 	{
-		double4 refractedDirection;
+		float4 refractedDirection;
 		float refractionMultCoeff;
 		float rFresnel = Material_FresnelWaterReflectionFraction(mat, r, Ns, &refractedDirection, &refractionMultCoeff);
 
@@ -881,7 +881,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p,
 	//	//	Illumination directe
 	//	*radianceToCompute += directIlluminationRadiance * materialColor * (*transferFunction);
 
-	//	double4 refractedDirection;
+	//	float4 refractedDirection;
 	//	float rFresnel1 = Material_FresnelVarnishReflectionFraction(&mat, r, &Ns, false, &refractedDirection);
 
 	//	//	Reflection
@@ -900,7 +900,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p,
 	//	r->origin = *p;
 
 	//	float rFresnel2;
-	//	double4 NsOposite = -Ns;
+	//	float4 NsOposite = -Ns;
 
 	//	outDirection = Material_CosineSampleHemisphere(seed, &Ns);
 	//	Ray3D_SetDirection(r, &outDirection);
@@ -931,7 +931,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p,
  *			- Pour des scène en exterieur, il est préférable de tout le temps tester le soleil
  */
 
-RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N)
+RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N)
 {
 	return RGBACOLOR(0.5,0.5,0.5,1);
 
@@ -945,7 +945,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const d
 	//if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
 	//{
 	//	Ray3D lightRay;
-	//	double4 fullRay = light.position - (*p);
+	//	float4 fullRay = light.position - (*p);
 	//	Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 
 	//	if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, Vector_SquaredDistanceTo(&light.position, p), &tint))		//Lumière visible
@@ -956,7 +956,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const d
 
 	//tint = RGBACOLOR(1,1,1,1);
 	//Ray3D sunRay;
-	//double4 sunOpositeDirection = - global__sun->direction;
+	//float4 sunOpositeDirection = - global__sun->direction;
 	//Ray3D_Create(&sunRay, p, &sunOpositeDirection, cameraRay->isInWater);
 	//float G = dot(sunRay.direction, *N);
 	//float BRDF = Material_BRDF( mat, &sunRay, N, cameraRay);
@@ -990,7 +990,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const d
  *	
  *
  */
-RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const double4 *intersectionPoint)
+RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const float4 *intersectionPoint)
 {
 	RGBAColor L = RGBACOLOR(0,0,0,0);
 	return L;
@@ -1010,7 +1010,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 
 	//	RGBAColor transferFunction = RGBACOLOR(1,1,1,1);
 
-	//	double4 scatteringPoint = cameraRay->origin;
+	//	float4 scatteringPoint = cameraRay->origin;
 	//	float fullRayDist = distance(*intersectionPoint, cameraRay->origin);
 	//	float xsi = random(seed);
 	//	xsi = (0.98f * xsi) + 0.01f; // On met xsi entre 0.01 et 0.99
@@ -1034,7 +1034,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 	//	RGBAColor tint = RGBACOLOR(1,1,1,1);
 	//	Ray3D sunRay;			//Pointing toward the sun
 	//	Ray3D sunOpositeRay;	//Pointing away from the sun
-	//	double4 sunOpositeDirection = -global__sun->direction;
+	//	float4 sunOpositeDirection = -global__sun->direction;
 	//	Ray3D_Create( &sunRay, &scatteringPoint, &sunOpositeDirection, cameraRay->isInWater);
 	//	float BRDF;
 
@@ -1059,7 +1059,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 	//	{
 	//		light = global__lights[il];
 	//		tint = RGBACOLOR(1,1,1,1);
-	//		double4 fullRay = light.position - scatteringPoint;
+	//		float4 fullRay = light.position - scatteringPoint;
 	//		Ray3D_Create(&lightRay, &scatteringPoint, &fullRay, cameraRay->isInWater);
 
 	//		if( !BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, INFINITY, &tint) )
@@ -1083,7 +1083,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 /*	Cette fonction tire une lampe au hasard selon sa ccontribution potentielle
  */
 
-bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N, Light *lightToChoose, float *lightContribution)
+bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N, Light *lightToChoose, float *lightContribution)
 {
 	float lightContributions[MAX_LIGHT_SIZE+1];
 	float distribution[MAX_LIGHT_SIZE+1];
@@ -1104,7 +1104,7 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3
 	{
 		light = global__lights[i];
 		Ray3D lightRay;
-		double4 fullRay = (*p) - light.position;
+		float4 fullRay = (*p) - light.position;
 		Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 		Ray3D lightOpositeRay = Ray3D_Opposite(&lightRay);
 
@@ -1155,14 +1155,14 @@ __kernel void Kernel_Main(
 	uint     kernel__imageWidth,
 	uint     kernel__imageHeight,
 
-	double4  kernel__cameraPosition,
-	double4  kernel__cameraDirection,
-	double4  kernel__cameraRight,
-	double4  kernel__cameraUp,
+	float4  kernel__cameraPosition,
+	float4  kernel__cameraDirection,
+	float4  kernel__cameraRight,
+	float4  kernel__cameraUp,
 
 	uint     global__lightsSize,
 
-	double4	__global			*global__imageColor,
+	float4	__global			*global__imageColor,
 	uint	__global			*global__imageRayNb,
 	void	__global	const	*global__void__bvh,
 	void	__global	const	*global__void__triangulation,
@@ -1176,7 +1176,7 @@ __kernel void Kernel_Main(
 {
 
 	//printf("Node : %u\n", sizeof(Node));
-	//printf("Double4 : %u\n", sizeof(double4));
+	//printf("Double4 : %u\n", sizeof(float4));
 	//printf("Bounding Box : %u\n", sizeof(BoundingBox));
 
 
@@ -1198,10 +1198,10 @@ __kernel void Kernel_Main(
 	int seedValue = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
 	int *seed = &seedValue;
 
-	double xScreen = (xPixel + random(seed) - 0.5) / (double) kernel__imageWidth  - 0.5;
-	double yScreen = (yPixel + random(seed) - 0.5) / (double) kernel__imageHeight - 0.5;
+	float xScreen = (xPixel + random(seed) - 0.5) / (float) kernel__imageWidth  - 0.5;
+	float yScreen = (yPixel + random(seed) - 0.5) / (float) kernel__imageHeight - 0.5;
 
-	double4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * xScreen ) + ( kernel__cameraUp * yScreen );
+	float4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * xScreen ) + ( kernel__cameraUp * yScreen );
 	Ray3D r;
 	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
 
@@ -1224,7 +1224,7 @@ __kernel void Kernel_Main(
 	//	Variable utiles lors du parcours de l'arbre
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 	RGBAColor transferFunction  = RGBACOLOR(1,1,1,1);
-	double4 intersectionPoint   = DOUBLE4  (0,0,0,0);
+	float4 intersectionPoint   = FLOAT4  (0,0,0,0);
 	float s = 0.0f, t = 0.0f;
 	Triangle intersectedTriangle;
 	Material intersectedMaterial;
@@ -1252,10 +1252,10 @@ __kernel void Kernel_Main(
 
 			bool areRayAndNormalInSameDirection		= ( dot(r.direction, intersectedTriangle.N) > 0 );
 
-			double4 const Ng = Triangle_GetNormal(&intersectedTriangle, !areRayAndNormalInSameDirection);
+			float4 const Ng = Triangle_GetNormal(&intersectedTriangle, !areRayAndNormalInSameDirection);
 
-			double4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,s,t);
-			double4 rOpositeDirection = - r.direction;
+			float4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,s,t);
+			float4 rOpositeDirection = - r.direction;
 			Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
 			Ns = normalize(Ns);
 			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
@@ -1301,7 +1301,7 @@ __kernel void Kernel_Main(
 		//}
 	}
 
-	//radianceToCompute = RGBACOLOR( ((double) xPixel) / kernel__imageWidth, ((double) yPixel) / kernel__imageHeight, 1, 1 );
+	//radianceToCompute = RGBACOLOR( ((float) xPixel) / kernel__imageWidth, ((float) yPixel) / kernel__imageHeight, 1, 1 );
 
 
 	// Si le rayon est termine

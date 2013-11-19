@@ -14,7 +14,6 @@ namespace PathTracerNS
 	typedef unsigned char uchar;
 	typedef unsigned long long int ulong;
 
-
 	class Int2
 	{
 	public:
@@ -34,27 +33,6 @@ namespace PathTracerNS
 		int x, y, z, w;
 
 	};
-
-
-	class Char4
-	{
-	public:
-		inline Char4 ()										{ x = 0; y = 0;};
-		inline Char4 (char _x, char _y, char _z, char _w)	{ x = _x; y = _y; y = _y; w = _w;};
-
-		char x, y, z, w;
-
-	};
-
-	class Uchar4
-	{
-	public:
-		inline Uchar4 ()										{ x =  0; y =  0; z =  0; w =  0;};
-		inline Uchar4 (uchar _x, uchar _y, uchar _z, uchar _w)	{ x = _x; y = _y; z = _y; w = _w;};
-		inline MPoint toDouble4() const							{ return MPoint(x,y,z,w); };
-		uchar x,y,z,w;
-	};
-
 
 
 	class Float2
@@ -86,39 +64,97 @@ namespace PathTracerNS
 
 	};
 
-	typedef MPoint Double4;
-	typedef MPoint RGBAColor;
 
-	inline Double4	permute_xyz_to_zxy	(const MPoint &m)						{return Double4(m.z, m.x, m.y, m.w);};
-	inline double	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
-	inline double	dot				(const Double4& v1, const Double4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
-	inline Double4	cross			(const Double4& v1, const Double4& v2)		{return Double4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
-	inline Double4	ppmin			(const Double4& v1, const Double4& v2)		{return Double4( min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z), min(v1.w, v2.w));};
-	inline Double4	ppmax			(const Double4& v1, const Double4& v2)		{return Double4( max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z), max(v1.w, v2.w));};
-	inline Double4	pmin			(const Double4& v1, float a)					{return ppmin(v1, Double4(a,a,a,a));};
-	inline Double4	pmax			(const Double4& v1, float a)					{return ppmax(v1, Double4(a,a,a,a));};
-	inline Double4	exp				(const Double4& v)							{return Double4( std::exp(v.x), std::exp(v.y), std::exp(v.z), std::exp(v.w));};
+	class Float4
+	{
+	public:
+
+		inline Float4 ()										{ x = 0; y = 0; z = 0; w = 0;};
+		inline Float4 (const Float4& v)							{ x = v.x; y = v.y; z = v.z; w = v.w;};
+		inline Float4 (const MPoint& v)							{ x = (float) v.x; y = (float) v.y; z = (float) v.z; w = (float) v.w;};
+		inline Float4 (float _x, float _y, float _z, float _w)	{ x = _x; y = _y; z = _z; w = _w;};
+
+		inline Float4  operator + (const Float4& v) const		{ return Float4(x + v.x, y + v.y, z + v.z, w + v.w);};
+		inline Float4& operator += (const Float4& v)			{ x += v.x; y += v.y; z += v.z; w += v.w; return *this;};
+
+		inline Float4  operator - (const Float4& v) const		{ return Float4(x - v.x, y - v.y, z - v.z, w - v.w);};
+		inline Float4& operator -= (const Float4& v)				{ x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this;};
+		inline Float4  operator - () const						{ return Float4(-x, -y, -z, -w);};
+
+		inline Float4  operator * (float a) const				{ return Float4(x * a, y * a, z * a, w * a);};
+		inline Float4& operator *= (float a)					{ x *= a; y *= a; z *= a; w *= a; return *this;};
+
+		inline Float4  operator * (const Float4& v) const		{ return Float4(x * v.x, y * v.y, z * v.z, w * v.w );};
+		inline Float4& operator *= (const Float4& v)			{ x *= v.x; y *= v.y; z *= v.z; w *= v.w; return *this;};
+
+		inline Float4  operator / (float a) const				{ return Float4(x / a, y / a, z / a, w / a);};
+		inline Float4& operator /= (float a)					{ x /= a; y /= a; z /= a; w /= a; return *this;};
+
+		inline Float4  operator / (const Float4& v) const		{ return Float4(x / v.x, y / v.y, z / v.z, w / v.w );};
+		inline Float4& operator /= (const Float4& v)			{ x /= v.x; y /= v.y; z /= v.z; w /= v.w; return *this;};
+
+		inline void operator = (const Float4& v)				{ x = v.x; y = v.y; z = v.z; w = v.w;};
+		inline bool operator == (const Float4& v) const			{ return ( x == v.x && y == v.y && z == v.z && w == v.w);};
+		inline bool operator != (const Float4& v) const			{ return ( x != v.x || y != v.y || z != v.z || w != v.w);};
+
+		float x, y, z, w;
+	};
+
+
+	class Char4
+	{
+	public:
+		inline Char4 ()										{ x = 0; y = 0;};
+		inline Char4 (char _x, char _y, char _z, char _w)	{ x = _x; y = _y; y = _y; w = _w;};
+
+		char x, y, z, w;
+
+	};
+
+
+	class Uchar4
+	{
+	public:
+		inline Uchar4 ()										{ x =  0; y =  0; z =  0; w =  0;};
+		inline Uchar4 (uchar _x, uchar _y, uchar _z, uchar _w)	{ x = _x; y = _y; z = _y; w = _w;};
+		inline Float4 toFloat4() const							{ return Float4(x,y,z,w); };
+		uchar x,y,z,w;
+	};
+
+
+
+	typedef Float4 RGBAColor;
+
+	inline Float4	permute_xyz_to_zxy	(const MPoint &m)						{return Float4((float) m.z, (float) m.x, (float) m.y, (float) m.w);};
+	inline float	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
+	inline float	dot				(const Float4& v1, const Float4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
+	inline Float4	cross			(const Float4& v1, const Float4& v2)		{return Float4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
+	inline Float4	ppmin			(const Float4& v1, const Float4& v2)		{return Float4( min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z), min(v1.w, v2.w));};
+	inline Float4	ppmax			(const Float4& v1, const Float4& v2)		{return Float4( max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z), max(v1.w, v2.w));};
+	inline Float4	pmin			(const Float4& v1, float a)					{return ppmin(v1, Float4(a,a,a,a));};
+	inline Float4	pmax			(const Float4& v1, float a)					{return ppmax(v1, Float4(a,a,a,a));};
+	inline Float4	exp				(const Float4& v)							{return Float4( std::exp(v.x), std::exp(v.y), std::exp(v.z), std::exp(v.w));};
 
 	inline float	exp				(float a)									{return std::exp(a);};
 	inline float	log				(float a)									{return std::log(a);};
 	inline float	sqrt			(float a)									{return std::sqrt(a);};
 
-	inline double	length			(const Double4& v)							{ return std::sqrt(dot(v,v));};
-	inline double	distance		(const Double4& v1, const Double4& v2)		{ return length(v2 - v1);};
-	inline Double4	normalize		(const Double4& v)							{ return v / length(v);};
+	inline float	length			(const Float4& v)							{ return std::sqrt(dot(v,v));};
+	inline float	distance		(const Float4& v1, const Float4& v2)		{ return length(v2 - v1);};
+	inline Float4	normalize		(const Float4& v)							{ return v / length(v);};
 
 
 	//	Vector
 
-	inline double Vector_SquaredNorm			(Double4 const	*This)					{ return dot(*This, *This);};
-	inline double Vector_SquaredDistanceTo	(Double4 const	*This, Double4 const *v)	{ Double4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
-	inline bool	 Vector_LexLessThan			(Double4 const	*This, Double4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
-	inline double Vector_Max					(Double4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
-	inline double Vector_Mean				(Double4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
+	inline float Vector_SquaredNorm			(Float4 const	*This)					{ return dot(*This, *This);};
+	inline float Vector_SquaredDistanceTo	(Float4 const	*This, Float4 const *v)	{ Float4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
+	inline bool	 Vector_LexLessThan			(Float4 const	*This, Float4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
+	inline float Vector_Max					(Float4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
+	inline float Vector_Mean				(Float4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
 
-	inline void Vector_PutInSameHemisphereAs( Double4 *This, Double4 const *N)
+	inline void Vector_PutInSameHemisphereAs( Float4 *This, Float4 const *N)
 	{
-		double dotProd = dot(*This, *N);
+		float dotProd = dot(*This, *N);
 		if( dotProd < 0.001f )
 			(*This) += (*N) * (0.01f - dotProd);
 
@@ -129,7 +165,7 @@ namespace PathTracerNS
 
 	// RGBAColor
 
-	inline void RGBAColor_SetColor	(RGBAColor *This, int r, int g, int b, int a)	{ *This = RGBAColor(r,g,b,a) / 255.f;};
+	inline void RGBAColor_SetColor	(RGBAColor *This, int r, int g, int b, int a)	{ *This = RGBAColor((float)r,(float)g,(float)b,(float)a) / 255.f;};
 	inline void RGBAColor_SetToWhite(RGBAColor *This)								{ *This = RGBAColor(1.f,1.f,1.f,1.f);};
 	inline void RGBAColor_SetToBlack(RGBAColor *This)								{ *This = RGBAColor(0.f,0.f,0.f,0.f);};
 	inline bool RGBAColor_IsTransparent(RGBAColor *This)							{ return (*This).w > 0.5f;};

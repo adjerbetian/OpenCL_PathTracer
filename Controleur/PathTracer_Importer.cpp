@@ -32,10 +32,10 @@ namespace PathTracerNS
 
 
 	void PathTracerImporter::Initialize(
-		Double4*		 global__cameraDirection,
-		Double4*		 global__cameraRight,
-		Double4*		 global__cameraUp,
-		Double4*		 global__cameraPosition,
+		Float4*		 global__cameraDirection,
+		Float4*		 global__cameraRight,
+		Float4*		 global__cameraUp,
+		Float4*		 global__cameraPosition,
 		Triangle*	*global__triangulation,
 		Light*		*global__lights,
 		Material*	*global__materiaux,

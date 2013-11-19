@@ -21,10 +21,10 @@ namespace PathTracerNS
 
 	//	Données de la scène :
 
-	Double4				 global__cameraDirection		= Double4(0,0,0,0);	// Vecteur de direction principal de la caméra (passant par le milieu de l'image)
-	Double4				 global__cameraRight			= Double4(0,0,0,0);	// Vector orthogonal à la direction, canoniquement parrallèle au sol, qui indique la largeur de l'image
-	Double4				 global__cameraUp			= Double4(0,0,0,0);	// Vector orthogonal à la direction, canoniquement parrallèle à la vertical, qui indique la hauteur de l'image
-	Double4				 global__cameraPosition			= Double4(0,0,0,0);	// Position 3D du point de focal
+	Float4				 global__cameraDirection		= Float4(0,0,0,0);	// Vecteur de direction principal de la caméra (passant par le milieu de l'image)
+	Float4				 global__cameraRight			= Float4(0,0,0,0);	// Vector orthogonal à la direction, canoniquement parrallèle au sol, qui indique la largeur de l'image
+	Float4				 global__cameraUp			= Float4(0,0,0,0);	// Vector orthogonal à la direction, canoniquement parrallèle à la vertical, qui indique la hauteur de l'image
+	Float4				 global__cameraPosition			= Float4(0,0,0,0);	// Position 3D du point de focal
 
 	Node				*global__bvh					= NULL;		// tableau de Noeuds représentant le BVH. global__bvh[0] est la racine de l'arbre
 	Triangle			*global__triangulation			= NULL;		// tableau de Triangles, NON DUPLIQUES, représentant la géométrie de la scène
@@ -306,7 +306,7 @@ namespace PathTracerNS
 	}
 
 
-	std::string Vector_ToString(Double4 const *This)
+	std::string Vector_ToString(Float4 const *This)
 	{
 		std::ostringstream oss;
 		oss << "["

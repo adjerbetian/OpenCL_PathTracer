@@ -122,10 +122,10 @@ namespace PathTracerNS
 	*/
 
 	bool OpenCL_InitializeMemory(
-		Double4		const	global__cameraDirection		,
-		Double4		const	global__cameraRight		,
-		Double4		const	global__cameraUp		,
-		Double4		const	global__cameraPosition		,
+		Float4		const	global__cameraDirection		,
+		Float4		const	global__cameraRight		,
+		Float4		const	global__cameraUp		,
+		Float4		const	global__cameraPosition		,
 
 		Node		const	*global__bvh				,
 		Triangle	const	*global__triangulation		,
@@ -179,10 +179,10 @@ namespace PathTracerNS
 		i = 1;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageWidth);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageHeight);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraPosition);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraRight);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraUp);			if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraPosition);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraRight);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraUp);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__lightsSize);		if(OpenCL_ErrorHandling(errCode)) return false;
 
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),		(void*) &kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;

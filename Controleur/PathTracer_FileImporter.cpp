@@ -23,10 +23,10 @@ namespace PathTracerNS
 		if(fichier != NULL)
 		{
 
-			nWritte = fwrite(ptr__global__cameraDirection	, sizeof(Double4), 1, fichier);
-			nWritte = fwrite(ptr__global__cameraRight		, sizeof(Double4), 1, fichier);
-			nWritte = fwrite(ptr__global__cameraUp		, sizeof(Double4), 1, fichier);
-			nWritte = fwrite(ptr__global__cameraPosition	, sizeof(Double4), 1, fichier);
+			nWritte = fwrite(ptr__global__cameraDirection	, sizeof(Float4), 1, fichier);
+			nWritte = fwrite(ptr__global__cameraRight		, sizeof(Float4), 1, fichier);
+			nWritte = fwrite(ptr__global__cameraUp		, sizeof(Float4), 1, fichier);
+			nWritte = fwrite(ptr__global__cameraPosition	, sizeof(Float4), 1, fichier);
 
 			nWritte = fwrite(ptr__global__triangulationSize	, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__lightsSize		, sizeof(uint), 1, fichier);
@@ -77,10 +77,10 @@ namespace PathTracerNS
 
 		if(fichierSizes != NULL)
 		{
-			nRead = fread(ptr__global__cameraDirection	, sizeof(Double4), 1, fichierSizes);
-			nRead = fread(ptr__global__cameraRight	, sizeof(Double4), 1, fichierSizes);
-			nRead = fread(ptr__global__cameraUp	, sizeof(Double4), 1, fichierSizes);
-			nRead = fread(ptr__global__cameraPosition	, sizeof(Double4), 1, fichierSizes);
+			nRead = fread(ptr__global__cameraDirection	, sizeof(Float4), 1, fichierSizes);
+			nRead = fread(ptr__global__cameraRight	, sizeof(Float4), 1, fichierSizes);
+			nRead = fread(ptr__global__cameraUp	, sizeof(Float4), 1, fichierSizes);
+			nRead = fread(ptr__global__cameraPosition	, sizeof(Float4), 1, fichierSizes);
 
 			nRead = fread(ptr__global__triangulationSize, sizeof(uint), 1, fichierSizes);
 			nRead = fread(ptr__global__lightsSize		, sizeof(uint), 1, fichierSizes);

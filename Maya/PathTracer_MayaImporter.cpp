@@ -123,7 +123,7 @@ namespace PathTracerNS
 			fnMesh.getPoints(Points, MSpace::kWorld);
 			fnMesh.getTriangles(TriangleCount, TriangleVertices);
 			Float2 temp2;
-			Double4 temp4;
+			Float4 temp4;
 			for(uint i=0; i<TriangleVertices.length(); i+=3)
 			{
 				Triangle_Create(
@@ -169,9 +169,9 @@ namespace PathTracerNS
 		ptr__global__sky->skyTextures[0].width = texWidth	;
 		ptr__global__sky->skyTextures[0].height = texHeight;
 		ptr__global__sky->skyTextures[0].offset = 0;
-		for(int y = 0; y<texHeight; y++)
+		for(uint y = 0; y<texHeight; y++)
 		{
-			for(int fullIndex = y * fullWidth + texWidth; fullIndex < y * fullWidth + 2*texWidth; fullIndex++)
+			for(uint fullIndex = y * fullWidth + texWidth; fullIndex < y * fullWidth + 2*texWidth; fullIndex++)
 			{
 				uchar b = sky[3*fullIndex];
 				uchar g = sky[3*fullIndex+1];
@@ -192,9 +192,9 @@ namespace PathTracerNS
 			ptr__global__sky->skyTextures[i+1].width = texWidth;
 			ptr__global__sky->skyTextures[i+1].height = texHeight;
 			ptr__global__sky->skyTextures[i+1].offset = (i+1)*texWidth*texHeight;
-			for(int y = texHeight; y<2*texHeight; y++)
+			for(uint y = texHeight; y<2*texHeight; y++)
 			{
-				for(int fullIndex = y * fullWidth + i*texWidth; fullIndex < y * fullWidth + (i+1)*texWidth; fullIndex++)
+				for(uint fullIndex = y * fullWidth + i*texWidth; fullIndex < y * fullWidth + (i+1)*texWidth; fullIndex++)
 				{
 					uchar b = sky[3*fullIndex];
 					uchar g = sky[3*fullIndex+1];
@@ -214,9 +214,9 @@ namespace PathTracerNS
 		ptr__global__sky->skyTextures[5].width = texWidth;
 		ptr__global__sky->skyTextures[5].height = texHeight;
 		ptr__global__sky->skyTextures[5].offset = 5*texWidth*texHeight;
-		for(int y = 2*texHeight; y<3*texHeight; y++)
+		for(uint y = 2*texHeight; y<3*texHeight; y++)
 		{
-			for(int fullIndex = y * fullWidth + texWidth; fullIndex < y * fullWidth + 2*texWidth; fullIndex++)
+			for(uint fullIndex = y * fullWidth + texWidth; fullIndex < y * fullWidth + 2*texWidth; fullIndex++)
 			{
 				uchar b = sky[3*fullIndex];
 				uchar g = sky[3*fullIndex+1];
@@ -253,11 +253,11 @@ namespace PathTracerNS
 	}
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,
-		Double4 const *s1, Double4 const *s2, Double4 const *s3,
+		Float4 const *s1, Float4 const *s2, Float4 const *s3,
 		Float2 const *p1, Float2 const *p2, Float2 const *p3,
-		Double4 const *n1, Double4 const *n2, Double4 const *n3,
-		Double4 const *t1, Double4 const *t2, Double4 const *t3,
-		Double4 const *bt1, Double4 const *bt2, Double4 const *bt3,
+		Float4 const *n1, Float4 const *n2, Float4 const *n3,
+		Float4 const *t1, Float4 const *t2, Float4 const *t3,
+		Float4 const *bt1, Float4 const *bt2, Float4 const *bt3,
 		uint matIndex )
 	{
 		This->materialWithPositiveNormalIndex = matIndex;

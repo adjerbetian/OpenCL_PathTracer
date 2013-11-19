@@ -161,7 +161,7 @@ namespace PathTracerNS
 
 		int fullWidth, fullHeight;
 		long int size;
-		LPCTSTR filePath = L"C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\Cubemap.bmp";
+		LPCTSTR filePath = L"C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\cubemap.bmp";
 		uchar* sky = (uchar *) LoadBMP(&fullWidth,&fullHeight,&size, filePath);
 
 		const uint texWidth = fullWidth/4;

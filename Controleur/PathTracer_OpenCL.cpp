@@ -60,7 +60,7 @@ namespace PathTracerNS
 
 		cl_uint imageId = 0;
 
-		while(true && imageId < 1)
+		while(true && imageId < 5)
 		{
 			CONSOLE << "Image : " << imageId << ENDL;
 

@@ -478,7 +478,7 @@ bool		BVH_IntersectShadowRay				(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, 
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor	Scene_ComputeRadiance				(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, double4 const *Ng,  double4 const *Ns);
+RGBAColor	Scene_ComputeRadiance				(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, double4 const *Ng,  double4 const *Ns);
 RGBAColor	Scene_ComputeDirectIllumination		(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N);
 RGBAColor	Scene_ComputeScatteringIllumination	(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const double4 *intersectionPoint);
 bool		Scene_PickLight						(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, const Ray3D *cameraRay, Material const *mat, const double4 *N, Light *light, float *lightContribution);

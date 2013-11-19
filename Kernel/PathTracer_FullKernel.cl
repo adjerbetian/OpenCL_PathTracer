@@ -479,7 +479,7 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *
 		{
 			faceId = 0;
 			u = (1-x/z)/2;
-			v = (1-y/z)/2;
+			v = (1+y/z)/2;
 		}
 	}
 	else if( fabs(x) > fabs(y) && fabs(x) > fabs(z) )
@@ -493,117 +493,32 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *
 		else
 		{
 			faceId = 3;
-			u = (1+y/x)/2;
-			v = (1+z/x)/2;
+			u = (1-y/x)/2;
+			v = (1-z/x)/2;
 		}
 	}
 	else if( fabs(y) > fabs(x) && fabs(y) > fabs(z) )
 	{
 		if( y > 0)
 		{
-			faceId = 2;
-			u = (1-x/y)/2;
-			v = (1+z/y)/2;
-		}
-		else
-		{
 			faceId = 4;
 			u = (1+x/y)/2;
 			v = (1+z/y)/2;
 		}
-	}
-
-	/*
-	if( y > -x)
-	{
-		if( y < x )		// Face 1 : +x
+		else
 		{
-			if( z > x )		// Au dessus
-			{
-				faceId = 0;
-				u = (1 + x/z) / 2;
-				v = (1 - y/z) / 2;
-			}
-			else								    
-			{
-				faceId = 1;
-				u = (1 - y/x) / 2;
-				v = (1 + z/x) / 2;
-			}
-		}
-		else			// Face 2 : +y			    
-		{
-			if( z > y )		// Au dessus		    
-			{
-				faceId = 0;
-				u = (1 + x/z) / 2;
-				v = (1 - y/z) / 2;
-			}
-			else								    
-			{
-				faceId = 2;
-				u = (1 + x/y) / 2;
-				v = (1 + z/y) / 2;
-			}
+			faceId = 2;
+			u = (1+x/y)/2;
+			v = (1-z/y)/2;
 		}
 	}
-	else										    
-	{
-		if( y > x )		//Face 3 : -x			    
-		{
-			if( z > - x )	// Au dessus		    
-			{
-				faceId = 0;
-				u = (1 + x/z) / 2 ;
-				v = (1 - y/z) / 2 ;
-			}
-			else								    
-			{
-				faceId = 3;
-				u = (1 - y/x) / 2 ;
-				v = (1 - z/x) / 2 ;
-			}
-		}
-		else			//Face 4 : -y			    
-		{
-			if( z > - y )	// Au dessus		    
-			{
-				faceId = 0;
-				u = (1 + x/z) / 2 ;
-				v = (1 - y/z) / 2 ;
-			}
-			else								    
-			{
-				faceId = 4;
-				u = (1 + x/y) / 2 ;
-				v = (1 - z/y) / 2 ;
-			}
-		}
-	}
-	*/
-
-	//if(faceId == 0)
-	//	return RGBACOLOR(0,1,0,0);
-	//else if(faceId == 1)
-	//	return RGBACOLOR(1,0,0,0);
-	//else if(faceId == 2)
-	//	return RGBACOLOR(1,1,0,0);
-	//else if(faceId == 3)
-	//	return RGBACOLOR(1,0,1,0);
-	//else if(faceId == 4)
-	//	return RGBACOLOR(0,1,1,0);
-	//else if(faceId == 5)
-	//	return RGBACOLOR(0,0,1,0);
-	//
-	//return RGBACOLOR(0.5,0.5,0.5,0.5);
 
 	return Sky_GetFaceColorValue( This, global__texturesData, faceId, u , v );
 }
 
 RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const *global__texturesData, int faceId, float u, float v)
 {
-	
-	RGBAColor rgba = Texture_GetPixelColorValue(&This->skyTextures[faceId], faceId, global__texturesData, u, 1-v);
+	RGBAColor rgba = Texture_GetPixelColorValue(&This->skyTextures[faceId], faceId, global__texturesData, u, v);
 
 	/*
 	if(faceId != 4)
@@ -676,8 +591,8 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	*squaredDistance = newSquaredDistance;
 
 	if(intersectedMaterial	!= NULL) *intersectedMaterial = mat;
-	//if(intersectionColor	!= NULL) *intersectionColor = materialColor;
-	if(intersectionColor	!= NULL) *intersectionColor = RGBACOLOR(1,1,1,1)*dot(r->direction,This->N)*2./3. + 1./3.;
+	if(intersectionColor	!= NULL) *intersectionColor = materialColor;
+	//if(intersectionColor	!= NULL) *intersectionColor = RGBACOLOR(1,1,1,1)*dot(r->direction,This->N)*2./3. + 1./3.;
 	if(sBestTriangle		!= NULL) *sBestTriangle = s;
 	if(tBestTriangle		!= NULL) *tBestTriangle = t;
 	if(intersectionPoint	!= NULL) *intersectionPoint = q;
@@ -687,7 +602,7 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 
 RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, bool positiveNormal, float s, float t)
 {
-	return RGBACOLOR(0.5,0.5,0.5,1);
+	return RGBACOLOR(0.8,0.8,0.8,1);
 	//Material const mat = positiveNormal ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
 
 	//if(mat.isSimpleColor)
@@ -892,67 +807,71 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, double4 const *Ng,  double4 const *Ns)
+RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const double4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, double4 const *Ng,  double4 const *Ns)
 {
-	return RGBACOLOR(0.2,0.2,0.2,1);
+	double4 N = r->direction;
 
-	//double4 N = r->direction;
+	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 
-	//RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
+	double4 outDirection = r->direction;
 
-	//double4 outDirection = r->direction;
+	/*
+	if(mat->type == MAT_STANDART)
+	{
+		*transferFunction *= (*materialColor);
+		radianceToCompute = (*directIlluminationRadiance) * (*transferFunction);
+		outDirection = Material_CosineSampleHemisphere(seed, Ns);
+		N = *Ns;
+	}
+	else if(mat->type == MAT_GLASS)
+	{
+		float rFresnel = Material_FresnelGlassReflectionFraction(mat, r, Ns);
 
-	//if(mat->type == MAT_STANDART)
-	//{
-	//	r->transferFunction *= (*materialColor);
-	//	radianceToCompute = (*directIlluminationRadiance) * (r->transferFunction);
-	//	outDirection = Material_CosineSampleHemisphere(seed, Ns);
-	//	N = *Ns;
-	//}
+		//	Reflection
+		if( random(seed) < rFresnel )
+		{
+			outDirection = Material_FresnelReflection(mat, &r->direction, Ns);
+			N = *Ng;
+		}
+		else
+		{
+			*transferFunction *= (*materialColor) * (1 - mat->opacity);
+			N = r->direction;
+		}
+	}
 
-	//else if(mat->type == MAT_GLASS)
-	//{
-	//	float rFresnel = Material_FresnelGlassReflectionFraction(mat, r, Ns);
+	else if(mat->type == MAT_WATER)
+	{
+		double4 refractedDirection;
+		float refractionMultCoeff;
+		float rFresnel = Material_FresnelWaterReflectionFraction(mat, r, Ns, &refractedDirection, &refractionMultCoeff);
 
-	//	//	Reflection
-	//	if( random(seed) < rFresnel )
-	//	{
-	//		outDirection = Material_FresnelReflection(mat, &r->direction, Ns);
-	//		N = *Ng;
-	//	}
-	//	else
-	//	{
-	//		r->transferFunction *= (*materialColor) * (1 - mat->opacity);
-	//		N = r->direction;
-	//	}
-	//}
+		//	Reflection
+		if(random(seed) < rFresnel)
+		{
+			outDirection = Material_FresnelReflection(mat, &r->direction, Ns);
+			N = *Ng;
+		}
+		else //	Refraction
+		{
+			r->isInWater = !r->isInWater;
+			outDirection = refractedDirection;
+			N = -(*Ng);
+			*transferFunction *= refractionMultCoeff;
+		}
+	}
+	*/
 
-	//else if(mat->type == MAT_WATER)
-	//{
-	//	double4 refractedDirection;
-	//	float refractionMultCoeff;
-	//	float rFresnel = Material_FresnelWaterReflectionFraction(mat, r, Ns, &refractedDirection, &refractionMultCoeff);
+	*transferFunction *= (*materialColor);
+	radianceToCompute = (*directIlluminationRadiance) * (*transferFunction);
+	outDirection = Material_CosineSampleHemisphere(seed, Ns);
+	N = *Ns;
 
-	//	//	Reflection
-	//	if(random(seed) < rFresnel)
-	//	{
-	//		outDirection = Material_FresnelReflection(mat, &r->direction, Ns);
-	//		N = *Ng;
-	//	}
-	//	else //	Refraction
-	//	{
-	//		r->isInWater = !r->isInWater;
-	//		outDirection = refractedDirection;
-	//		N = -(*Ng);
-	//		r->transferFunction *= refractionMultCoeff;
-	//	}
-	//}
+	r->origin = *p;
+	Vector_PutInSameHemisphereAs(&outDirection, &N);
+	Ray3D_SetDirection(r, &outDirection);
 
-	//r->origin = *p;
-	//Vector_PutInSameHemisphereAs(&outDirection, &N);
-	//Ray3D_SetDirection(r, &outDirection);
-
-	//return radianceToCompute;
+	return radianceToCompute;
 
 
 
@@ -1315,12 +1234,14 @@ __kernel void Kernel_Main(
 	int reflectionId = 0;
 
 
-	while(activeRay)
+	while(activeRay && reflectionId < MAX_REFLECTION_NUMBER)
 	{
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
-			//radianceToCompute = intersectionColor;
-			radianceToCompute = RGBACOLOR(1,1,1,1)*fabs(dot(r.direction,intersectedTriangle.N));
+			//radianceToCompute += intersectionColor * transferFunction;
+			//transferFunction *= intersectionColor;
+			//radianceToCompute = RGBACOLOR(1,1,1,1)*fabs(dot(r.direction,intersectedTriangle.N));
+
 			//if(r.isInWater)
 			//{
 			//	*radianceToCompute += Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR, r, &intersectionPoint) * (*transferFunction);
@@ -1328,8 +1249,6 @@ __kernel void Kernel_Main(
 			//	float dist = distance(intersectionPoint, r->origin);
 			//	*transferFunction *= Material_WaterAbsorption(dist);
 			//}
-
-			/*
 
 			bool areRayAndNormalInSameDirection		= ( dot(r.direction, intersectedTriangle.N) > 0 );
 
@@ -1340,14 +1259,13 @@ __kernel void Kernel_Main(
 			Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
 			Ns = normalize(Ns);
 			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
-
+			
 			//RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ns);
-			RGBAColor directIlluminationRadiance = RGBACOLOR(0.5,0.5,0.5,0);
-
-			//radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &Ng, &Ns);
+			RGBAColor directIlluminationRadiance = RGBACOLOR(0,0,0,0);
+			
+			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
+			//radianceToCompute += RGBACOLOR(0.05,0.1,0.05,1);
 			reflectionId++;
-
-			*/
 		}
 		else // Sky
 		{
@@ -1361,9 +1279,6 @@ __kernel void Kernel_Main(
 		///					MISE A JOUR DE L'ACTIVITE DU RAYON
 		///////////////////////////////////////////////////////////////////////////////////////
 
-		activeRay = false;
-
-		/*
 		float maxContribution;
 
 		if(activeRay)
@@ -1375,16 +1290,15 @@ __kernel void Kernel_Main(
 			}
 		}
 
-		if( RUSSIAN_ROULETTE && activeRay && reflectionId > MIN_REFLECTION_NUMBER )
-		{
-			float russianRouletteCoeff = maxContribution/(reflectionId - MIN_REFLECTION_NUMBER);
-			if( russianRouletteCoeff < 1)
-			{
-				activeRay &= random(seed) > russianRouletteCoeff;
-				transferFunction /= russianRouletteCoeff;
-			}
-		}
-		*/
+		//if( RUSSIAN_ROULETTE && activeRay && reflectionId > MIN_REFLECTION_NUMBER )
+		//{
+		//	float russianRouletteCoeff = maxContribution/(reflectionId - MIN_REFLECTION_NUMBER);
+		//	if( russianRouletteCoeff < 1)
+		//	{
+		//		activeRay &= random(seed) > russianRouletteCoeff;
+		//		transferFunction /= russianRouletteCoeff;
+		//	}
+		//}
 	}
 
 	//radianceToCompute = RGBACOLOR( ((double) xPixel) / kernel__imageWidth, ((double) yPixel) / kernel__imageHeight, 1, 1 );

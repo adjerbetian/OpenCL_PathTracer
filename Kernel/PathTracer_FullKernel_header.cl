@@ -46,7 +46,7 @@ typedef double4 RGBAColor;
 	global__lights				,\
 	global__materiaux			,\
 	global__textures			,\
-	global__textures3DData		,\
+	global__texturesData		,\
 	global__lightsSize			,\
 	global__sun					,\
 	global__sky					
@@ -60,7 +60,7 @@ typedef double4 RGBAColor;
 	Light		__global	const	*global__lights				,\
 	Material	__global	const	*global__materiaux			,\
 	Texture		__global	const	*global__textures			,\
-	IMAGE3D							 global__textures3DData		,\
+	uchar4		__global	const	*global__texturesData		,\
 	uint							 global__lightsSize			,\
 	SunLight	__global const		*global__sun				,\
 	Sky			__global const		*global__sky				
@@ -403,8 +403,9 @@ inline float Light_PowerToward( Light const *This, double4 const *v)
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint textureId, IMAGE3D global__textures3d, float u, float v)
+inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint textureId, uchar4 __global const *global__texturesData, float u, float v)
 {
+
 	Texture tex = *This;
 
 	double4 bgra;
@@ -416,10 +417,12 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 	x = (uint) (u*(tex.width  - 1));
 	y = (uint) (v*(tex.height - 1));
 
-	const sampler_t sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_NONE | CLK_FILTER_NEAREST;
-	bgra = convert_double4(read_imagef(global__textures3d, sampler, INT4(x,y,textureId,0)));
+	const uint index = This->offset + y * This->width + x;
+
+	bgra = convert_double4(global__texturesData[index])/255.0;
 	bgra.w = 1.f - bgra.w;
-	return bgra.zyxw;
+//	return bgra.zyxw;
+	return bgra;
 };
 
 
@@ -448,16 +451,16 @@ RGBAColor	Material_WaterAbsorption		(float dist);
 ///						SKY
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor	Sky_GetColorValue		( Sky __global const *This , IMAGE3D kernel__image3d, Ray3D const *r);
-RGBAColor	Sky_GetFaceColorValue	( Sky __global const *This , IMAGE3D global__textures3DData, int faceId, float u, float v);
+RGBAColor	Sky_GetColorValue		( Sky __global const *This , uchar4 __global const *global__texturesData, Ray3D const *r);
+RGBAColor	Sky_GetFaceColorValue	( Sky __global const *This , uchar4 __global const *global__texturesData, int faceId, float u, float v);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Triangle
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
-RGBAColor			Triangle_GetColorValueAt	(__global Texture const *global__textures, __global Material const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, bool positiveNormal, float s, float t);
+bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
+RGBAColor			Triangle_GetColorValueAt	(__global Texture const *global__textures, __global Material const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, bool positiveNormal, float s, float t);
 double4				Triangle_GetSmoothNormal	(Triangle const	*This, bool positiveNormal, float s, float t);
 double4				Triangle_GetNormal			(Triangle const	*This, bool positiveNormal);
 
@@ -504,7 +507,7 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__lights,
 	void	__global	const	*global__void__materiaux,
 	void	__global	const	*global__void__textures,
-	IMAGE3D						 global__textures3DData,
+	uchar4	__global	const	*global__texturesData,
 	void	__global	const	*global__void__sun,
 	void	__global	const	*global__void__sky
 	);

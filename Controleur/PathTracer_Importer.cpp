@@ -16,7 +16,7 @@ namespace PathTracerNS
 		ptr__global__lights(NULL),
 		ptr__global__materiaux(NULL),
 		ptr__global__textures(NULL),
-		ptr__global__textureData(NULL),
+		ptr__global__texturesData(NULL),
 		ptr__global__triangulationSize(NULL),
 		ptr__global__lightsSize(NULL),
 		ptr__global__materiauxSize(NULL),
@@ -40,12 +40,12 @@ namespace PathTracerNS
 		Light*		*global__lights,
 		Material*	*global__materiaux,
 		Texture*	*global__textures,
-		Uchar4*		*global__textureData,
+		Uchar4*		*global__texturesData,
 		uint*		 global__triangulationSize,
 		uint*		 global__lightsSize,
 		uint*		 global__materiauxSize,
 		uint*		 global__texturesSize,
-		uint*		 global__textureDataSize,
+		uint*		 global__texturesDataSize,
 		uint*		 global__imageWidth,
 		uint*		 global__imageHeight,
 		uint*		 global__imageSize,
@@ -62,12 +62,12 @@ namespace PathTracerNS
 		ptr__global__lights				= global__lights;
 		ptr__global__materiaux			= global__materiaux;
 		ptr__global__textures			= global__textures;
-		ptr__global__textureData		= global__textureData;
+		ptr__global__texturesData		= global__texturesData;
 		ptr__global__triangulationSize	= global__triangulationSize;
 		ptr__global__lightsSize			= global__lightsSize;
 		ptr__global__materiauxSize		= global__materiauxSize;
 		ptr__global__texturesSize		= global__texturesSize;
-		ptr__global__textureDataSize	= global__textureDataSize;
+		ptr__global__texturesDataSize	= global__texturesDataSize;
 
 		ptr__global__imageWidth			= global__imageWidth;
 		ptr__global__imageHeight		= global__imageHeight;

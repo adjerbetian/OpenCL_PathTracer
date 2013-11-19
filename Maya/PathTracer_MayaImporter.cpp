@@ -1,6 +1,7 @@
 
 #include "PathTracer_MayaImporter.h"
 #include "../Controleur/PathTracer_Utils.h"
+#include "../Alone/PathTracer_bitmap.h"
 #include <maya/MItDag.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIOStream.h>
@@ -20,6 +21,7 @@ namespace PathTracerNS
 	{
 		SetCam();
 		ImportScene();
+		LoadSky();
 
 		*ptr__global__lights = new Light[1];
 		*ptr__global__materiaux = new Material[1];
@@ -80,24 +82,10 @@ namespace PathTracerNS
 		//*ptr__global__imageHeight = 90/4;
 		*ptr__global__imageSize = (*ptr__global__imageWidth) * (*ptr__global__imageHeight);
 
-		ptr__global__cameraDirection->x = D.x;
-		ptr__global__cameraDirection->y = D.y;
-		ptr__global__cameraDirection->z = D.z;
-
-		ptr__global__cameraPosition->x  = C.x;
-		ptr__global__cameraPosition->y  = C.y;
-		ptr__global__cameraPosition->z  = C.z;
-		ptr__global__cameraPosition->w  = 0;
-
-		ptr__global__cameraRight->x = Right.x;
-		ptr__global__cameraRight->y = Right.y;
-		ptr__global__cameraRight->z = Right.z;
-		ptr__global__cameraRight->w = 0;
-
-		ptr__global__cameraUp->x = Up.x;
-		ptr__global__cameraUp->y = Up.y;
-		ptr__global__cameraUp->z = Up.z;
-		ptr__global__cameraUp->w = 0;
+		*ptr__global__cameraDirection	= permute_xyz_to_zxy(MPoint(D));
+		*ptr__global__cameraPosition	= permute_xyz_to_zxy(C);
+		*ptr__global__cameraRight		= permute_xyz_to_zxy(MPoint(Right));;
+		*ptr__global__cameraUp			= permute_xyz_to_zxy(MPoint(Up));;
 
 	}
 
@@ -146,9 +134,9 @@ namespace PathTracerNS
 			{
 				Triangle_Create(
 					*ptr__global__triangulation + triangleId,
-					&Points[TriangleVertices[i]],
-					&Points[TriangleVertices[i+1]],
-					&Points[TriangleVertices[i+2]],
+					&permute_xyz_to_zxy(Points[TriangleVertices[i]]),
+					&permute_xyz_to_zxy(Points[TriangleVertices[i+1]]),
+					&permute_xyz_to_zxy(Points[TriangleVertices[i+2]]),
 					&temp2,&temp2,&temp2,
 					&temp4, &temp4, &temp4,
 					&temp4, &temp4, &temp4,
@@ -162,6 +150,94 @@ namespace PathTracerNS
 		}
 	}
 
+
+	void PathTracerMayaImporter::LoadSky()
+	{
+		ptr__global__sky->cosRotationAngle = 1;
+		ptr__global__sky->sinRotationAngle = 0;
+		ptr__global__sky->exposantFactorX = 0;
+		ptr__global__sky->exposantFactorY = 0;
+		ptr__global__sky->groundScale = 1;
+
+		int fullWidth, fullHeight;
+		long int size;
+		LPCTSTR filePath = L"C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\Cubemap.bmp";
+		uchar* sky = (uchar *) LoadBMP(&fullWidth,&fullHeight,&size, filePath);
+
+		const uint texWidth = fullWidth/4;
+		const uint texHeight = fullHeight/3;
+
+		*ptr__global__texturesDataSize = 6*texWidth*texHeight;
+		*ptr__global__texturesData = new Uchar4[*ptr__global__texturesDataSize];
+
+		uint texIndex = 0;
+
+		// Upper face
+		ptr__global__sky->skyTextures[0].width = texWidth	;
+		ptr__global__sky->skyTextures[0].height = texHeight;
+		ptr__global__sky->skyTextures[0].offset = 0;
+		for(int y = 0; y<texHeight; y++)
+		{
+			for(int fullIndex = y * fullWidth + texWidth; fullIndex < y * fullWidth + 2*texWidth; fullIndex++)
+			{
+				uchar b = sky[3*fullIndex];
+				uchar g = sky[3*fullIndex+1];
+				uchar r = sky[3*fullIndex+2];
+				uchar a = 255;
+
+ 				(*ptr__global__texturesData)[texIndex].x = r;
+ 				(*ptr__global__texturesData)[texIndex].y = g;
+ 				(*ptr__global__texturesData)[texIndex].z = b;
+ 				(*ptr__global__texturesData)[texIndex].w = a;
+				texIndex++;
+			}
+		}
+
+		//// Side faces
+		for(int i=0; i<4; i++)
+		{
+			ptr__global__sky->skyTextures[i+1].width = texWidth;
+			ptr__global__sky->skyTextures[i+1].height = texHeight;
+			ptr__global__sky->skyTextures[i+1].offset = (i+1)*texWidth*texHeight;
+			for(int y = texHeight; y<2*texHeight; y++)
+			{
+				for(int fullIndex = y * fullWidth + i*texWidth; fullIndex < y * fullWidth + (i+1)*texWidth; fullIndex++)
+				{
+					uchar b = sky[3*fullIndex];
+					uchar g = sky[3*fullIndex+1];
+					uchar r = sky[3*fullIndex+2];
+					uchar a = 255;
+
+ 					(*ptr__global__texturesData)[texIndex].x = r;
+ 					(*ptr__global__texturesData)[texIndex].y = g;
+ 					(*ptr__global__texturesData)[texIndex].z = b;
+ 					(*ptr__global__texturesData)[texIndex].w = a;
+					texIndex++;
+				}
+			}
+		}
+
+		// Bottom face - ground
+		ptr__global__sky->skyTextures[5].width = texWidth;
+		ptr__global__sky->skyTextures[5].height = texHeight;
+		ptr__global__sky->skyTextures[5].offset = 5*texWidth*texHeight;
+		for(int y = 2*texHeight; y<3*texHeight; y++)
+		{
+			for(int fullIndex = y * fullWidth + texWidth; fullIndex < y * fullWidth + 2*texWidth; fullIndex++)
+			{
+				uchar b = sky[3*fullIndex];
+				uchar g = sky[3*fullIndex+1];
+				uchar r = sky[3*fullIndex+2];
+				uchar a = 255;
+
+ 				(*ptr__global__texturesData)[texIndex].x = r;
+ 				(*ptr__global__texturesData)[texIndex].y = g;
+ 				(*ptr__global__texturesData)[texIndex].z = b;
+ 				(*ptr__global__texturesData)[texIndex].w = a;
+				texIndex++;
+			}
+		}
+	};
 
 	void PathTracerMayaImporter::Light_Create()
 	{

@@ -16,7 +16,7 @@ namespace PathTracerNS
 		pathTracerHeight(0)
 	{}
 
-	void PathTracerDialog::PaintWindow(RGBAColor const * const * const imageColor, uint const * const * imageRay)
+	void PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
 	{
 		static int numImage = 1;
 		
@@ -39,6 +39,41 @@ namespace PathTracerNS
 		delete[] buffer;
 
 		numImage++;
+
+	}
+
+	void PathTracerDialog::PaintTexture(Uchar4 const * global__texturesData, Texture& texture)
+	{
+		static int numTexture = 1;
+		
+		std::wostringstream oss;
+		oss << exportFolderPath;
+		oss << "Texture ";
+		if(numTexture / 100 == 0)
+		{
+			oss << "0";
+			if(numTexture / 10 == 0)
+				oss << "0";
+		}
+		oss << numTexture << ".bmp";
+
+		std::wstring sFilePath = oss.str();
+		LPCWSTR filePath = sFilePath.c_str();
+
+		RGBAColor* floatImage = (RGBAColor*) malloc(sizeof(RGBAColor)*texture.width*texture.height);
+		for(uint i=0; i<texture.width*texture.height; i++)
+		{
+			floatImage[i] = global__texturesData[texture.offset+i].toDouble4()/255.0;
+			floatImage[i].w /= 255.0;
+		}
+
+		long newBufferSize = 0;
+		BYTE* buffer = ConvertRGBAToBMPBuffer(floatImage, NULL, texture.width, texture.height, &newBufferSize);
+		SaveBMP(buffer, texture.width, texture.height, newBufferSize, filePath);
+
+		delete[] buffer;
+		free(floatImage);
+		numTexture++;
 
 	}
 

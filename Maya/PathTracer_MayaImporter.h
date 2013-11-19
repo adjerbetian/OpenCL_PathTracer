@@ -18,6 +18,7 @@ namespace PathTracerNS
 		virtual void Import				();
 
 		void ImportScene				();
+		void LoadSky					();
 
 		void SetCam						();
 		bool GetCam						(const MString &cameraName, MDagPath &camera);

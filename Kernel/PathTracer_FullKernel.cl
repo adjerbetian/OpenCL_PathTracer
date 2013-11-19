@@ -442,22 +442,21 @@ RGBAColor Material_WaterAbsorption(float dist)
 
 
 
-RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3DData, Ray3D const *r)
+RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *global__texturesData, Ray3D const *r)
 {
-	return RGBACOLOR(1,1,1,1)*0.5;
-
+	/*
 	float t;
 
 	// Sol
-
 	if(!r->positiveDirection[2])
 	{
 		t = - r->origin.z / r->direction.z;
 		float xSol = r->origin.x + t * r->direction.x;
 		float ySol = r->origin.y + t * r->direction.y;
 
-		return Sky_GetFaceColorValue	 ( This, global__textures3DData, 0, xSol*This->groundScale , ySol*This->groundScale );
+		return Sky_GetFaceColorValue( This, global__texturesData, 5, xSol*This->groundScale , ySol*This->groundScale );
 	}
+	*/
 
 	// Ciel
 
@@ -468,13 +467,60 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3
 	int faceId = 0;
 	float u = 0, v = 0;
 
+	if( fabs(z) > fabs(x) && fabs(z) > fabs(y) )
+	{
+		if( z > 0)
+		{
+			faceId = 5;
+			u = (1-x/z)/2;
+			v = (1+y/z)/2;
+		}
+		else
+		{
+			faceId = 0;
+			u = (1-x/z)/2;
+			v = (1-y/z)/2;
+		}
+	}
+	else if( fabs(x) > fabs(y) && fabs(x) > fabs(z) )
+	{
+		if( x > 0)
+		{
+			faceId = 1;
+			u = (1-y/x)/2;
+			v = (1+z/x)/2;
+		}
+		else
+		{
+			faceId = 3;
+			u = (1+y/x)/2;
+			v = (1+z/x)/2;
+		}
+	}
+	else if( fabs(y) > fabs(x) && fabs(y) > fabs(z) )
+	{
+		if( y > 0)
+		{
+			faceId = 2;
+			u = (1-x/y)/2;
+			v = (1+z/y)/2;
+		}
+		else
+		{
+			faceId = 4;
+			u = (1+x/y)/2;
+			v = (1+z/y)/2;
+		}
+	}
+
+	/*
 	if( y > -x)
 	{
 		if( y < x )		// Face 1 : +x
 		{
 			if( z > x )		// Au dessus
 			{
-				faceId = 5;
+				faceId = 0;
 				u = (1 + x/z) / 2;
 				v = (1 - y/z) / 2;
 			}
@@ -489,7 +535,7 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3
 		{
 			if( z > y )		// Au dessus		    
 			{
-				faceId = 5;
+				faceId = 0;
 				u = (1 + x/z) / 2;
 				v = (1 - y/z) / 2;
 			}
@@ -507,7 +553,7 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3
 		{
 			if( z > - x )	// Au dessus		    
 			{
-				faceId = 5;
+				faceId = 0;
 				u = (1 + x/z) / 2 ;
 				v = (1 - y/z) / 2 ;
 			}
@@ -522,7 +568,7 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3
 		{
 			if( z > - y )	// Au dessus		    
 			{
-				faceId = 5;
+				faceId = 0;
 				u = (1 + x/z) / 2 ;
 				v = (1 - y/z) / 2 ;
 			}
@@ -534,42 +580,42 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,IMAGE3D global__textures3
 			}
 		}
 	}
+	*/
 
-	return Sky_GetFaceColorValue( This, global__textures3DData, faceId, u , v );
+	//if(faceId == 0)
+	//	return RGBACOLOR(0,1,0,0);
+	//else if(faceId == 1)
+	//	return RGBACOLOR(1,0,0,0);
+	//else if(faceId == 2)
+	//	return RGBACOLOR(1,1,0,0);
+	//else if(faceId == 3)
+	//	return RGBACOLOR(1,0,1,0);
+	//else if(faceId == 4)
+	//	return RGBACOLOR(0,1,1,0);
+	//else if(faceId == 5)
+	//	return RGBACOLOR(0,0,1,0);
+	//
+	//return RGBACOLOR(0.5,0.5,0.5,0.5);
+
+	return Sky_GetFaceColorValue( This, global__texturesData, faceId, u , v );
 }
 
-RGBAColor Sky_GetFaceColorValue( Sky __global const *This, IMAGE3D global__textures3DData, int faceId, float u, float v)
+RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const *global__texturesData, int faceId, float u, float v)
 {
-	if(faceId == 0)
-		return RGBACOLOR(0.1,0.5,0.1,1);
-	else
-		return RGBACOLOR(0.1,0.1,0.9,1);
+	
+	RGBAColor rgba = Texture_GetPixelColorValue(&This->skyTextures[faceId], faceId, global__texturesData, u, 1-v);
 
-	////Reorganisation des indices
-	//if(faceId == 1)			// +x
-	//	faceId = 1;
-	//else if(faceId == 3)	// -x
-	//	faceId = 2;
-	//else if(faceId == 5)	// +z
-	//	faceId = 3;
-	//else if(faceId == 0)	// +z
-	//	faceId = 4;
-	//else if(faceId == 2)	// +y
-	//	faceId = 5;
-	//else if(faceId == 4)	// -y
-	//	faceId = 6;
+	/*
+	if(faceId != 4)
+	{
+		int expo = (255.f * (1.f - rgba.w)) - This->exposantFactorX;
+		float coeff = pow(This->exposantFactorY, expo);
+		rgba *= coeff;
+	}
+	rgba.w = 0;
+	*/
 
-	//RGBAColor rgba = Texture_GetPixelColorValue(&This->skyTextures[faceId-1], faceId-1, global__textures3DData, u, 1-v);
-
-	//if(faceId != 4)
-	//{
-	//	int expo = (255.f * (1.f - rgba.w)) - This->exposantFactorX;
-	//	float coeff = pow(This->exposantFactorY, expo);
-	//	rgba *= coeff;
-	//}
-	//rgba.w = 0;
-
-	//return rgba;
+	return rgba;
 }
 
 
@@ -577,7 +623,7 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, IMAGE3D global__textu
 ///						TRIANGLE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
+bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D const *r, float *squaredDistance, double4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
 {
 	// REMARQUE : Les triangles sont orientés avec la normale
 	//		--> Pas d'intersection si le rayon vient de derrière...
@@ -622,7 +668,7 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 		return false;					// Le triangle est derriere nous (cas particulier à traiter si l'origine du rayon est dans la feuille du BVH)... Peut-être à enlever.
 
 	Material const mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
-	RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__textures3DData, This, nd < 0 ,s,t);
+	RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
 
 	if(mat.hasAlphaMap && RGBAColor_IsTransparent(&materialColor)) // Transparent
 		return false;
@@ -630,7 +676,8 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	*squaredDistance = newSquaredDistance;
 
 	if(intersectedMaterial	!= NULL) *intersectedMaterial = mat;
-	if(intersectionColor	!= NULL) *intersectionColor = materialColor;
+	//if(intersectionColor	!= NULL) *intersectionColor = materialColor;
+	if(intersectionColor	!= NULL) *intersectionColor = RGBACOLOR(1,1,1,1)*dot(r->direction,This->N)*2./3. + 1./3.;
 	if(sBestTriangle		!= NULL) *sBestTriangle = s;
 	if(tBestTriangle		!= NULL) *tBestTriangle = t;
 	if(intersectionPoint	!= NULL) *intersectionPoint = q;
@@ -638,7 +685,7 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	return true;
 }
 
-RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Material __global const *global__materiaux, IMAGE3D global__textures3DData, Triangle const *This, bool positiveNormal, float s, float t)
+RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, bool positiveNormal, float s, float t)
 {
 	return RGBACOLOR(0.5,0.5,0.5,1);
 	//Material const mat = positiveNormal ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
@@ -647,7 +694,7 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 	//	return mat.simpleColor;
 
 	//float2 uvText = positiveNormal ? (This->UVP1*(1-s-t)) + (This->UVP2*s) + (This->UVP3*t) : (This->UVN1*(1-s-t)) + (This->UVN2*s) + (This->UVN3*t);
-	//return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__textures3DData, uvText.x, uvText.y );
+	//return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__texturesData, uvText.x, uvText.y );
 }
 
 double4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
@@ -689,7 +736,7 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, double4 *in
 			for(uint i=currentNode->triangleStartIndex; i < currentNode->triangleStartIndex+currentNode->nbTriangles; i++)
 			{
 				Triangle triangle = global__triangulation[i];
-				if(Triangle_Intersects(global__textures, global__materiaux, global__textures3DData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
+				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
 				{
 					*intersetedTriangle = triangle;
 					hasIntersection = true;
@@ -778,7 +825,7 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 			for(uint i=currentNode->triangleStartIndex; i < currentNode->triangleStartIndex+currentNode->nbTriangles; i++)
 			{
 				Triangle triangle = global__triangulation[i];
-				if(Triangle_Intersects(global__textures, global__materiaux, global__textures3DData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
+				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
 				{
 					return true;
 				}
@@ -1203,7 +1250,7 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__lights,
 	void	__global	const	*global__void__materiaux,
 	void	__global	const	*global__void__textures,
-	IMAGE3D						 global__textures3DData,
+	uchar4	__global	const	*global__texturesData,
 	void	__global	const	*global__void__sun,
 	void	__global	const	*global__void__sky
 	)
@@ -1257,7 +1304,7 @@ __kernel void Kernel_Main(
 
 	//	Variable utiles lors du parcours de l'arbre
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
-	RGBAColor transferFunction  = RGBACOLOR(0,0,0,0);
+	RGBAColor transferFunction  = RGBACOLOR(1,1,1,1);
 	double4 intersectionPoint   = DOUBLE4  (0,0,0,0);
 	float s = 0.0f, t = 0.0f;
 	Triangle intersectedTriangle;
@@ -1272,7 +1319,8 @@ __kernel void Kernel_Main(
 	{
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
-			radianceToCompute = RGBACOLOR( 1 , 1 , 1 , 1 );
+			//radianceToCompute = intersectionColor;
+			radianceToCompute = RGBACOLOR(1,1,1,1)*fabs(dot(r.direction,intersectedTriangle.N));
 			//if(r.isInWater)
 			//{
 			//	*radianceToCompute += Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR, r, &intersectionPoint) * (*transferFunction);
@@ -1305,7 +1353,7 @@ __kernel void Kernel_Main(
 		{
 			activeRay = false;
 
-			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__textures3DData, &r );
+			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r );
 			radianceToCompute += (skyColor * transferFunction);
 		}
 

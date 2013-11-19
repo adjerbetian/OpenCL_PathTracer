@@ -2,6 +2,7 @@
 #define PATHTRACER_PATHTRACERDIALOG
 
 #include "../Controleur/PathTracer_Utils.h"
+#include "../Controleur/PathTracer_Structs.h"
 
 #include <vector>
 #include <string>
@@ -22,7 +23,9 @@ namespace PathTracerNS
 
 		PathTracerDialog();
 
-		void			PaintWindow(RGBAColor const * const * imageColor, uint const * const * imageRay);
+		void			PaintWindow(RGBAColor const * imageColor, uint const * imageRay);
+		void			PaintTexture(Uchar4 const * global__texturesData, Texture& global__textures);
+
 
 		inline void		SetWidth				(uint w)					{ pathTracerWidth = w; };
 		inline void		SetHeight				(uint h)					{ pathTracerHeight = h; };

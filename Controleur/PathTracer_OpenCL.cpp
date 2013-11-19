@@ -28,7 +28,7 @@ namespace PathTracerNS
 	cl_mem				 kernel__lights					= NULL;
 	cl_mem				 kernel__materiaux				= NULL;
 	cl_mem				 kernel__textures				= NULL;
-	cl_mem				 kernel__textures3DData			= NULL;
+	cl_mem				 kernel__texturesData			= NULL;
 	cl_mem				 kernel__sun					= NULL;
 	cl_mem				 kernel__sky					= NULL;
 
@@ -48,15 +48,12 @@ namespace PathTracerNS
 		uint		global__imageWidth,
 		uint		global__imageHeight,
 		uint		global__imageSize,
-		RGBAColor	**global__imageColor,
-		uint		**global__imageRayNb,
+		RGBAColor	*global__imageColor,
+		uint		*global__imageRayNb,
 		bool		(*UpdateWindowFunc)(void)
 		)
 	{
 		cl_int errCode = 0;
-
-		opencl__imageColorFromDevice = new RGBAColor[global__imageSize];
-		opencl__imageRayNbFromDevice = new uint[global__imageSize];
 
 		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
 		const size_t constLocalWorkSize[2]  = { 1, 1 };
@@ -82,23 +79,10 @@ namespace PathTracerNS
 			/////////////////////////////////////////////////////////////////////////////////
 			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
 			/////////////////////////////////////////////////////////////////////////////////
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize	, (void *) opencl__imageColorFromDevice, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb,	CL_TRUE, 0, sizeof(uint)		* global__imageSize	, (void *) opencl__imageRayNbFromDevice, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize	, (void *) global__imageColor, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb,	CL_TRUE, 0, sizeof(uint)		* global__imageSize	, (void *) global__imageRayNb, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 			clFinish(opencl__queue);
 
-			/////////////////////////////////////////////////////////////////////////////////
-			/////////////// 4 - TRAITEMENT DES DONNEES ET AFFICHAGE  ////////////////////////
-			/////////////////////////////////////////////////////////////////////////////////
-			int offset = 0;
-			for(uint y = 0; y < global__imageHeight; y++)
-			{
-				for(uint x = 0; x < global__imageWidth; x++)
-				{
-					global__imageColor[x][y] = opencl__imageColorFromDevice[offset];
-					global__imageRayNb[x][y] = opencl__imageRayNbFromDevice[offset];
-					offset++;
-				}
-			}
 			(*UpdateWindowFunc)();
 
 			imageId++;
@@ -118,7 +102,7 @@ namespace PathTracerNS
 		errCode = clReleaseMemObject(kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__textures3DData);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseMemObject(kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__sun);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
 
@@ -150,19 +134,19 @@ namespace PathTracerNS
 		Light		const	*global__lights				,
 		Material	const	*global__materiaux			,
 		Texture		const	*global__textures			,
-		Uchar4		const	*global__textureData		,
+		Uchar4		const	*global__texturesData		,
 		uint		const	 global__bvhSize			,
 		uint		const	 global__triangulationSize	,
 		uint		const	 global__lightsSize			,
 		uint		const	 global__materiauxSize		,
 		uint		const	 global__texturesSize		,
-		uint		const	 global__textureDataSize	,
+		uint		const	 global__texturesDataSize	,
 
 		uint		const	 global__imageWidth			,
 		uint		const	 global__imageHeight		,
 		uint		const	 global__imageSize			,
-		RGBAColor			**global__imageColor		,
-		uint				**global__imageRayNb		,
+		RGBAColor			*global__imageColor		,
+		uint				*global__imageRayNb		,
 		uint		const	 global__bvhMaxDepth		,
 
 		SunLight	const	*global__sun				,
@@ -183,6 +167,7 @@ namespace PathTracerNS
 		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Triangle) * global__triangulationSize   ,1u), (void *) global__triangulation  , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Light)	  * global__lightsSize          ,1u), (void *) global__lights         , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Material) * global__materiauxSize		,1u), (void *) global__materiaux      , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__texturesData	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Uchar4)	  * global__texturesDataSize		,1u), (void *) global__texturesData    , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Texture)  * global__texturesSize		,1u), (void *) global__textures       , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__sun				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(SunLight)                                       , (void *) global__sun            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)                                            , (void *) global__sky            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
@@ -194,14 +179,13 @@ namespace PathTracerNS
 
 		// ARGUMENTS POUR global__kernelSortedMain
 		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),	(void*) &global__imageWidth);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),	(void*) &global__imageHeight);			if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageWidth);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageHeight);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraPosition);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraRight);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_double4),	(void*) &global__cameraUp);			if(OpenCL_ErrorHandling(errCode)) return false;
-
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),	(void*) &global__lightsSize);			if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__lightsSize);		if(OpenCL_ErrorHandling(errCode)) return false;
 
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),		(void*) &kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),		(void*) &kernel__imageRayNb);		if(OpenCL_ErrorHandling(errCode)) return false;
@@ -210,7 +194,7 @@ namespace PathTracerNS
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__lights),			(void*) &kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__materiaux),		(void*) &kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures),		(void*) &kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures3DData),	(void*) &kernel__textures3DData);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__texturesData),	(void*) &kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sun),				(void*) &kernel__sun);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),				(void*) &kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
 

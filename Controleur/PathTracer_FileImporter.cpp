@@ -4,7 +4,7 @@
 
 namespace PathTracerNS
 {
-	const std::string PathTracerFileImporter::fileSizesPath			= PATHTRACER_SCENE_FOLDER"ExportedScene\\sizes.pth";
+	const std::string PathTracerFileImporter::fileSizesPath		= PATHTRACER_SCENE_FOLDER"ExportedScene\\sizes.pth";
 	const std::string PathTracerFileImporter::filePointersPath		= PATHTRACER_SCENE_FOLDER"ExportedScene\\pointers.pth";
 	const std::string PathTracerFileImporter::fileTextureDataPath	= PATHTRACER_SCENE_FOLDER"ExportedScene\\textureData.pth";
 
@@ -32,7 +32,7 @@ namespace PathTracerNS
 			nWritte = fwrite(ptr__global__lightsSize		, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__materiauxSize		, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__texturesSize		, sizeof(uint), 1, fichier);
-			nWritte = fwrite(ptr__global__textureDataSize	, sizeof(uint), 1, fichier);
+			nWritte = fwrite(ptr__global__texturesDataSize	, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__imageWidth		, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__imageHeight		, sizeof(uint), 1, fichier);
 
@@ -60,7 +60,7 @@ namespace PathTracerNS
 
 		if(fichierTex != NULL)
 		{
-			nWritte = fwrite(*ptr__global__textureData		, sizeof(Uchar4), *ptr__global__textureDataSize		, fichierTex);
+			nWritte = fwrite(*ptr__global__texturesData		, sizeof(Uchar4), *ptr__global__texturesDataSize		, fichierTex);
 			fclose(fichierTex);
 		}
 
@@ -86,7 +86,7 @@ namespace PathTracerNS
 			nRead = fread(ptr__global__lightsSize		, sizeof(uint), 1, fichierSizes);
 			nRead = fread(ptr__global__materiauxSize	, sizeof(uint), 1, fichierSizes);
 			nRead = fread(ptr__global__texturesSize		, sizeof(uint), 1, fichierSizes);
-			nRead = fread(ptr__global__textureDataSize	, sizeof(uint), 1, fichierSizes);
+			nRead = fread(ptr__global__texturesDataSize	, sizeof(uint), 1, fichierSizes);
 			nRead = fread(ptr__global__imageWidth		, sizeof(uint), 1, fichierSizes);
 			nRead = fread(ptr__global__imageHeight		, sizeof(uint), 1, fichierSizes);
 
@@ -122,8 +122,8 @@ namespace PathTracerNS
 
 		if(fichierTex != NULL)
 		{
-			*ptr__global__textureData = new Uchar4[*ptr__global__textureDataSize];
-			nRead = fread(*ptr__global__textureData, sizeof(Uchar4), *ptr__global__textureDataSize, fichierTex);
+			*ptr__global__texturesData = new Uchar4[*ptr__global__texturesDataSize];
+			nRead = fread(*ptr__global__texturesData, sizeof(Uchar4), *ptr__global__texturesDataSize, fichierTex);
 
 			fclose(fichierTex);
 		}

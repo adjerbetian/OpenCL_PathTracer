@@ -48,7 +48,7 @@ namespace PathTracerNS
 		inline void		SetHeight	(uint h)		{ pathTracerHeight = h; };
 
 		void			TestPaintWindow();
-		void			PaintWindow(RGBAColor const * const * imageColor, uint const * const * imageRay);
+		void			PaintWindow(RGBAColor const * imageColor, uint const * imageRay);
 		void			PaintLine(int x, RGBAColor const * lineColor, uint const * lineRay);
 
 		inline void		SetNumberOfTriangles	(uint n)		{ EONString text; text.Format(_L("%u"), n); sceneNumberOfTriangles->SetText(text); };

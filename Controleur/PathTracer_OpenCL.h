@@ -18,8 +18,8 @@ namespace PathTracerNS
 		uint		global__imageWidth,
 		uint		global__imageHeight,
 		uint		global__imageSize,
-		RGBAColor	**global__imageColor,
-		uint		**global__imageRayNb,
+		RGBAColor	*global__imageColor,
+		uint		*global__imageRayNb,
 		bool		(*UpdateWindowFunc)(void)
 		);
 
@@ -35,19 +35,19 @@ namespace PathTracerNS
 		Light		const	*global__lights				,
 		Material	const	*global__materiaux			,
 		Texture		const	*global__textures			,
-		Uchar4		const	*global__textureData		,
+		Uchar4		const	*global__texturesData		,
 		uint		const	 global__bvhSize			,
 		uint		const	 global__triangulationSize	,
 		uint		const	 global__lightsSize			,
 		uint		const	 global__materiauxSize		,
 		uint		const	 global__texturesSize		,
-		uint		const	 global__textureDataSize	,
+		uint		const	 global__texturesDataSize	,
 
 		uint		const	 global__imageWidth			,
 		uint		const	 global__imageHeight		,
 		uint		const	 global__imageSize			,
-		RGBAColor			**global__imageColor		,
-		uint				**global__imageRayNb		,
+		RGBAColor			*global__imageColor		,
+		uint				*global__imageRayNb		,
 		uint		const	 global__bvhMaxDepth		,
 
 		SunLight	const	*global__sun				,

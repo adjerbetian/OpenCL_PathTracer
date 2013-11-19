@@ -49,11 +49,10 @@ namespace PathTracerNS
 	class Uchar4
 	{
 	public:
-		inline Uchar4 ()										{ x = 0; y = 0;};
-		inline Uchar4 (uchar _x, uchar _y, uchar _z, uchar _w)	{ x = _x; y = _y; y = _y; w = _w;};
-
-		uchar x, y, z, w;
-
+		inline Uchar4 ()										{ x =  0; y =  0; z =  0; w =  0;};
+		inline Uchar4 (uchar _x, uchar _y, uchar _z, uchar _w)	{ x = _x; y = _y; z = _y; w = _w;};
+		inline MPoint toDouble4() const							{ return MPoint(x,y,z,w); };
+		uchar x,y,z,w;
 	};
 
 
@@ -90,7 +89,7 @@ namespace PathTracerNS
 	typedef MPoint Double4;
 	typedef MPoint RGBAColor;
 
-	inline Double4	convert_float4	(const Uchar4& v)							{return Double4(v.x, v.y, v.z, v.w);};
+	inline Double4	permute_xyz_to_zxy	(const MPoint &m)						{return Double4(m.z, m.x, m.y, m.w);};
 	inline double	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
 	inline double	dot				(const Double4& v1, const Double4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
 	inline Double4	cross			(const Double4& v1, const Double4& v2)		{return Double4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};

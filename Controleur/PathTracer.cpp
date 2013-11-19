@@ -31,14 +31,14 @@ namespace PathTracerNS
 	Light				*global__lights					= NULL;		// tableau de Light, à l'exclusion du soleil et du ciel
 	Material			*global__materiaux				= NULL;		// tableau de tous les Matériaux de la scène
 	Texture				*global__textures				= NULL;		// tableau de Textures de la scène à l'exclusion des textures du ciel. Attention, Texture est une classe qui ne comprends ques les données principales des textures, et pas les textures même
-	Uchar4				*global__textureData			= NULL;		// tableau de toutes les textures images de la scène, y compris celles du ciel. Les textures sont stockées de manière continues : pixel_texture1(0,0) ... pixel_texture1(w1,h1) , pixel_texture2(0,0) ... pixel_texture2(w2,h2) , ...
+	Uchar4				*global__texturesData			= NULL;		// tableau de toutes les textures images de la scène, y compris celles du ciel. Les textures sont stockées de manière continues : pixel_texture1(0,0) ... pixel_texture1(w1,h1) , pixel_texture2(0,0) ... pixel_texture2(w2,h2) , ...
 
 	uint				 global__bvhSize				= 0;		// Nombre de noeuds du BVH
 	uint				 global__triangulationSize		= 0;		// Nombre de triangles de la scène
 	uint				 global__lightsSize				= 0;		// Nombre de lumières de la scène, à l'exclusion du soleil et du ciel
 	uint				 global__materiauxSize			= 0;		// Nombre de matériaux de la scène
 	uint				 global__texturesSize			= 0;		// Nombre de textures de la scène
-	uint				 global__textureDataSize		= 0;		// Somme des tailles de toutes les textures : ( largeur1 * hauteur1 ) + ( largeur2 * hauteur2 ) + ...
+	uint				 global__texturesDataSize		= 0;		// Somme des tailles de toutes les textures : ( largeur1 * hauteur1 ) + ( largeur2 * hauteur2 ) + ...
 	uint				 global__bvhMaxDepth			= 0;		// Profondeur de la plus grande branche du BVH
 
 	SunLight			 global__sun;	// Soleil de la scène
@@ -50,8 +50,8 @@ namespace PathTracerNS
 	uint				 global__imageWidth				= 0;		// Largeur de l'image de rendu
 	uint				 global__imageHeight			= 0;		// Hauteur de l'image de rendu
 	uint				 global__imageSize				= 0;		// Largeur * Hauteur
-	RGBAColor			**global__imageColor			= NULL;		// Somme des couleurs rendues
-	uint				**global__imageRayNb			= NULL;		// Nombre de rayons ayant contribué aux pixels
+	RGBAColor			*global__imageColor				= NULL;		// Somme des couleurs rendues
+	uint				*global__imageRayNb				= NULL;		// Nombre de rayons ayant contribué aux pixels
 
 
 	////////////////////////////////////////////////////////////////////////////////////
@@ -107,13 +107,13 @@ namespace PathTracerNS
 			global__lights				,
 			global__materiaux			,
 			global__textures			,
-			global__textureData			,
+			global__texturesData			,
 			global__bvhSize				,
 			global__triangulationSize	,
 			global__lightsSize			,
 			global__materiauxSize		,
 			global__texturesSize		,
-			global__textureDataSize		,
+			global__texturesDataSize		,
 
 			global__imageWidth			,
 			global__imageHeight			,
@@ -156,12 +156,12 @@ namespace PathTracerNS
 			&global__lights,
 			&global__materiaux,
 			&global__textures,
-			&global__textureData,
+			&global__texturesData,
 			&global__triangulationSize,
 			&global__lightsSize,
 			&global__materiauxSize,
 			&global__texturesSize,
-			&global__textureDataSize,
+			&global__texturesDataSize,
 			&global__imageWidth,
 			&global__imageHeight,
 			&global__imageSize,
@@ -175,6 +175,7 @@ namespace PathTracerNS
 		PathTracer_InitializeWindow();
 
 		PathTracer_PaintLoadingScreen();
+
 	}
 
 	/*	Crée un écran d'attente pour patientez pendant le traitement de la scène
@@ -183,6 +184,7 @@ namespace PathTracerNS
 
 	void PathTracer_PaintLoadingScreen()
 	{
+
 		global__window->TestPaintWindow();
 	}
 
@@ -196,19 +198,13 @@ namespace PathTracerNS
 
 		RTASSERT(global__imageWidth > 0 && global__imageHeight > 0);
 
-		global__imageColor = new RGBAColor*[global__imageWidth];
-		global__imageRayNb = new uint*[global__imageWidth];
+		global__imageColor = new RGBAColor[global__imageWidth*global__imageHeight];
+		global__imageRayNb = new uint[global__imageWidth*global__imageHeight];
 
-		for(uint x=0; x<global__imageWidth; x++)
+		for(uint x=0; x<global__imageSize; x++)
 		{
-			global__imageColor[x] = new RGBAColor[global__imageHeight];
-			global__imageRayNb[x] = new uint[global__imageHeight];
-
-			for(uint y=0; y < global__imageHeight; y++)
-			{
-				global__imageColor[x][y] = RGBAColor(0,0,0,0);
-				global__imageRayNb[x][y] = 0;
-			}
+			global__imageColor[x] = RGBAColor(0,0,0,0);
+			global__imageRayNb[x] = 0;
 		}
 	}
 
@@ -249,12 +245,12 @@ namespace PathTracerNS
 			&global__lights,
 			&global__materiaux,
 			&global__textures,
-			&global__textureData,
+			&global__texturesData,
 			&global__triangulationSize,
 			&global__lightsSize,
 			&global__materiauxSize,
 			&global__texturesSize,
-			&global__textureDataSize,
+			&global__texturesDataSize,
 			&global__imageWidth,
 			&global__imageHeight,
 			&global__imageSize,
@@ -271,11 +267,6 @@ namespace PathTracerNS
 	{
 		delete global__importer;
 
-		for(uint x=0; x < global__imageWidth; x++)
-		{
-			delete[] global__imageColor[x];
-			delete[] global__imageRayNb[x];
-		}
 		delete[] global__imageColor;
 		delete[] global__imageRayNb;
 
@@ -284,7 +275,7 @@ namespace PathTracerNS
 		delete[] global__lights;
 		delete[] global__materiaux;
 		delete[] global__textures;
-		delete[] global__textureData;
+		delete[] global__texturesData;
 	}
 
 	/*	Redirection de la fonction Update

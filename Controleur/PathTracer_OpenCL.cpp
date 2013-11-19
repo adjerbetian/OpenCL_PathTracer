@@ -60,7 +60,7 @@ namespace PathTracerNS
 
 		cl_uint imageId = 0;
 
-		while(true && imageId < 5)
+		while(true && imageId < 100)
 		{
 			CONSOLE << "Computing sample number " << imageId << ENDL;
 
@@ -294,8 +294,8 @@ namespace PathTracerNS
 
 		errCode = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, ret_num_devices, device_ids, &ret_num_devices); if(OpenCL_ErrorHandling(errCode)) return false;
 
-		uint deviceIdx;
-		for(deviceIdx=0; deviceIdx < ret_num_devices; deviceIdx++)
+		uint deviceCPUIdx;
+		for(uint deviceIdx=0; deviceIdx < ret_num_devices; deviceIdx++)
 		{
 			CONSOLE << "\tDevice : " << (deviceIdx+1) << " / " << ret_num_devices << ENDL;
 			opencl__device = device_ids[deviceIdx];
@@ -311,6 +311,7 @@ namespace PathTracerNS
 
 			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_TYPE,						sizeof(deviceType), &deviceType, NULL);				if(OpenCL_ErrorHandling(errCode)) return false;
 			CONSOLE << "\t\t" << "CL_DEVICE_TYPE : "									<< ((deviceType == CL_DEVICE_TYPE_CPU) ? "CL_DEVICE_TYPE_CPU " : "") << ((deviceType == CL_DEVICE_TYPE_GPU) ? "CL_DEVICE_TYPE_GPU " : "") << ((deviceType == CL_DEVICE_TYPE_ACCELERATOR) ? "CL_DEVICE_TYPE_ACCELERATOR " : "") << ((deviceType == CL_DEVICE_TYPE_DEFAULT) ? "CL_DEVICE_TYPE_DEFAULT " : "") << ENDL;
+			deviceCPUIdx = (deviceType == CL_DEVICE_TYPE_CPU) ? deviceIdx : deviceCPUIdx;
 
 			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_COMPUTE_UNITS,			sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
 			CONSOLE << "\t\t" << "CL_DEVICE_MAX_COMPUTE_UNITS : "						<< param_size_t << ENDL;
@@ -353,15 +354,9 @@ namespace PathTracerNS
 
 		if(ret_num_devices > 1)
 		{
-			CONSOLE << "Quel device desirez-vous ? ";
+			CONSOLE << "We want to run on CPU : device chosen :  ";
 
-			//std::cin >> deviceIdx;
-			deviceIdx = 1;
-
-			deviceIdx = max( 1 , (int) min( deviceIdx, (int) ret_num_devices ) );
-			deviceIdx -= 1;
-
-			opencl__device = device_ids[deviceIdx];
+			opencl__device = device_ids[deviceCPUIdx];
 			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_NAME, sizeof(infoString), infoString, NULL);	if(OpenCL_ErrorHandling(errCode)) return false;
 			CONSOLE << "Vous avez choisi le device " << infoString << ENDL;
 			CONSOLE << ENDL;
@@ -382,9 +377,9 @@ namespace PathTracerNS
 		/* Build Kernel Program */
 
 		//	1 - Pour le debugger d'intel :
-		char const * buildOptions = "-g -s \"C:\\Users\\alexandre djerbetian\\documents\\visual studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl\"";
+		//char const * buildOptions = "-g -s \"C:\\Users\\alexandre djerbetian\\documents\\visual studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl\"";
 		//	2 - Pour des performnace normalement accrue mais moins de précision
-		//char const * buildOptions = "-cl-mad-enable -I "PATHTRACER_FOLDER"Kernel\\";
+		char const * buildOptions = "-cl-mad-enable";
 		//	3 - Normal
 		//char const * buildOptions = "-I \""PATHTRACER_FOLDER"Kernel\\\"";
 		//char const * buildOptions = "";

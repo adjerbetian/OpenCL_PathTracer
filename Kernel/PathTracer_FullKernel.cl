@@ -867,9 +867,9 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	outDirection = Material_CosineSampleHemisphere(seed, Ns);
 	N = *Ns;
 
-	r->origin = *p;
 	Vector_PutInSameHemisphereAs(&outDirection, &N);
 	Ray3D_SetDirection(r, &outDirection);
+	r->origin = *p + 0.01f * outDirection;
 
 	return radianceToCompute;
 

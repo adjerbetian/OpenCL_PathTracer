@@ -62,7 +62,7 @@ namespace PathTracerNS
 
 		while(true && imageId < 5)
 		{
-			CONSOLE << "Image : " << imageId << ENDL;
+			CONSOLE << "Computing sample number " << imageId << ENDL;
 
 			/////////////////////////////////////////////////////////////////////////////////
 			//////////////////// 1 -  MAIN KERNEL  //////////////////////////////////////////
@@ -86,8 +86,6 @@ namespace PathTracerNS
 			(*UpdateWindowFunc)();
 
 			imageId++;
-
-			CONSOLE << ENDL << ENDL;
 		}
 
 

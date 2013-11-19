@@ -75,11 +75,8 @@ namespace PathTracerNS
 		*ptr__global__imageWidth = 1280;
 		*ptr__global__imageHeight = 720;
 
-		//Right *= (float) (*ptr__global__imageWidth) / (float) (*ptr__global__imageHeight); 
 		Up /= (float) (*ptr__global__imageWidth) / (float) (*ptr__global__imageHeight); 
 
-		//*ptr__global__imageWidth = 160/4;
-		//*ptr__global__imageHeight = 90/4;
 		*ptr__global__imageSize = (*ptr__global__imageWidth) * (*ptr__global__imageHeight);
 
 		*ptr__global__cameraDirection	= permute_xyz_to_zxy(MPoint(D));
@@ -100,8 +97,6 @@ namespace PathTracerNS
 		{
 			itMesh.getPath(objPath);
 			MFnMesh fnMesh(objPath);
-			//cout << "Object : " << fnMesh.name() << endl;
-
 			MIntArray TriangleCount;
 			MIntArray TraingleVertices;
 
@@ -111,7 +106,6 @@ namespace PathTracerNS
 				*ptr__global__triangulationSize += TriangleCount[i];
 
 			itMesh.next();
-			cout << endl;
 		}
 
 		itMesh.reset();
@@ -146,7 +140,6 @@ namespace PathTracerNS
 			}
 
 			itMesh.next();
-			cout << endl;
 		}
 	}
 

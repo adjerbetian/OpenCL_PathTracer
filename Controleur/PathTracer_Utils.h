@@ -72,6 +72,7 @@ namespace PathTracerNS
 		inline Float4 ()										{ x = 0; y = 0; z = 0; w = 0;};
 		inline Float4 (const Float4& v)							{ x = v.x; y = v.y; z = v.z; w = v.w;};
 		inline Float4 (const MPoint& v)							{ x = (float) v.x; y = (float) v.y; z = (float) v.z; w = (float) v.w;};
+		inline Float4 (const MColor& v)							{ x = (float) v.r; y = (float) v.g; z = (float) v.b; w = (float) v.a;};
 		inline Float4 (float _x, float _y, float _z, float _w)	{ x = _x; y = _y; z = _z; w = _w;};
 
 		inline Float4  operator + (const Float4& v) const		{ return Float4(x + v.x, y + v.y, z + v.z, w + v.w);};

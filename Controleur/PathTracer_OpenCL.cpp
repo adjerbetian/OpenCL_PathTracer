@@ -60,7 +60,7 @@ namespace PathTracerNS
 
 		cl_uint imageId = 0;
 
-		while(true && imageId < 100)
+		while(true && imageId < 10)
 		{
 			CONSOLE << "Computing sample number " << imageId << ENDL;
 

@@ -12,7 +12,11 @@
 #include <maya/MMatrix.h>
 #include <maya/MFnTransform.h>
 #include <maya/MEulerRotation.h>
-
+#include <maya/MMaterial.h>
+#include <maya/MPlug.h>
+#include <maya/MPlugArray.h>
+#include <maya/MFnLambertShader.h>
+#include <maya/MFnLight.h>
 
 namespace PathTracerNS
 {
@@ -143,6 +147,32 @@ namespace PathTracerNS
 		}
 	}
 
+	void PathTracerMayaImporter::ImportLights()
+	{
+		MItDag itLight(MItDag::kDepthFirst,MFn::kLight);
+		MDagPath objPath;
+
+		// First we get the total number of lights in the scene
+		*ptr__global__lightsSize = 0;
+		while(!itLight.isDone())
+		{
+			(*ptr__global__lightsSize)++;
+			itLight.next();
+		}
+
+		itLight.reset();
+		*ptr__global__lights = new Light[*ptr__global__lightsSize];
+		uint lightIndex = 0;
+
+		while(!itLight.isDone())
+		{
+			itLight.getPath(objPath);
+			MFnLight fnLight(objPath);
+			Light_Create((*ptr__global__lights)[lightIndex], fnLight);
+			lightIndex++;
+			itLight.next();
+		}
+	}
 
 	void PathTracerMayaImporter::LoadSky()
 	{
@@ -232,8 +262,15 @@ namespace PathTracerNS
 		}
 	};
 
-	void PathTracerMayaImporter::Light_Create()
+	void PathTracerMayaImporter::Light_Create(Light& l, MFnLight& fnLight)
 	{
+		l.color						= RGBAColor(fnLight.color());
+		l.cosOfInnerFallOffAngle	= fnLight;
+		l.cosOfOuterFallOffAngle	= fnLight;
+		l.direction					= Float4(fnLight.lightDirection());
+		l.position					= fnLight;
+		l.power						= fnLight.intensity();;
+		l.type						= fnLight;
 	};
 
 	void PathTracerMayaImporter::SunLight_Create(SunLight *This)

@@ -18,12 +18,13 @@ namespace PathTracerNS
 		virtual void Import				();
 
 		void ImportScene				();
+		void ImportLights				();
 		void LoadSky					();
 
 		void SetCam						();
 		bool GetCam						(const MString &cameraName, MDagPath &camera);
 
-		void Light_Create				();
+		void Light_Create				(Light& l, MFnLight& fnLight);
 		void Material_Create			(Material *This);
 		void SunLight_Create			(SunLight *This);
 		void Triangle_Create			(Triangle *This,

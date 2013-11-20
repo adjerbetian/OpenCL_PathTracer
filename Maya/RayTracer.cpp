@@ -13,8 +13,6 @@
 #include <maya/MFnTransform.h>
 #include <maya/MEulerRotation.h>
 
-#include "../Tone Mapping/ToneMapping.h"
-
 const MString RayTracer::cameraName = "raytracingCamera";
 const MString RayTracer::destinationFile = "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\raytrace.bmp";
 const MString RayTracer::fileExtension = "bmp";

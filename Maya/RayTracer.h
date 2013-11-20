@@ -5,6 +5,7 @@
 #include <maya/MGlobal.h>
 #include <maya/MPxCommand.h>
 #include <maya/MImage.h>
+#include <maya/MSyntax.h>
 
 class RayTracer : public MPxCommand 
 {
@@ -13,12 +14,7 @@ public:
 	RayTracer() {};
 
 	virtual MStatus doIt(const MArgList& argList);
-
 	static void* creator();
-
-	void	plotOnImage			(MImage &image, int x, int y);
-	bool	getCamera			(const MString &cameraName, MDagPath &camera);
-	MPoint	computeBarycenter	(const MDagPath& obj);
 
 	const static MString cameraName;
 	const static MString destinationFile;

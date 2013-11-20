@@ -72,7 +72,7 @@ namespace PathTracerNS
 	/*	Fonction principale
 	 */
 
-	void PathTracer_Main()
+	void PathTracer_Main(uint numImagesToRender, bool saveRenderedImages)
 	{
 		CONSOLE << ENDL;
 
@@ -80,7 +80,7 @@ namespace PathTracerNS
 		CONSOLE << "                          PATH TRACER" << ENDL;
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 
-		PathTracer_Initialize();
+		PathTracer_Initialize(saveRenderedImages);
 
 		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
 
@@ -98,8 +98,8 @@ namespace PathTracerNS
 
 		noError &= OpenCL_InitializeMemory	(
 			global__cameraDirection		,
-			global__cameraRight		,
-			global__cameraUp		,
+			global__cameraRight			,
+			global__cameraUp			,
 			global__cameraPosition		,
 
 			global__bvh					,
@@ -107,13 +107,13 @@ namespace PathTracerNS
 			global__lights				,
 			global__materiaux			,
 			global__textures			,
-			global__texturesData			,
+			global__texturesData		,
 			global__bvhSize				,
 			global__triangulationSize	,
 			global__lightsSize			,
 			global__materiauxSize		,
 			global__texturesSize		,
-			global__texturesDataSize		,
+			global__texturesDataSize	,
 
 			global__imageWidth			,
 			global__imageHeight			,
@@ -134,7 +134,8 @@ namespace PathTracerNS
 			global__imageSize			,
 			global__imageColor			,
 			global__imageRayNb			,
-			&PathTracer_UpdateWindow
+			&PathTracer_UpdateWindow	,
+			numImagesToRender
 			);
 
 		if(!noError) return ;
@@ -145,7 +146,7 @@ namespace PathTracerNS
 	/*	Gestion des différents initialiseurs
 	*/
 
-	void PathTracer_Initialize()
+	void PathTracer_Initialize(bool saveRenderedImages)
 	{
 		global__importer->Initialize(
 			&global__cameraDirection,
@@ -172,7 +173,7 @@ namespace PathTracerNS
 		global__importer->Import();
 
 		PathTracer_InitializeImage();
-		PathTracer_InitializeWindow();
+		PathTracer_InitializeWindow(saveRenderedImages);
 
 		PathTracer_PaintLoadingScreen();
 
@@ -211,7 +212,7 @@ namespace PathTracerNS
 	/*	Création de la fenêtre d'affichage
 	 */
 
-	void PathTracer_InitializeWindow()
+	void PathTracer_InitializeWindow(bool saveRenderedImages)
 	{
 		// On crée la fenêtre
 
@@ -223,7 +224,7 @@ namespace PathTracerNS
 
 
 		//On affiche quelques informations
-
+		global__window->saveRenderedImages = saveRenderedImages;
 		global__window->SetNumberOfTriangles( global__triangulationSize );
 		global__window->SetMaxDepthOfBVH(global__bvhMaxDepth);
 		global__window->SetSizeOfBVH(global__bvhSize);

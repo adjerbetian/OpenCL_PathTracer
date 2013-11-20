@@ -20,7 +20,8 @@ namespace PathTracerNS
 		uint		global__imageSize,
 		RGBAColor	*global__imageColor,
 		uint		*global__imageRayNb,
-		bool		(*UpdateWindowFunc)(void)
+		bool		(*UpdateWindowFunc)(void),
+		uint		numImagesToRender = 1
 		);
 
 

@@ -41,9 +41,12 @@ void* RayTracer::creator()
 
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
+	uint numImageToRender = argList.asInt(0);
+	bool saveRenderedImages = argList.asBool(1);
+
 	clock_t start = clock();
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerMayaImporter());
-	PathTracerNS::PathTracer_Main();
+	PathTracerNS::PathTracer_Main(numImageToRender, saveRenderedImages);
 
 	double timing = (clock() - start)/1000.0;
 
@@ -52,4 +55,3 @@ MStatus RayTracer::doIt(const MArgList& argList)
 
 	return MS::kSuccess;
 }
-

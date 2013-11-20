@@ -53,6 +53,7 @@ namespace PathTracerNS
 		uint				pathTracerHeight;
 		clock_t				startTime;
 		bool				*isWindowOpen;
+		bool				saveRenderedImages;
 
 		static const char*	exportFolderPath;
 

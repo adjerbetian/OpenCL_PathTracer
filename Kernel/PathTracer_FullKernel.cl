@@ -614,12 +614,13 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
-	return This->N;;
-
-	//float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
-	//if(positiveNormal)
-	//	return smoothNormal;
-	//return -smoothNormal;
+	return This->N;
+	/*
+	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
+	if(positiveNormal)
+		return smoothNormal;
+	return -smoothNormal;
+	*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -814,7 +815,6 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 
 	float4 outDirection = r->direction;
-
 	/*
 	if(mat->type == MAT_STANDART)
 	{

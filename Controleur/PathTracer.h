@@ -25,10 +25,10 @@ namespace PathTracerNS
 
 	void	PathTracer_SetImporter				(PathTracerImporter* importer);
 
-	void	PathTracer_Main						();
-	void	PathTracer_Initialize				();
+	void	PathTracer_Main						(uint numImagesToRender, bool saveRenderedImages);
+	void	PathTracer_Initialize				(bool saveRenderedImages);
 	void	PathTracer_InitializeImage			();
-	void	PathTracer_InitializeWindow			();
+	void	PathTracer_InitializeWindow			(bool saveRenderedImages);
 	void	PathTracer_Export					();
 	void	PathTracer_Clear					();
 	void	PathTracer_PaintLoadingScreen		();

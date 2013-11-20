@@ -4,6 +4,7 @@
 #include "../Controleur/PathTracer_Importer.h"
 #include <maya\MString.h>
 #include <maya\MDagPath.h>
+#include <maya\MFnLight.h>
 
 namespace PathTracerNS
 {

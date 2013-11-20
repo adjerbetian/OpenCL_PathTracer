@@ -50,7 +50,8 @@ namespace PathTracerNS
 		uint		global__imageSize,
 		RGBAColor	*global__imageColor,
 		uint		*global__imageRayNb,
-		bool		(*UpdateWindowFunc)(void)
+		bool		(*UpdateWindowFunc)(void),
+		uint		numImagesToRender
 		)
 	{
 		cl_int errCode = 0;
@@ -60,7 +61,7 @@ namespace PathTracerNS
 
 		cl_uint imageId = 0;
 
-		while(true && imageId < 10)
+		while(true && imageId < numImagesToRender)
 		{
 			CONSOLE << "Computing sample number " << imageId << ENDL;
 
@@ -379,10 +380,10 @@ namespace PathTracerNS
 		//	1 - Pour le debugger d'intel :
 		//char const * buildOptions = "-g -s \"C:\\Users\\alexandre djerbetian\\documents\\visual studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl\"";
 		//	2 - Pour des performnace normalement accrue mais moins de précision
-		char const * buildOptions = "-cl-mad-enable";
+		//char const * buildOptions = "-cl-mad-enable";
 		//	3 - Normal
 		//char const * buildOptions = "-I \""PATHTRACER_FOLDER"Kernel\\\"";
-		//char const * buildOptions = "";
+		char const * buildOptions = "";
 
 		errCode = clBuildProgram(opencl__program, 0, NULL, buildOptions , NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 

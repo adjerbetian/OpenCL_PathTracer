@@ -2,6 +2,7 @@
 #define PATHTRACER_UTILS
 
 #include <maya/MPoint.h>
+#include <maya/MColor.h>
 
 #include "PathTracer_PreProc.h"
 #include <algorithm>

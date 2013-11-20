@@ -17,6 +17,7 @@
 #include <maya/MPlugArray.h>
 #include <maya/MFnLambertShader.h>
 #include <maya/MFnLight.h>
+#include <maya/MFloatVectorArray.h>
 
 namespace PathTracerNS
 {
@@ -123,22 +124,43 @@ namespace PathTracerNS
 			MIntArray TriangleCount;
 			MIntArray TriangleVertices;
 			MPointArray Points;
+			MFloatVectorArray	fNormalArray;
+			MFloatVectorArray	fTangentArray;
+			MFloatVectorArray	fBinormalArray;
+			MString				fCurrentUVSetName;
 
+			/////////////////////////////////////////////////////////////////////////
+			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
+			fnMesh.getCurrentUVSetName(fCurrentUVSetName);
+			fnMesh.getTangents(fTangentArray, MSpace::kWorld, &fCurrentUVSetName);
+			fnMesh.getBinormals(fBinormalArray, MSpace::kWorld, &fCurrentUVSetName);
 			fnMesh.getPoints(Points, MSpace::kWorld);
 			fnMesh.getTriangles(TriangleCount, TriangleVertices);
+
 			Float2 temp2;
 			Float4 temp4;
 			for(uint i=0; i<TriangleVertices.length(); i+=3)
 			{
 				Triangle_Create(
 					*ptr__global__triangulation + triangleId,
+					// Vertices
 					&permute_xyz_to_zxy(Points[TriangleVertices[i]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+1]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+2]]),
+					// UV
 					&temp2,&temp2,&temp2,
-					&temp4, &temp4, &temp4,
-					&temp4, &temp4, &temp4,
-					&temp4, &temp4, &temp4,
+					// Normal
+					&permute_xyz_to_zxy(fNormalArray[TriangleVertices[i]]),
+					&permute_xyz_to_zxy(fNormalArray[TriangleVertices[i+1]]),
+					&permute_xyz_to_zxy(fNormalArray[TriangleVertices[i+2]]),
+					// Tangents
+					&permute_xyz_to_zxy(fTangentArray[TriangleVertices[i]]),
+					&permute_xyz_to_zxy(fTangentArray[TriangleVertices[i+1]]),
+					&permute_xyz_to_zxy(fTangentArray[TriangleVertices[i+2]]),
+					// Bitangents
+					&permute_xyz_to_zxy(fBinormalArray[TriangleVertices[i]]),
+					&permute_xyz_to_zxy(fBinormalArray[TriangleVertices[i+1]]),
+					&permute_xyz_to_zxy(fBinormalArray[TriangleVertices[i+2]]),
 					0);
 				triangleId++;
 			}
@@ -265,12 +287,12 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Light_Create(Light& l, MFnLight& fnLight)
 	{
 		l.color						= RGBAColor(fnLight.color());
-		l.cosOfInnerFallOffAngle	= fnLight;
-		l.cosOfOuterFallOffAngle	= fnLight;
+		//l.cosOfInnerFallOffAngle	= fnLight;
+		//l.cosOfOuterFallOffAngle	= fnLight;
 		l.direction					= Float4(fnLight.lightDirection());
-		l.position					= fnLight;
+		//l.position					= fnLight;
 		l.power						= fnLight.intensity();;
-		l.type						= fnLight;
+		//l.type						= fnLight;
 	};
 
 	void PathTracerMayaImporter::SunLight_Create(SunLight *This)
@@ -359,8 +381,17 @@ namespace PathTracerNS
 			}
 		}
 
-		RTASSERT(Vector_LexLessThan(&This->S1, &This->S2) && Vector_LexLessThan(&This->S2, &This->S3));
+		This->N1 = normalize(This->N1);
+		This->N2 = normalize(This->N2);
+		This->N3 = normalize(This->N3);
+		This->T1 = normalize(This->T1);
+		This->T2 = normalize(This->T2);
+		This->T3 = normalize(This->T3);
+		This->BT1 = normalize(This->BT1);
+		This->BT2 = normalize(This->BT2);
+		This->BT3 = normalize(This->BT3);
 
+		RTASSERT(Vector_LexLessThan(&This->S1, &This->S2) && Vector_LexLessThan(&This->S2, &This->S3));
 	};
 
 

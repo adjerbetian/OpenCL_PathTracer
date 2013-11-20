@@ -19,8 +19,7 @@ namespace PathTracerNS
 
 	void PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
 	{
-		const bool saveImageOnDisk = true;
-		if(saveImageOnDisk)
+		if(saveRenderedImages)
 		{
 			static int numImage = 1;
 

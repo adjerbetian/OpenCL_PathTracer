@@ -2,6 +2,7 @@
 #include "PathTracer_MayaImporter.h"
 #include "../Controleur/PathTracer_Utils.h"
 #include "../Alone/PathTracer_bitmap.h"
+
 #include <maya/MItDag.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIOStream.h>
@@ -11,8 +12,6 @@
 #include <maya/MImage.h>
 #include <maya/MMatrix.h>
 #include <maya/MFnTransform.h>
-#include <maya/MEulerRotation.h>
-#include <maya/MMaterial.h>
 #include <maya/MPlug.h>
 #include <maya/MPlugArray.h>
 #include <maya/MFnLambertShader.h>

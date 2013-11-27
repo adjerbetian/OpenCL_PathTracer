@@ -2,6 +2,7 @@
 #include "../Controleur/PathTracer.h"
 #include "PathTracer_MayaImporter.h"
 
+
 #include <maya/MItDag.h>
 #include <maya/MFnMesh.h>
 #include <maya/MIOStream.h>
@@ -12,6 +13,7 @@
 #include <maya/MMatrix.h>
 #include <maya/MFnTransform.h>
 #include <maya/MEulerRotation.h>
+
 
 const MString RayTracer::cameraName = "raytracingCamera";
 const MString RayTracer::destinationFile = "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\raytrace.bmp";
@@ -39,7 +41,7 @@ void* RayTracer::creator()
 
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
-	uint numImageToRender = argList.asInt(0);
+	int numImageToRender = argList.asInt(0);
 	if(numImageToRender == 0)
 		numImageToRender = 1;
 

@@ -2,11 +2,9 @@
 #ifndef PATHTRACER_PREPROC
 #define PATHTRACER_PREPROC
 
-//#define MAYA
 
 /***********************************************************************************/
 //							PARTIE SPECIFIQUE A LA MACHINE
-
 
 #define PATHTRACER_FOLDER "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\"
 #define PATHTRACER_SCENE_FOLDER "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\"
@@ -19,26 +17,22 @@
 #define ALIGN(X) __declspec(align(X))
 
 
-#ifdef LRT_PRODUCT
-
-#include "Tools/Defines.h"
-#include "toolsLog.h"
-#define CONSOLE tools::ConsoleOut()
-#define ENDL tools::endl
-
-
-#else
 
 //	Cette variable permet d'enlever le conflit entre STR ou WSTR lorsque le projet est seul
 //#define UNICODE
 
-#include <assert.h>
+#ifdef MAYA
+#include <maya/MIOStream.h>
+#define CONSOLE cout
+#define ENDL endl
+#else
 #include <iostream>
-#define RTASSERT(X) assert(X)
 #define CONSOLE std::cout
 #define ENDL std::endl
-
 #endif
+
+#include <assert.h>
+#define RTASSERT(X) assert(X)
 
 
 #endif

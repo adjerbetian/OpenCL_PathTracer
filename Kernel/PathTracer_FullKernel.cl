@@ -585,8 +585,8 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	Material const mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
 	RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
 
-	if(mat.hasAlphaMap && RGBAColor_IsTransparent(&materialColor)) // Transparent
-		return false;
+	//if(mat.hasAlphaMap && RGBAColor_IsTransparent(&materialColor)) // Transparent
+	//	return false;
 
 	*squaredDistance = newSquaredDistance;
 
@@ -1205,35 +1205,37 @@ __kernel void Kernel_Main(
 	)
 {
 
-	//printf("Node : %u\n", sizeof(Node));
-	//printf("Float4 : %u\n", sizeof(Float4));
-	//printf("Bounding Box : %u\n", sizeof(BoundingBox));
-
-
-
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION
 	///////////////////////////////////////////////////////////////////////////////////////
 
 
-	//PRINT_DEBUG_INFO("KERNEL MAIN START", , 0);
+	PRINT_DEBUG_INFO2("KERNEL MAIN START", , 0);
 
-	uint xPixel = get_global_id(0);
-	uint yPixel = get_global_id(1);
-
-	const int globalImageOffset = yPixel * kernel__imageWidth + xPixel;
-
-	//PRINT_DEBUG_INFO2("KERNEL MAIN END", (uint2) (xPixel, yPixel) , (uint2) (xPixel, yPixel));
-
-	int seedValue = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
+	Ray3D r;
+	int globalImageOffset;
+	int seedValue;
 	int *seed = &seedValue;
 
-	float xScreen = (xPixel + random(seed) - 0.5) / (float) kernel__imageWidth  - 0.5;
-	float yScreen = (yPixel + random(seed) - 0.5) / (float) kernel__imageHeight - 0.5;
+	{
+		uint xPixel = get_global_id(0);
+		uint yPixel = get_global_id(1);
 
-	float4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * xScreen ) + ( kernel__cameraUp * yScreen );
-	Ray3D r;
-	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
+		globalImageOffset = yPixel * kernel__imageWidth + xPixel;
+
+		if(xPixel != 0 || yPixel != 0)
+			return;
+
+		//PRINT_DEBUG_INFO2("KERNEL MAIN END", (uint2) (xPixel, yPixel) , (uint2) (xPixel, yPixel));
+
+		*seed = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
+
+		float xScreen = (xPixel + random(seed) - 0.5) / (float) kernel__imageWidth  - 0.5;
+		float yScreen = (yPixel + random(seed) - 0.5) / (float) kernel__imageHeight - 0.5;
+
+		float4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * xScreen ) + ( kernel__cameraUp * yScreen );
+		Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
+	}
 
 
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -1262,7 +1264,6 @@ __kernel void Kernel_Main(
 	bool activeRay = true;
 	int reflectionId = 0;
 
-
 	while(activeRay && reflectionId < MAX_REFLECTION_NUMBER)
 	{
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
@@ -1289,10 +1290,10 @@ __kernel void Kernel_Main(
 			Ns = normalize(Ns);
 			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
-			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ng);
+			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, NULL, &Ng);
 			//RGBAColor directIlluminationRadiance = RGBACOLOR(0,0,0,0);
 			
-			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
+			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, NULL, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			//radianceToCompute += RGBACOLOR(0.05,0.1,0.05,1);
 			reflectionId++;
 		}

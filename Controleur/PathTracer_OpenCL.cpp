@@ -56,7 +56,8 @@ namespace PathTracerNS
 	{
 		cl_int errCode = 0;
 
-		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
+		//const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
+		const size_t constGlobalWorkSize[2] = { 1 , 1 };
 		const size_t constLocalWorkSize[2]  = { 1, 1 };
 
 		cl_uint imageId = 0;
@@ -291,7 +292,7 @@ namespace PathTracerNS
 
 	bool OpenCL_SetupContext()
 	{
-		const char* program_source = "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl";
+		const char* program_source = PATHTRACER_FOLDER"Kernel\\PathTracer_FullKernel.cl";
 
 		cl_device_id devices[16];
 		size_t cb;

@@ -1,11 +1,11 @@
 #pragma once
 
+#define REQUIRE_IOSTREAM
+
+#include <maya/MStatus.h>
+#include <maya/MString.h>
 #include <maya/MArgList.h>
-#include <maya/MObject.h>
-#include <maya/MGlobal.h>
 #include <maya/MPxCommand.h>
-#include <maya/MImage.h>
-#include <maya/MSyntax.h>
 
 class RayTracer : public MPxCommand 
 {

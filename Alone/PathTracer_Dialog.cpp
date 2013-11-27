@@ -4,7 +4,10 @@
 #include "../Controleur/PathTracer.h"
 #include "PathTracer_bitmap.h"
 #include <sstream>
+
+#ifdef MAYA
 #include <maya/MRenderView.h>
+#endif
 
 namespace PathTracerNS
 {
@@ -43,6 +46,8 @@ namespace PathTracerNS
 
 			numImage++;
 		}
+
+#ifdef MAYA
 
 		/////////////////////////////////////////////////////////////////////////////
 		/// Print in Maya:
@@ -95,6 +100,8 @@ namespace PathTracerNS
 			CONSOLE << "renderViewInteractiveRender: error occurred in endRender.";
 			return;
 		}
+
+#endif // END MAYA
 
 	}
 

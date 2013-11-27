@@ -41,7 +41,6 @@ namespace PathTracerNS
 	uint				 global__texturesDataSize		= 0;		// Somme des tailles de toutes les textures : ( largeur1 * hauteur1 ) + ( largeur2 * hauteur2 ) + ...
 	uint				 global__bvhMaxDepth			= 0;		// Profondeur de la plus grande branche du BVH
 
-	SunLight			 global__sun;	// Soleil de la scène
 	Sky					 global__sky;	// Ciel
 
 
@@ -88,11 +87,12 @@ namespace PathTracerNS
 		RTASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 
 		//	Si on veut exporter la scène, on décommente la ligne suivante
-		//	PathTracer_Export();
-
+#ifdef MAYA
+		PathTracer_Export();
+#endif
 		bool noError = true;
 
-		noError &= OpenCL_InitializeContext();
+		noError &= OpenCL_SetupContext();
 
 		if(!noError) return ;
 
@@ -122,7 +122,6 @@ namespace PathTracerNS
 			global__imageRayNb			,
 			global__bvhMaxDepth			,
 
-			&global__sun				,
 			&global__sky
 			);
 
@@ -166,7 +165,6 @@ namespace PathTracerNS
 			&global__imageWidth,
 			&global__imageHeight,
 			&global__imageSize,
-			&global__sun,
 			&global__sky
 			);
 
@@ -255,7 +253,6 @@ namespace PathTracerNS
 			&global__imageWidth,
 			&global__imageHeight,
 			&global__imageSize,
-			&global__sun,
 			&global__sky
 			);
 		fileExporter.Export();

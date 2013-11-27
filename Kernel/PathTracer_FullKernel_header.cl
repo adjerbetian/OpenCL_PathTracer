@@ -47,7 +47,6 @@ typedef float4 RGBAColor;
 	global__textures			,\
 	global__texturesData		,\
 	global__lightsSize			,\
-	global__sun					,\
 	global__sky					
 
 
@@ -61,7 +60,6 @@ typedef float4 RGBAColor;
 	Texture		__global	const	*global__textures			,\
 	uchar4		__global	const	*global__texturesData		,\
 	uint							 global__lightsSize			,\
-	SunLight	__global const		*global__sun				,\
 	Sky			__global const		*global__sky				
 
 
@@ -111,6 +109,7 @@ typedef struct Node
 
 typedef enum
 {
+	LIGHT_DIRECTIONNAL,
 	LIGHT_POINT,
 	LIGHT_SPOT,
 	LIGHT_UNKNOWN
@@ -127,13 +126,6 @@ typedef struct
 	float		cosOfOuterFallOffAngle;
 	LightType	type;
 } Light;
-
-typedef struct
-{
-	float4		direction;
-	RGBAColor		color;
-	float			power;
-} SunLight;
 
 typedef struct
 {
@@ -381,18 +373,22 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 ///						LIGHT
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline float Light_PowerToward( Light const *This, float4 const *v)
+inline float Light_PowerToward( Light const* This, float4 const* p, float4 const* N)
 {
+	if(This->type == LIGHT_DIRECTIONNAL)
+		return This->power * fmax(dot(-This->direction, *N),0.f);
 	if(This->type == LIGHT_POINT)
-		return This->power;
-
-	//SPOT
-	float cosAngle = dot(*v, This->direction);
-	if(cosAngle > This->cosOfInnerFallOffAngle)
-		return This->power;
-	if(cosAngle < This->cosOfOuterFallOffAngle)
-		return 0.0f;
-	return This->power * (cosAngle - This->cosOfOuterFallOffAngle) / ( This->cosOfInnerFallOffAngle - This->cosOfOuterFallOffAngle );
+		return This->power / Vector_SquaredDistanceTo(&This->position, p) * fmax(dot(normalize(This->position - *p), *N),0.f);
+	if(This->type == LIGHT_SPOT)
+	{
+		float cosAngle = dot( normalize(*p - This->position) , This->direction);
+		if(cosAngle > This->cosOfInnerFallOffAngle)
+			return This->power / Vector_SquaredDistanceTo(&This->position, p) * dot(normalize(This->position - *p), *N);
+		if(cosAngle < This->cosOfOuterFallOffAngle)
+			return 0.0f;
+		return This->power * (cosAngle - This->cosOfOuterFallOffAngle) / ( This->cosOfInnerFallOffAngle - This->cosOfOuterFallOffAngle ) / Vector_SquaredDistanceTo(&This->position, p) * dot(normalize(This->position - *p), *N);
+	}
+	return 0.f;
 }
 
 
@@ -432,7 +428,7 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 void		Material_Create								( Material *This, MaterialType _type);
-float		Material_BRDF								( Material const *This, Ray3D const *ri, float4 const *N, Ray3D const *rr);
+float		Material_BRDF								( Material const *This, float4 const *ri, float4 const *N, float4 const *rr);
 float		Material_FresnelGlassReflectionFraction		( Material const *This, Ray3D const *r , float4 const *N);
 float		Material_FresnelWaterReflectionFraction		( Material const *This, Ray3D const *r , float4 const *N, float4 *refractionDirection, float *refractionMultCoeff);
 float		Material_FresnelVarnishReflectionFraction	( Material const *This, Ray3D const *r , float4 const *N, bool isInVarnish, float4 *refractionDirection);
@@ -507,7 +503,6 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__materiaux,
 	void	__global	const	*global__void__textures,
 	uchar4	__global	const	*global__texturesData,
-	void	__global	const	*global__void__sun,
 	void	__global	const	*global__void__sky
 	);
 

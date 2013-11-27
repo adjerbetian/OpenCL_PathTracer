@@ -3,6 +3,7 @@
 #include "PathTracer_OpenCL.h"
 #include <ctime>
 #include <vector>
+#include <algorithm>
 
 
 namespace PathTracerNS
@@ -29,7 +30,6 @@ namespace PathTracerNS
 	cl_mem				 kernel__materiaux				= NULL;
 	cl_mem				 kernel__textures				= NULL;
 	cl_mem				 kernel__texturesData			= NULL;
-	cl_mem				 kernel__sun					= NULL;
 	cl_mem				 kernel__sky					= NULL;
 
 	// tableaux utiilisés pour la récupération des données depuis le device
@@ -102,7 +102,6 @@ namespace PathTracerNS
 		errCode = clReleaseMemObject(kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__sun);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
 
 		errCode = clFlush				(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
@@ -148,7 +147,6 @@ namespace PathTracerNS
 		uint				*global__imageRayNb		,
 		uint		const	 global__bvhMaxDepth		,
 
-		SunLight	const	*global__sun				,
 		Sky			const	*global__sky
 		)
 	{
@@ -160,16 +158,15 @@ namespace PathTracerNS
 		cl_int errCode = 0;
 		cl_uint i = 0;
 
-		kernel__imageColor		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(RGBAColor)    * global__imageSize			    , NULL                            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__imageRayNb		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(cl_uint)      * global__imageSize			    , NULL                            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__bvh				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Node)	  * global__bvhSize             ,1u), (void *) global__bvh            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Triangle) * global__triangulationSize   ,1u), (void *) global__triangulation  , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Light)	  * global__lightsSize          ,1u), (void *) global__lights         , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Material) * global__materiauxSize		,1u), (void *) global__materiaux      , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__texturesData	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Uchar4)	  * global__texturesDataSize		,1u), (void *) global__texturesData    , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , max(sizeof(Texture)  * global__texturesSize		,1u), (void *) global__textures       , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__sun				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(SunLight)                                       , (void *) global__sun            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)                                            , (void *) global__sky            , &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__imageColor		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(RGBAColor)    * global__imageSize						   , NULL							, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__imageRayNb		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(cl_uint)      * global__imageSize						   , NULL							, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__bvh				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	  * global__bvhSize				,1), (void *) global__bvh			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * global__triangulationSize	,1), (void *) global__triangulation	, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	  * global__lightsSize			,1), (void *) global__lights		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * global__materiauxSize		,1), (void *) global__materiaux		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__texturesData	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	  * global__texturesDataSize	,1), (void *) global__texturesData	, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * global__texturesSize			,1), (void *) global__textures		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) global__sky			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 
 
 		/////////////////////////////////////////////////////////////////////////////////
@@ -194,209 +191,201 @@ namespace PathTracerNS
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__materiaux),		(void*) &kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures),		(void*) &kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__texturesData),	(void*) &kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sun),				(void*) &kernel__sun);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),				(void*) &kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
 
 		return true;
 	}
 
-
-	bool OpenCL_InitializeContext()
+	char *OpenCL_ReadSources(const char *fileName)
 	{
-		const cl_uint nbProgramFiles = 1;
-		char *kernelFileName[nbProgramFiles] = {
-			PATHTRACER_FOLDER"Kernel\\PathTracer_FullKernel.cl"
-		};
-
-		const char *Kernel_Main									= "Kernel_Main";
-
-		cl_platform_id *platform_ids;
-		cl_platform_id platform_id = 0;
-		cl_device_id *device_ids;
-
-		cl_uint ret_num_devices;
-		cl_uint ret_num_platforms;
-
-		cl_int errCode = 0;
-
-		FILE *fp = NULL;
-		char *source_str[nbProgramFiles];
-		size_t source_size[nbProgramFiles];
-
-		/* Load the sources code containing the kernel*/
-		for(int i=0; i < nbProgramFiles; i++)
+		FILE *file = fopen(fileName, "rb");
+		if (!file)
 		{
-			fopen_s(&fp, kernelFileName[i], "r");
-			if (!fp)
-				return false;
-
-			source_str[i] = (char*)malloc(0x100000);
-			source_size[i] = fread(source_str[i], 1, 0x100000, fp);
-			fclose(fp);
+			printf("ERROR: Failed to open file '%s'\n", fileName);
+			return NULL;
 		}
 
-		/************************************************************************/
-		/*                            PLATFORM                                  */
-		/************************************************************************/
-		CONSOLE << "Choix de la plateforme : " << ENDL << ENDL;
-		errCode = clGetPlatformIDs(0, NULL, &ret_num_platforms);			if(OpenCL_ErrorHandling(errCode)) return false;
-		platform_ids = new cl_platform_id[ret_num_platforms];
-		errCode = clGetPlatformIDs(ret_num_platforms, platform_ids, NULL);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-		if(ret_num_platforms == 0)
-			return false;
-
-		char infoString[128];
-		uint platformIdx;
-		for(platformIdx = 0; platformIdx < ret_num_platforms; platformIdx++)
+		if (fseek(file, 0, SEEK_END))
 		{
-			CONSOLE << "\tPlatform " << (platformIdx+1) << " / " << ret_num_platforms << " : " << ENDL;
-			platform_id = platform_ids[platformIdx];
-
-			errCode = clGetPlatformInfo (platform_id, CL_PLATFORM_NAME, sizeof(infoString), infoString, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\tName : " << infoString << ENDL;
-
-			errCode = clGetPlatformInfo (platform_id, CL_PLATFORM_VENDOR, sizeof(infoString), infoString, NULL);	if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\tVendor : " << infoString << ENDL;
-
-			errCode = clGetPlatformInfo (platform_id, CL_PLATFORM_VERSION, sizeof(infoString), infoString, NULL);	if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\tVersion : " << infoString << ENDL;
-		}
-		CONSOLE << ENDL;
-
-		if(ret_num_platforms > 1)
-		{
-			CONSOLE << "Quelle plateforme desirez-vous ? ";
-
-			//std::cin >> platformIdx;
-			platformIdx = 1;
-
-			platformIdx = max( 1 , (int) min( platformIdx, (int) ret_num_platforms ) );
-			platformIdx -= 1;
-
-			platform_id = platform_ids[platformIdx];
-			errCode = clGetPlatformInfo (platform_id, CL_PLATFORM_NAME, sizeof(infoString), infoString, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-
-			CONSOLE << "Vous avez choisi la plateforme " << infoString << ENDL;
-
-			CONSOLE << ENDL;
+			printf("ERROR: Failed to seek file '%s'\n", fileName);
+			fclose(file);
+			return NULL;
 		}
 
-
-		/************************************************************************/
-		/*                            DEVICE                                    */
-		/************************************************************************/
-
-		CONSOLE << "Choix du device : " << ENDL << ENDL;
-
-		errCode = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, 0, NULL, &ret_num_devices);		if(OpenCL_ErrorHandling(errCode)) return false;
-
-		device_ids = new cl_device_id[ret_num_devices];
-
-		errCode = clGetDeviceIDs(platform_id, CL_DEVICE_TYPE_ALL, ret_num_devices, device_ids, &ret_num_devices); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		uint deviceCPUIdx;
-		for(uint deviceIdx=0; deviceIdx < ret_num_devices; deviceIdx++)
+		long size = ftell(file);
+		if (size == 0)
 		{
-			CONSOLE << "\tDevice : " << (deviceIdx+1) << " / " << ret_num_devices << ENDL;
-			opencl__device = device_ids[deviceIdx];
-
-			size_t param_size_t;
-			size_t param_size_t_3[3];
-			cl_ulong param_cl_ulong;
-			cl_bool param_cl_bool;
-			cl_device_type deviceType;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_NAME,						sizeof(infoString), infoString, NULL);				if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "Name : "												<< infoString << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_TYPE,						sizeof(deviceType), &deviceType, NULL);				if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_TYPE : "									<< ((deviceType == CL_DEVICE_TYPE_CPU) ? "CL_DEVICE_TYPE_CPU " : "") << ((deviceType == CL_DEVICE_TYPE_GPU) ? "CL_DEVICE_TYPE_GPU " : "") << ((deviceType == CL_DEVICE_TYPE_ACCELERATOR) ? "CL_DEVICE_TYPE_ACCELERATOR " : "") << ((deviceType == CL_DEVICE_TYPE_DEFAULT) ? "CL_DEVICE_TYPE_DEFAULT " : "") << ENDL;
-			deviceCPUIdx = (deviceType == CL_DEVICE_TYPE_CPU) ? deviceIdx : deviceCPUIdx;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_COMPUTE_UNITS,			sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_MAX_COMPUTE_UNITS : "						<< param_size_t << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS,	sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS : "				<< param_size_t << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_WORK_GROUP_SIZE,		sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "DEVICE_MAX_WORK_GROUP_SIZE : "						<< param_size_t << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_WORK_ITEM_SIZES,		sizeof(param_size_t_3), param_size_t_3, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_MAX_WORK_ITEM_SIZES : "						<< param_size_t_3[0] << " , " << param_size_t_3[1] << " , " << param_size_t_3[2] << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_MEM_ALLOC_SIZE,			sizeof(param_cl_ulong), &param_cl_ulong, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_MAX_MEM_ALLOC_SIZE : "						<< param_cl_ulong << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE,	sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_MIN_DATA_TYPE_ALIGN_SIZE : "				<< param_size_t << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_GLOBAL_MEM_SIZE,			sizeof(param_cl_ulong), &param_cl_ulong, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_GLOBAL_MEM_SIZE : "							<< param_cl_ulong << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE,	sizeof(param_cl_ulong), &param_cl_ulong, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE : "				<< param_cl_ulong << ENDL;			
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_LOCAL_MEM_SIZE,				sizeof(param_cl_ulong), &param_cl_ulong, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_LOCAL_MEM_SIZE : "							<< param_cl_ulong << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_IMAGE_SUPPORT,				sizeof(param_cl_bool), &param_cl_bool, NULL);		if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_IMAGE_SUPPORT : "							<< param_cl_bool << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_IMAGE2D_MAX_WIDTH,			sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_IMAGE2D_MAX_WIDTH : "						<< param_size_t << ENDL;
-
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_IMAGE2D_MAX_HEIGHT,			sizeof(param_size_t), &param_size_t, NULL);			if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "\t\t" << "CL_DEVICE_IMAGE2D_MAX_HEIGHT : "						<< param_size_t << ENDL;
-
-		}
-		CONSOLE << ENDL;
-
-		if(ret_num_devices > 1)
-		{
-			CONSOLE << "We want to run on CPU : device chosen :  ";
-
-			opencl__device = device_ids[deviceCPUIdx];
-			errCode = clGetDeviceInfo (opencl__device, CL_DEVICE_NAME, sizeof(infoString), infoString, NULL);	if(OpenCL_ErrorHandling(errCode)) return false;
-			CONSOLE << "Vous avez choisi le device " << infoString << ENDL;
-			CONSOLE << ENDL;
+			printf("ERROR: Failed to check position on file '%s'\n", fileName);
+			fclose(file);
+			return NULL;
 		}
 
-		/* Create OpenCL context */
-		opencl__context = clCreateContext(NULL, 1, &opencl__device, NULL, NULL, &errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
+		rewind(file);
 
+		char *src = (char *)malloc(sizeof(char) * size + 1);
+		if (!src)
+		{
+			printf("ERROR: Failed to allocate memory for file '%s'\n", fileName);
+			fclose(file);
+			return NULL;
+		}
 
-		/* Create Command Queue */
-		opencl__queue = clCreateCommandQueue(opencl__context, opencl__device, 0, &errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
+		size_t res = fread(src, 1, sizeof(char) * size, file);
+		if (res != sizeof(char) * size)
+		{
+			printf("ERROR: Failed to read file '%s'\n", fileName);
+			fclose(file);
+			free(src);
+			return NULL;
+		}
 
+		src[size] = '\0'; /* NULL terminated */
+		fclose(file);
 
-		/* Create Kernel Program from the source */
-		opencl__program = clCreateProgramWithSource(opencl__context, nbProgramFiles, (const char **) source_str, source_size, &errCode);	if(OpenCL_ErrorHandling(errCode)) return false;
-
-
-		/* Build Kernel Program */
-
-		//	1 - Pour le debugger d'intel :
-		//char const * buildOptions = "-g -s \"C:\\Users\\alexandre djerbetian\\documents\\visual studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl\"";
-		//	2 - Pour des performnace normalement accrue mais moins de précision
-		//char const * buildOptions = "-cl-mad-enable";
-		//	3 - Normal
-		//char const * buildOptions = "-I \""PATHTRACER_FOLDER"Kernel\\\"";
-		char const * buildOptions = "";
-
-		errCode = clBuildProgram(opencl__program, 0, NULL, buildOptions , NULL, NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		/* Create OpenCL Kernel */
-		opencl__Kernel_Main = clCreateKernel(opencl__program, Kernel_Main, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		// Release pointers
-		for(int i=0; i < nbProgramFiles; i++)
-			free(source_str[i]);
-
-		return true;
+		return src;
 	}
 
+
+	cl_platform_id OpenCL_GetIntelOCLPlatform()
+	{
+		cl_platform_id pPlatforms[10] = { 0 };
+		char pPlatformName[128] = { 0 };
+
+		cl_uint uiPlatformsCount = 0;
+		cl_int err = clGetPlatformIDs(10, pPlatforms, &uiPlatformsCount);
+		for (cl_uint ui = 0; ui < uiPlatformsCount; ++ui)
+		{
+			err = clGetPlatformInfo(pPlatforms[ui], CL_PLATFORM_NAME, 128 * sizeof(char), pPlatformName, NULL);
+			if ( err != CL_SUCCESS )
+			{
+				printf("ERROR: Failed to retreive platform vendor name.\n", ui);
+				return NULL;
+			}
+
+			if (!strcmp(pPlatformName, "Intel(R) OpenCL"))
+				return pPlatforms[ui];
+		}
+
+		return NULL;
+	}
+
+	void OpenCL_BuildFailLog( cl_program program,
+		cl_device_id device_id )
+	{
+		size_t paramValueSizeRet = 0;
+		clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, 0, NULL, &paramValueSizeRet);
+
+		char* buildLogMsgBuf = (char *)malloc(sizeof(char) * paramValueSizeRet + 1);
+		if( buildLogMsgBuf )
+		{
+			clGetProgramBuildInfo(program, device_id, CL_PROGRAM_BUILD_LOG, paramValueSizeRet, buildLogMsgBuf, &paramValueSizeRet);
+			buildLogMsgBuf[paramValueSizeRet] = '\0';	//mark end of message string
+
+			printf("Build Log:\n");
+			puts(buildLogMsgBuf);
+			fflush(stdout);
+
+			free(buildLogMsgBuf);
+		}
+	}
+
+	bool OpenCL_SetupContext()
+	{
+		const char* program_source = "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\Kernel\\PathTracer_FullKernel.cl";
+
+		cl_device_id devices[16];
+		size_t cb;
+		cl_uint size_ret = 0;
+		cl_int err;
+		int num_cores;
+		cl_device_id device_ID;
+		char device_name[128] = {0};
+		const bool runOnGPU = false;
+
+		if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
+		else		 printf("Trying to run on a CPU \n");
+
+		cl_platform_id intel_platform_id = OpenCL_GetIntelOCLPlatform();
+		if( intel_platform_id == NULL )
+		{
+			printf("ERROR: Failed to find Intel OpenCL platform.\n");
+			return false;
+		}
+
+		cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)intel_platform_id, NULL };
+
+		// create the OpenCL context on a CPU/PG 
+		if(runOnGPU) opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);
+		else		 opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_CPU, NULL, NULL, NULL);
+
+		if (opencl__context == (cl_context)0)
+			return false;
+
+		// get the list of CPU devices associated with context
+		err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
+		clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, cb, devices, NULL);
+
+		opencl__queue = clCreateCommandQueue(opencl__context, devices[0], 0, NULL);
+		if (opencl__queue == (cl_command_queue)0)
+			return false;
+
+		char *sources = OpenCL_ReadSources(program_source);	//read program .cl source file
+		if(sources == NULL)
+			return false;
+
+		opencl__program = clCreateProgramWithSource(opencl__context, 1, (const char**)&sources, NULL, NULL);
+		if (opencl__program == (cl_program)0)
+		{
+			printf("ERROR: Failed to create Program with source...\n");
+			free(sources);
+			return false;
+		}
+
+		std::string buildOptionsString = std::string("-g -s \"");
+		buildOptionsString += program_source;
+		buildOptionsString += "\"";
+
+		err = clBuildProgram(opencl__program, 0, NULL, buildOptionsString.c_str(), NULL, NULL);
+		if (err != CL_SUCCESS)
+		{
+			printf("ERROR: Failed to build program...\n");
+			OpenCL_BuildFailLog(opencl__program, devices[0]);
+			free(sources);
+			return false;
+		}
+
+		opencl__Kernel_Main = clCreateKernel(opencl__program, "Kernel_Main", NULL);
+		if (opencl__Kernel_Main == (cl_kernel)0)
+		{
+			printf("ERROR: Failed to create kernel...\n");
+			free(sources);
+			return false;
+		}
+		free(sources);
+
+		// retrieve platform information
+
+		// use first device ID
+		device_ID = devices[0];
+
+		err = clGetDeviceInfo(device_ID, CL_DEVICE_NAME, 128, device_name, NULL);
+		if (err!=CL_SUCCESS)
+		{
+			printf("ERROR: Failed to get device information (device name)...\n");
+			return false;
+		}
+		printf("Using device %s...\n", device_name);
+
+		err = clGetDeviceInfo(device_ID, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &num_cores, NULL);
+		if (err!=CL_SUCCESS)
+		{
+			printf("ERROR: Failed to get device information (max compute units)...\n");
+			return false;
+		}
+		printf("Using %d compute units...\n", num_cores);
+
+		return true; // success...
+	}
 
 	/*	Fonction qui permet de déléguer la gestion des erreurs OpenCL comme par exemple les erreurs de compilations
 	*/

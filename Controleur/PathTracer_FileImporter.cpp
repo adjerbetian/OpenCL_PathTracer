@@ -25,7 +25,7 @@ namespace PathTracerNS
 
 			nWritte = fwrite(ptr__global__cameraDirection	, sizeof(Float4), 1, fichier);
 			nWritte = fwrite(ptr__global__cameraRight		, sizeof(Float4), 1, fichier);
-			nWritte = fwrite(ptr__global__cameraUp		, sizeof(Float4), 1, fichier);
+			nWritte = fwrite(ptr__global__cameraUp			, sizeof(Float4), 1, fichier);
 			nWritte = fwrite(ptr__global__cameraPosition	, sizeof(Float4), 1, fichier);
 
 			nWritte = fwrite(ptr__global__triangulationSize	, sizeof(uint), 1, fichier);
@@ -40,7 +40,7 @@ namespace PathTracerNS
 		}
 
 		FILE* fichierPtr = NULL;
-		 fopen_s(&fichierPtr, filePointersPath.c_str(), "wb");
+		fopen_s(&fichierPtr, filePointersPath.c_str(), "wb");
 
 		if(fichierPtr != NULL)
 		{
@@ -49,7 +49,6 @@ namespace PathTracerNS
 			if((*ptr__global__materiauxSize)>0)		nWritte = fwrite(*ptr__global__materiaux		, sizeof(Material)	, (*ptr__global__materiauxSize)		, fichierPtr);
 			if((*ptr__global__texturesSize)>0)		nWritte = fwrite(*ptr__global__textures			, sizeof(Texture)	, (*ptr__global__texturesSize)		, fichierPtr);
 
-			nWritte = fwrite(ptr__global__sun					, sizeof(SunLight)	, 1, fichierPtr);
 			nWritte = fwrite(ptr__global__sky					, sizeof(Sky)		, 1, fichierPtr);
 
 			fclose(fichierPtr);
@@ -110,7 +109,6 @@ namespace PathTracerNS
 			nRead = fread(*ptr__global__materiaux			, sizeof(Material)	, (*ptr__global__materiauxSize)		, fichierPtr);
 			nRead = fread(*ptr__global__textures			, sizeof(Texture)	, (*ptr__global__texturesSize)		, fichierPtr);
 
-			nRead = fread(ptr__global__sun					, sizeof(SunLight)	, 1, fichierPtr);
 			nRead = fread(ptr__global__sky					, sizeof(Sky)		, 1, fichierPtr);
 
 			fclose(fichierPtr);

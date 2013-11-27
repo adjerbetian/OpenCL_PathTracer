@@ -162,40 +162,40 @@ void Material_Create( Material *This, MaterialType _type)
 /************************************************************************/
 
 //	Both ri and rr pointing toward the surface
-float Material_BRDF( Material const *This, Ray3D const *ri, float4 const *N, Ray3D const *rr)
+float Material_BRDF( Material const *This, float4 const *ri, float4 const *N, float4 const *rr)
 {
 	if(This->type == MAT_STANDART)
 		return PATH_PI_INVERSE;
 
-	if(This->type == MAT_GLASS)
-		return 1;
-
-	if(This->type == MAT_WATER)		//	Scattering
-	{
-		//	Schlick model
-		float denom = 1 + MATERIAL_KSCHLICK * dot(ri->direction, rr->direction);
-		return ( 1 - MATERIAL_KSCHLICK*MATERIAL_KSCHLICK ) / ( 4 * PATH_PI * denom * denom );
-	}
-
-	if(This->type == MAT_VARNHISHED)
-	{
-		//	La lumière entre entre
-		float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, ri, N, false, NULL);
-
-		//	on cherche la direction de de diffusion originelle de rr
-		float4 originalRefractionDirection;
-		Material_FresnelVarnishReflectionFraction(This, rr, N, false, &originalRefractionDirection);
-
-		//	Calcul du deuxième coefficient de Fresnel
-		Ray3D insideRay;
-		float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
-		float4 NOpposite = -(*N);
-
-		Ray3D_Create(&insideRay, &rr->origin, &originalRefractionDirectionOpposite, rr->isInWater);
-		float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &insideRay, &NOpposite, true, NULL);
-
-		return (1 - rFresnel1) * (1 - rFresnel2) * PATH_PI_INVERSE;
-	}
+	//if(This->type == MAT_GLASS)
+	//	return 1;
+	//
+	//if(This->type == MAT_WATER)		//	Scattering
+	//{
+	//	//	Schlick model
+	//	float denom = 1 + MATERIAL_KSCHLICK * dot(ri->direction, rr->direction);
+	//	return ( 1 - MATERIAL_KSCHLICK*MATERIAL_KSCHLICK ) / ( 4 * PATH_PI * denom * denom );
+	//}
+	//
+	//if(This->type == MAT_VARNHISHED)
+	//{
+	//	//	La lumière entre entre
+	//	float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, ri, N, false, NULL);
+	//
+	//	//	on cherche la direction de de diffusion originelle de rr
+	//	float4 originalRefractionDirection;
+	//	Material_FresnelVarnishReflectionFraction(This, rr, N, false, &originalRefractionDirection);
+	//
+	//	//	Calcul du deuxième coefficient de Fresnel
+	//	Ray3D insideRay;
+	//	float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
+	//	float4 NOpposite = -(*N);
+	//
+	//	Ray3D_Create(&insideRay, &rr->origin, &originalRefractionDirectionOpposite, rr->isInWater);
+	//	float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &insideRay, &NOpposite, true, NULL);
+	//
+	//	return (1 - rFresnel1) * (1 - rFresnel2) * PATH_PI_INVERSE;
+	//}
 
 	ASSERT(false);
 	return 0;
@@ -933,24 +933,54 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 
 RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N)
 {
-	return RGBACOLOR(0.5,0.5,0.5,1);
+	RGBAColor L		= RGBACOLOR(0,0,0,0);				//	Radiance à calculer
+	RGBAColor tint	= RGBACOLOR(1,1,1,1);				//	Teinte lors d'un shadow ray
+	Light light;
+	float lightContribution;
 
-	//RGBAColor L		= RGBACOLOR(0,0,0,0);				//	Radiance à calculer
-	//RGBAColor tint	= RGBACOLOR(1,1,1,1);				//	Teinte lors d'un shadow ray
-	//Light light;
-	//float lightContribution;
+	const bool sampleLights = false;
+	// Lampes
+	if(sampleLights)
+	{
+		if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
+		{
+			L = RGBACOLOR(0.5,0.5,0.5,1);
 
-	//// Lampes
+			//Ray3D lightRay;
+			//float4 fullRay = light.position - (*p);
+			//Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
+			//
+			//if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, Vector_SquaredDistanceTo(&light.position, p), &tint))		//Lumière visible
+			//	L += light.color * tint * lightContribution;
+		}
+	}
+	else
+	{
+		Light light;
+		float BRDF;
+		if(global__lightsSize > 0)
+		{
+			for(uint i = 0; i < global__lightsSize; i++)
+			{
+				Ray3D lightRay;
+				float4 fullRay =  LIGHT_DIRECTIONNAL ? -light.direction : light.position - (*p);
+				Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 
-	//if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
-	//{
-	//	Ray3D lightRay;
-	//	float4 fullRay = light.position - (*p);
-	//	Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
+				light = global__lights[i];
 
-	//	if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, Vector_SquaredDistanceTo(&light.position, p), &tint))		//Lumière visible
-	//		L += light.color * tint * lightContribution;
-	//}
+				float lightDistance = light.type == LIGHT_DIRECTIONNAL ? INFINITY : length(fullRay);
+				float4 oppositeDirection = - lightRay.direction;
+				BRDF = Material_BRDF(mat, &oppositeDirection, N, &cameraRay->direction);
+
+				if( !BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, 0, &tint) )
+					L += Light_PowerToward(&light, p, N) * BRDF * tint;
+			}
+		}
+	}
+
+	ASSERT(L.x >= 0 && L.y >= 0 && L.z >= 0);
+
+	return L;
 
 	////	Soleil
 
@@ -1085,6 +1115,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 
 bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N, Light *lightToChoose, float *lightContribution)
 {
+	
 	float lightContributions[MAX_LIGHT_SIZE+1];
 	float distribution[MAX_LIGHT_SIZE+1];
 	for(uint i=0; i < MAX_LIGHT_SIZE; i++)
@@ -1108,11 +1139,11 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 		Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 		Ray3D lightOpositeRay = Ray3D_Opposite(&lightRay);
 
-		G = - dot(lightRay.direction, *N ) * Light_PowerToward(&light, &lightRay.direction) / Vector_SquaredDistanceTo(&light.position, p); 	// = cos(angle) * power / d²
+		G = - dot(lightRay.direction, *N ) * Light_PowerToward(&light, p, N); 	// = cos(angle) * power / d²
 		if(G < 0)
 			G = 0;
 
-		BRDF = Material_BRDF(mat, &lightOpositeRay, N, cameraRay);
+		BRDF = Material_BRDF(mat, &lightOpositeRay.direction, N, &cameraRay->direction);
 
 		lightContributions[i] = G * BRDF;
 
@@ -1170,7 +1201,6 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__materiaux,
 	void	__global	const	*global__void__textures,
 	uchar4	__global	const	*global__texturesData,
-	void	__global	const	*global__void__sun,
 	void	__global	const	*global__void__sky
 	)
 {
@@ -1217,7 +1247,6 @@ __kernel void Kernel_Main(
 	Light		__global	const *global__lights			= (Light	__global	const *) global__void__lights;
 	Material	__global	const *global__materiaux		= (Material	__global	const *) global__void__materiaux;
 	Texture		__global	const *global__textures			= (Texture	__global	const *) global__void__textures;
-	SunLight	__global	const *global__sun				= (SunLight __global	const *) global__void__sun;
 	Sky			__global	const *global__sky				= (Sky		__global	const *) global__void__sky;
 
 
@@ -1225,10 +1254,10 @@ __kernel void Kernel_Main(
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 	RGBAColor transferFunction  = RGBACOLOR(1,1,1,1);
 	float4 intersectionPoint   = FLOAT4  (0,0,0,0);
+	RGBAColor intersectionColor = RGBACOLOR(0,0,0,0);
 	float s = 0.0f, t = 0.0f;
 	Triangle intersectedTriangle;
 	Material intersectedMaterial;
-	RGBAColor intersectionColor = RGBACOLOR(0,0,0,0);
 
 	bool activeRay = true;
 	int reflectionId = 0;
@@ -1260,8 +1289,8 @@ __kernel void Kernel_Main(
 			Ns = normalize(Ns);
 			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
-			//RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ns);
-			RGBAColor directIlluminationRadiance = RGBACOLOR(0,0,0,0);
+			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ng);
+			//RGBAColor directIlluminationRadiance = RGBACOLOR(0,0,0,0);
 			
 			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			//radianceToCompute += RGBACOLOR(0.05,0.1,0.05,1);
@@ -1271,8 +1300,8 @@ __kernel void Kernel_Main(
 		{
 			activeRay = false;
 
-			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r );
-			radianceToCompute += (skyColor * transferFunction);
+			//RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r );
+			//radianceToCompute += (skyColor * transferFunction);
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////

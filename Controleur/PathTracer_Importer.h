@@ -36,7 +36,6 @@ namespace PathTracerNS
 			uint*		 global__imageWidth,
 			uint*		 global__imageHeight,
 			uint*		 global__imageSize,
-			SunLight*	 global__sun,
 			Sky*		 global__sky
 			);
 
@@ -66,7 +65,6 @@ namespace PathTracerNS
 		uint*		 ptr__global__imageHeight;
 		uint*		 ptr__global__imageSize;
 
-		SunLight*	 ptr__global__sun;
 		Sky*		 ptr__global__sky;
 
 

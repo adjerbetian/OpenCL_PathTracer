@@ -51,12 +51,14 @@ namespace PathTracerNS
 		uint				*global__imageRayNb		,
 		uint		const	 global__bvhMaxDepth		,
 
-		SunLight	const	*global__sun				,
 		Sky			const	*global__sky				
 		);
 
-	bool	OpenCL_InitializeContext	();
-	bool	OpenCL_ErrorHandling		(cl_int errCode);
+	char*			OpenCL_ReadSources			(const char *fileName);
+	cl_platform_id	OpenCL_GetIntelOCLPlatform	();
+	void			OpenCL_BuildFailLog( cl_program program, cl_device_id device_id );
+	bool			OpenCL_SetupContext			();
+	bool			OpenCL_ErrorHandling		(cl_int errCode);
 }
 
 #endif

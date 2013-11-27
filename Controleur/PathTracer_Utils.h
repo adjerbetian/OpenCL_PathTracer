@@ -1,9 +1,6 @@
 #ifndef PATHTRACER_UTILS
 #define PATHTRACER_UTILS
 
-#include <maya/MPoint.h>
-#include <maya/MColor.h>
-
 #include "PathTracer_PreProc.h"
 #include <algorithm>
 #include <cmath>
@@ -72,8 +69,6 @@ namespace PathTracerNS
 
 		inline Float4 ()										{ x = 0; y = 0; z = 0; w = 0;};
 		inline Float4 (const Float4& v)							{ x = v.x; y = v.y; z = v.z; w = v.w;};
-		inline Float4 (const MPoint& v)							{ x = (float) v.x; y = (float) v.y; z = (float) v.z; w = (float) v.w;};
-		inline Float4 (const MColor& v)							{ x = (float) v.r; y = (float) v.g; z = (float) v.b; w = (float) v.a;};
 		inline Float4 (float _x, float _y, float _z, float _w)	{ x = _x; y = _y; z = _z; w = _w;};
 
 		inline Float4  operator + (const Float4& v) const		{ return Float4(x + v.x, y + v.y, z + v.z, w + v.w);};
@@ -127,12 +122,11 @@ namespace PathTracerNS
 
 	typedef Float4 RGBAColor;
 
-	inline Float4	permute_xyz_to_zxy	(const MPoint &m)						{return Float4((float) m.z, (float) m.x, (float) m.y, (float) m.w);};
 	inline float	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
 	inline float	dot				(const Float4& v1, const Float4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
 	inline Float4	cross			(const Float4& v1, const Float4& v2)		{return Float4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
-	inline Float4	ppmin			(const Float4& v1, const Float4& v2)		{return Float4( min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z), min(v1.w, v2.w));};
-	inline Float4	ppmax			(const Float4& v1, const Float4& v2)		{return Float4( max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z), max(v1.w, v2.w));};
+	inline Float4	ppmin			(const Float4& v1, const Float4& v2)		{return Float4( std::min<float>(v1.x, v2.x), std::min<float>(v1.y, v2.y), std::min<float>(v1.z, v2.z), std::min<float>(v1.w, v2.w));};
+	inline Float4	ppmax			(const Float4& v1, const Float4& v2)		{return Float4( std::max<float>(v1.x, v2.x), std::max<float>(v1.y, v2.y), std::max<float>(v1.z, v2.z), std::max<float>(v1.w, v2.w));};
 	inline Float4	pmin			(const Float4& v1, float a)					{return ppmin(v1, Float4(a,a,a,a));};
 	inline Float4	pmax			(const Float4& v1, float a)					{return ppmax(v1, Float4(a,a,a,a));};
 	inline Float4	exp				(const Float4& v)							{return Float4( std::exp(v.x), std::exp(v.y), std::exp(v.z), std::exp(v.w));};
@@ -151,7 +145,7 @@ namespace PathTracerNS
 	inline float Vector_SquaredNorm			(Float4 const	*This)					{ return dot(*This, *This);};
 	inline float Vector_SquaredDistanceTo	(Float4 const	*This, Float4 const *v)	{ Float4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
 	inline bool	 Vector_LexLessThan			(Float4 const	*This, Float4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
-	inline float Vector_Max					(Float4 const	*This)					{ return max((*This).x, max((*This).y, (*This).z));};
+	inline float Vector_Max					(Float4 const	*This)					{ return std::max<float>((*This).x, std::max<float>((*This).y, (*This).z));};
 	inline float Vector_Mean				(Float4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
 
 	inline void Vector_PutInSameHemisphereAs( Float4 *This, Float4 const *N)

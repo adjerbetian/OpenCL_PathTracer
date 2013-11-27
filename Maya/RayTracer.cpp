@@ -40,6 +40,9 @@ void* RayTracer::creator()
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
 	uint numImageToRender = argList.asInt(0);
+	if(numImageToRender == 0)
+		numImageToRender = 1;
+
 	bool saveRenderedImages = argList.asBool(1);
 
 	clock_t start = clock();

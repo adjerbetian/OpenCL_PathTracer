@@ -16,7 +16,6 @@
 #include <maya/MPlug.h>
 #include <maya/MPlugArray.h>
 #include <maya/MFnLambertShader.h>
-#include <maya/MFnLight.h>
 #include <maya/MFloatVectorArray.h>
 
 namespace PathTracerNS
@@ -26,9 +25,9 @@ namespace PathTracerNS
 	{
 		SetCam();
 		ImportScene();
+		ImportLights();
 		LoadSky();
 
-		*ptr__global__lights = new Light[1];
 		*ptr__global__materiaux = new Material[1];
 		*ptr__global__textures = new Texture[1];
 	}
@@ -171,8 +170,8 @@ namespace PathTracerNS
 
 	void PathTracerMayaImporter::ImportLights()
 	{
-		MItDag itLight(MItDag::kDepthFirst,MFn::kLight);
-		MDagPath objPath;
+		// Point Lights
+		MItDag itLight(MItDag::kDepthFirst, MFn::kLight);
 
 		// First we get the total number of lights in the scene
 		*ptr__global__lightsSize = 0;
@@ -182,15 +181,24 @@ namespace PathTracerNS
 			itLight.next();
 		}
 
-		itLight.reset();
 		*ptr__global__lights = new Light[*ptr__global__lightsSize];
 		uint lightIndex = 0;
 
+		// Importing Point Lights
+		itLight.reset();
+		itLight.next();
+		MDagPath objPath;
 		while(!itLight.isDone())
 		{
 			itLight.getPath(objPath);
-			MFnLight fnLight(objPath);
-			Light_Create((*ptr__global__lights)[lightIndex], fnLight);
+			MMatrix M = objPath.inclusiveMatrix();
+			if(objPath.hasFn( MFn::kPointLight))
+				Light_Create((*ptr__global__lights)[lightIndex], M, MFnPointLight(objPath));
+			else if(objPath.hasFn( MFn::kDirectionalLight))
+				Light_Create((*ptr__global__lights)[lightIndex], M, MFnDirectionalLight(objPath));
+			else if(objPath.hasFn( MFn::kSpotLight))
+				Light_Create((*ptr__global__lights)[lightIndex], M, MFnSpotLight(objPath));
+
 			lightIndex++;
 			itLight.next();
 		}
@@ -284,19 +292,37 @@ namespace PathTracerNS
 		}
 	};
 
-	void PathTracerMayaImporter::Light_Create(Light& l, MFnLight& fnLight)
+	void PathTracerMayaImporter::Light_Create(Light& l, const MMatrix& M, const MFnPointLight& fnLight)
 	{
-		l.color						= RGBAColor(fnLight.color());
-		//l.cosOfInnerFallOffAngle	= fnLight;
-		//l.cosOfOuterFallOffAngle	= fnLight;
-		l.direction					= Float4(fnLight.lightDirection());
-		//l.position					= fnLight;
-		l.power						= fnLight.intensity();;
-		//l.type						= fnLight;
+		l.type						= LightType::LIGHT_POINT;
+		l.color						= ToFloat4(fnLight.color());
+		l.cosOfInnerFallOffAngle	= 0;
+		l.cosOfOuterFallOffAngle	= 0;
+		l.direction					= Float4();
+		l.position					= permute_xyz_to_xzy(MPoint()*M);
+		l.power						= fnLight.intensity();
 	};
 
-	void PathTracerMayaImporter::SunLight_Create(SunLight *This)
+	void PathTracerMayaImporter::Light_Create(Light& l, const MMatrix& M, const MFnDirectionalLight& fnLight)
 	{
+		l.type						= LightType::LIGHT_DIRECTIONNAL;
+		l.color						= ToFloat4(fnLight.color());
+		l.cosOfInnerFallOffAngle	= 0;
+		l.cosOfOuterFallOffAngle	= 0;
+		l.direction					= normalize(permute_xyz_to_zxy(MVector(0,0,-1)*M));
+		l.position					= Float4();
+		l.power						= fnLight.intensity();
+	};
+
+	void PathTracerMayaImporter::Light_Create(Light& l, const MMatrix& M, const MFnSpotLight& fnLight)
+	{
+		l.type						= LightType::LIGHT_SPOT;
+		l.color						= ToFloat4(fnLight.color());
+		l.cosOfInnerFallOffAngle	= (float) fnLight.penumbraAngle();
+		l.cosOfOuterFallOffAngle	= (float) fnLight.coneAngle();
+		l.direction					= normalize(ToFloat4(MVector(0,0,-1)*M));
+		l.position					= permute_xyz_to_xzy(MPoint()*M);
+		l.power						= fnLight.intensity();
 	};
 
 	void PathTracerMayaImporter::Material_Create( Material *This)

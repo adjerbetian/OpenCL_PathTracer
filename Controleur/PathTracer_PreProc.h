@@ -2,6 +2,7 @@
 #ifndef PATHTRACER_PREPROC
 #define PATHTRACER_PREPROC
 
+//#define MAYA
 
 /***********************************************************************************/
 //							PARTIE SPECIFIQUE A LA MACHINE

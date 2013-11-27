@@ -23,11 +23,11 @@ namespace PathTracerNS
 
 	typedef enum
 	{
+		LIGHT_DIRECTIONNAL,
 		LIGHT_POINT,
 		LIGHT_SPOT,
 		LIGHT_UNKNOWN
 	} LightType;
-
 
 	ALIGN(16) typedef struct
 	{
@@ -39,16 +39,6 @@ namespace PathTracerNS
 		float		cosOfOuterFallOffAngle;
 		LightType	type;
 	} Light;
-
-
-
-	ALIGN(16) typedef struct
-	{
-		Float4		direction;
-		RGBAColor		color;
-		float			power;
-	} SunLight;
-
 
 	typedef enum
 	{

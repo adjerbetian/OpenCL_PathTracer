@@ -218,7 +218,6 @@ namespace PathTracerNS
 		global__window->SetWidth(global__imageWidth);
 		global__window->SetHeight(global__imageHeight);
 		global__window->Create();
-		global__window->SetWindowPos(NULL, 50, 50, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 
 
 		//On affiche quelques informations

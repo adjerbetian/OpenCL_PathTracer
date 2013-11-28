@@ -1,7 +1,5 @@
 #pragma once
 
-#define REQUIRE_IOSTREAM
-
 #include <maya/MStatus.h>
 #include <maya/MString.h>
 #include <maya/MArgList.h>

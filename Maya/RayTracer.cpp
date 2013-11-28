@@ -14,6 +14,8 @@
 #include <maya/MFnTransform.h>
 #include <maya/MEulerRotation.h>
 
+#include <ctime>
+
 
 const MString RayTracer::cameraName = "raytracingCamera";
 const MString RayTracer::destinationFile = "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\raytrace.bmp";

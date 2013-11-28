@@ -1,13 +1,13 @@
 
 #include "PathTracer_Dialog.h"
 
-#include "../Controleur/PathTracer.h"
-#include "PathTracer_bitmap.h"
-#include <sstream>
-
 #ifdef MAYA
 #include <maya/MRenderView.h>
 #endif
+
+#include "../Controleur/PathTracer.h"
+#include "PathTracer_bitmap.h"
+#include <sstream>
 
 namespace PathTracerNS
 {

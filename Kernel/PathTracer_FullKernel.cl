@@ -1,7 +1,7 @@
 
 
 
-#include "C:\Users\Alexandre Djerbetian\Documents\Visual Studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
+#include "C:\Users\\djerbeti\Documents\Visual Studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

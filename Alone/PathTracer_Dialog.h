@@ -1,16 +1,13 @@
 #ifndef PATHTRACER_PATHTRACERDIALOG
 #define PATHTRACER_PATHTRACERDIALOG
 
+
+#include "../Controleur/PathTracer_PreProc.h"
 #include "../Controleur/PathTracer_Utils.h"
 #include "../Controleur/PathTracer_Structs.h"
 
-#include <vector>
-#include <string>
-#include <time.h>
-
-#define SWP_NOZORDER        0x0004
-#define SWP_NOSIZE          0x0001
-
+//#define SWP_NOZORDER        0x0004
+//#define SWP_NOSIZE          0x0001
 
 namespace PathTracerNS
 {
@@ -44,15 +41,12 @@ namespace PathTracerNS
 		inline void		UpdateElapsedTime		()							{};
 		inline void		Create					()							{};
 		inline void		OnClose					()							{};
-		inline bool		SetWindowPos			(void *, int x, int y, int cx, int cy, int nFlags, bool bDontCallResized = false) {return true;};
 
 
 		// Attributs
 
 		uint				pathTracerWidth;
 		uint				pathTracerHeight;
-		clock_t				startTime;
-		bool				*isWindowOpen;
 		bool				saveRenderedImages;
 
 		static const char*	exportFolderPath;

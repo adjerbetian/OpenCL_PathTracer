@@ -342,9 +342,14 @@ namespace PathTracerNS
 			return false;
 		}
 
-		std::string buildOptionsString = std::string("-g -s \"");
-		buildOptionsString += program_source;
-		buildOptionsString += "\"";
+		std::string buildOptionsString;
+		if(false)
+		{
+			buildOptionsString += "-g -s \"";
+			buildOptionsString += program_source;
+			buildOptionsString += "\"";
+		}
+
 
 		err = clBuildProgram(opencl__program, 0, NULL, buildOptionsString.c_str(), NULL, NULL);
 		if (err != CL_SUCCESS)

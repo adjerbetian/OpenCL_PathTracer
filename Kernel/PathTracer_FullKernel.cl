@@ -960,6 +960,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 		float BRDF;
 		if(global__lightsSize > 0)
 		{
+			printf("Test");
 			for(uint i = 0; i < global__lightsSize; i++)
 			{
 				Ray3D lightRay;
@@ -1266,6 +1267,9 @@ __kernel void Kernel_Main(
 
 	while(activeRay && reflectionId < MAX_REFLECTION_NUMBER)
 	{
+		PRINT_DEBUG_INFO2("reflection Id", "reflectionId = %i", reflectionId);
+		printf("radianceToCompute : %v4f \n", radianceToCompute);
+		return;
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
 			//radianceToCompute += intersectionColor * transferFunction;
@@ -1331,11 +1335,10 @@ __kernel void Kernel_Main(
 		//}
 	}
 
-	//radianceToCompute = RGBACOLOR( ((float) xPixel) / kernel__imageWidth, ((float) yPixel) / kernel__imageHeight, 1, 1 );
-
-
 	// Si le rayon est termine
 
 	global__imageRayNb[globalImageOffset]++;
-	global__imageColor[globalImageOffset] += radianceToCompute;
+	//global__imageColor[globalImageOffset] += radianceToCompute;
+	global__imageColor[globalImageOffset] += RGBACOLOR(1,1,1,1);
+
 }

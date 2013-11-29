@@ -54,12 +54,12 @@ namespace PathTracerNS
 	ALIGN(16) typedef struct
 	{
 		RGBAColor		simpleColor;
+		char const		*textureName;
 		float			opacity;				//	Pour le verre
-		uint			textureId;
+		int				textureId;
 		MaterialType	type;
 		char			isSimpleColor;
 		char			hasAlphaMap;
-		char const		*textureName;
 	} Material;
 
 

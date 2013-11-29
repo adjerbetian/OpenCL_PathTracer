@@ -39,7 +39,7 @@ namespace PathTracerNS
 			Sky*		 global__sky
 			);
 
-		virtual void Import() = 0;
+		virtual bool Import() = 0;
 
 
 

@@ -1,5 +1,7 @@
 #pragma once
 
+
+#include "../Controleur/PathTracer_PreProc.h"
 #include <maya/MStatus.h>
 #include <maya/MString.h>
 #include <maya/MArgList.h>

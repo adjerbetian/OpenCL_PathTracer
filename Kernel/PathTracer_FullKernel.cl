@@ -1,8 +1,5 @@
 
-
-
-#include "C:\Users\\djerbeti\Documents\Visual Studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
-
+#include "C:\Users\Alexandre Djerbetian\documents\visual studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Utilitaires
@@ -198,7 +195,7 @@ float Material_BRDF( Material const *This, float4 const *ri, float4 const *N, fl
 	//}
 
 	ASSERT(false);
-	return 0;
+	return 1;
 
 };
 
@@ -582,8 +579,13 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	if( dot(fullRay, r->direction) < 0)
 		return false;					// Le triangle est derriere nous (cas particulier à traiter si l'origine du rayon est dans la feuille du BVH)... Peut-être à enlever.
 
-	Material const mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
+
+	Material mat;
+	Material_Create(&mat, MAT_STANDART);
 	RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
+
+	//Material const mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
+	//RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
 
 	//if(mat.hasAlphaMap && RGBAColor_IsTransparent(&materialColor)) // Transparent
 	//	return false;
@@ -732,6 +734,9 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 	Node const __global *son1;
 	Node const __global *son2;
 
+	if(get_global_id(0) == 0 && get_global_id(1) == 0)
+		printf("BVHIntersectShadowRay : \n\tRay3D_Origin := %v4f; \n\tRay3D_Direction := %v4f; \n\tsquaredDistance := %f; \n", r->origin, r->direction, squaredDistance);
+
 	while(true)	// On sort de la boucle lorsque l'on dépile le stack et que ce dernier est vide
 	{
 		if(currentNode->isLeaf)
@@ -815,6 +820,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 
 	float4 outDirection = r->direction;
+
 	/*
 	if(mat->type == MAT_STANDART)
 	{
@@ -960,20 +966,23 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 		float BRDF;
 		if(global__lightsSize > 0)
 		{
-			printf("Test");
 			for(uint i = 0; i < global__lightsSize; i++)
 			{
-				Ray3D lightRay;
-				float4 fullRay =  LIGHT_DIRECTIONNAL ? -light.direction : light.position - (*p);
-				Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
-
 				light = global__lights[i];
+
+				if(get_global_id(0)==0 && get_global_id(1) == 0)
+					printf("lightDirection : %v4f\n", light.direction);
+				Ray3D lightRay;
+				float4 fullRay =  light.type == LIGHT_DIRECTIONNAL ? -light.direction : light.position - (*p);
+				if(get_global_id(0)==0 && get_global_id(1) == 0)
+					printf("fullRay : %v4f\n", fullRay);
+				Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 
 				float lightDistance = light.type == LIGHT_DIRECTIONNAL ? INFINITY : length(fullRay);
 				float4 oppositeDirection = - lightRay.direction;
 				BRDF = Material_BRDF(mat, &oppositeDirection, N, &cameraRay->direction);
 
-				if( !BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, 0, &tint) )
+				if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
 					L += Light_PowerToward(&light, p, N) * BRDF * tint;
 			}
 		}
@@ -1211,8 +1220,6 @@ __kernel void Kernel_Main(
 	///////////////////////////////////////////////////////////////////////////////////////
 
 
-	PRINT_DEBUG_INFO2("KERNEL MAIN START", , 0);
-
 	Ray3D r;
 	int globalImageOffset;
 	int seedValue;
@@ -1223,9 +1230,6 @@ __kernel void Kernel_Main(
 		uint yPixel = get_global_id(1);
 
 		globalImageOffset = yPixel * kernel__imageWidth + xPixel;
-
-		if(xPixel != 0 || yPixel != 0)
-			return;
 
 		//PRINT_DEBUG_INFO2("KERNEL MAIN END", (uint2) (xPixel, yPixel) , (uint2) (xPixel, yPixel));
 
@@ -1267,14 +1271,11 @@ __kernel void Kernel_Main(
 
 	while(activeRay && reflectionId < MAX_REFLECTION_NUMBER)
 	{
-		PRINT_DEBUG_INFO2("reflection Id", "reflectionId = %i", reflectionId);
-		printf("radianceToCompute : %v4f \n", radianceToCompute);
-		return;
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
-			//radianceToCompute += intersectionColor * transferFunction;
-			//transferFunction *= intersectionColor;
-			//radianceToCompute = RGBACOLOR(1,1,1,1)*fabs(dot(r.direction,intersectedTriangle.N));
+			radianceToCompute += intersectionColor * transferFunction;
+			transferFunction *= intersectionColor;
+			radianceToCompute = RGBACOLOR(1,1,1,1)*fabs(dot(r.direction,intersectedTriangle.N));
 
 			//if(r.isInWater)
 			//{
@@ -1294,11 +1295,8 @@ __kernel void Kernel_Main(
 			Ns = normalize(Ns);
 			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
-			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, NULL, &Ng);
-			//RGBAColor directIlluminationRadiance = RGBACOLOR(0,0,0,0);
-			
+			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ng);
 			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, NULL, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
-			//radianceToCompute += RGBACOLOR(0.05,0.1,0.05,1);
 			reflectionId++;
 		}
 		else // Sky
@@ -1336,9 +1334,7 @@ __kernel void Kernel_Main(
 	}
 
 	// Si le rayon est termine
-
 	global__imageRayNb[globalImageOffset]++;
-	//global__imageColor[globalImageOffset] += radianceToCompute;
-	global__imageColor[globalImageOffset] += RGBACOLOR(1,1,1,1);
+	global__imageColor[globalImageOffset] += radianceToCompute;
 
 }

@@ -79,6 +79,8 @@ namespace PathTracerNS
 		CONSOLE << "                          PATH TRACER" << ENDL;
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 
+		CONSOLE << "Sizeof Material && Material Type : " << sizeof(Material) << " , " << sizeof(MaterialType) << ENDL;
+
 		PathTracer_Initialize(saveRenderedImages);
 
 		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
@@ -168,7 +170,11 @@ namespace PathTracerNS
 			&global__sky
 			);
 
-		global__importer->Import();
+		if(!global__importer->Import())
+		{
+			system("pause");
+			exit(1);
+		}
 
 		PathTracer_InitializeImage();
 		PathTracer_InitializeWindow(saveRenderedImages);

@@ -7,7 +7,6 @@
 ///						PRE PROCESSEUR
 ////////////////////////////////////////////////////////////////////////////////////////
 
-
 #define PATH_PI 3.14159265f
 #define PATH_PI_INVERSE 0.31830988618f
 #define RUSSIAN_ROULETTE false
@@ -18,15 +17,15 @@
 #define MAX_LIGHT_SIZE 30
 
 // Debug log
-//#define PRINT_DEBUG_INFO(X, Y, Z) printf(X" : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t "#Y" \n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0) , Z)
+//#define PRINT_DEBUG_INFO(X, Y, Z) printf(X" : Group x : %i : \\tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t "#Y" \n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0) , Z)
 #define PRINT_DEBUG_INFO(X, Y, Z)
 
 // Pour des debug locaux
 #define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : local id : ( %v2u ) : \t global id : ( %v2u ) : \t "Y" \n", (uint2) (get_local_id(0),  get_local_id(1)) , (uint2) (get_global_id(0), get_global_id(1)) , Z)
 
 // Assert
-//#define ASSERT(X) if(!(X)) { printf("***************  ERROR ******************* : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#X"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
-#define ASSERT(X) 
+#define ASSERT(X) if(!(X)) { printf("***************  ERROR ******************* : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#X"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
+//#define ASSERT(X) 
 
 
 #define INT4 (int4)
@@ -61,6 +60,7 @@ typedef float4 RGBAColor;
 	uchar4		__global	const	*global__texturesData		,\
 	uint							 global__lightsSize			,\
 	Sky			__global const		*global__sky				
+
 
 
 
@@ -159,12 +159,12 @@ typedef enum
 typedef struct
 {
 	RGBAColor		simpleColor;
+	char const		*textureName;
 	float			opacity;				//	Pour le verre
-	uint			textureId;
+	int				textureId;
 	MaterialType	type;
 	char			isSimpleColor;
 	char			hasAlphaMap;
-	char const		*textureName;
 } Material;
 
 

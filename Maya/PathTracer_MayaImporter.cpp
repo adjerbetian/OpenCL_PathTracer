@@ -20,7 +20,7 @@
 namespace PathTracerNS
 {
 
-	void PathTracerMayaImporter::Import()
+	bool PathTracerMayaImporter::Import()
 	{
 		SetCam();
 		ImportScene();
@@ -29,6 +29,8 @@ namespace PathTracerNS
 
 		*ptr__global__materiaux = new Material[1];
 		*ptr__global__textures = new Texture[1];
+
+		return true;
 	}
 
 	bool PathTracerMayaImporter::GetCam(const MString &cameraName, MDagPath &camera)
@@ -311,6 +313,12 @@ namespace PathTracerNS
 		l.direction					= normalize(permute_xyz_to_zxy(MVector(0,0,-1)*M));
 		l.position					= Float4();
 		l.power						= fnLight.intensity();
+
+		//Debug
+		MVector test = MVector(0,0,-1)*M;
+		Float4 test2 = permute_xyz_to_zxy(test);
+		Float4 test3 = normalize(test2);
+
 	};
 
 	void PathTracerMayaImporter::Light_Create(Light& l, const MMatrix& M, const MFnSpotLight& fnLight)

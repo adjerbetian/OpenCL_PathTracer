@@ -29,7 +29,7 @@ namespace PathTracerNS
 		PathTracerMayaImporter():PathTracerImporter() {}
 
 
-		virtual void Import				();
+		virtual bool Import				();
 
 		void ImportScene				();
 		void ImportLights				();

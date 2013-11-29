@@ -97,7 +97,6 @@ namespace PathTracerNS
 		float x, y, z, w;
 	};
 
-
 	class Char4
 	{
 	public:
@@ -120,10 +119,8 @@ namespace PathTracerNS
 
 
 
-	typedef Float4 RGBAColor;
-
 	inline float	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
-	inline float	dot				(const Float4& v1, const Float4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z) + (v1.w * v2.w);};
+	inline float	dot				(const Float4& v1, const Float4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);};
 	inline Float4	cross			(const Float4& v1, const Float4& v2)		{return Float4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
 	inline Float4	ppmin			(const Float4& v1, const Float4& v2)		{return Float4( std::min<float>(v1.x, v2.x), std::min<float>(v1.y, v2.y), std::min<float>(v1.z, v2.z), std::min<float>(v1.w, v2.w));};
 	inline Float4	ppmax			(const Float4& v1, const Float4& v2)		{return Float4( std::max<float>(v1.x, v2.x), std::max<float>(v1.y, v2.y), std::max<float>(v1.z, v2.z), std::max<float>(v1.w, v2.w));};

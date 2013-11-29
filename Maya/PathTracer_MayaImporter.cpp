@@ -60,7 +60,8 @@ namespace PathTracerNS
 
 	void PathTracerMayaImporter::SetCam()
 	{
-		const MString cameraName = "perspShape";
+		//const MString cameraName = "perspShape";
+		const MString cameraName = "raytraceCamShape";
 		MDagPath camera;
 
 		GetCam(cameraName, camera);
@@ -84,11 +85,10 @@ namespace PathTracerNS
 
 		*ptr__global__imageSize = (*ptr__global__imageWidth) * (*ptr__global__imageHeight);
 
-		*ptr__global__cameraDirection	= permute_xyz_to_zxy(MPoint(D));
+		*ptr__global__cameraDirection	= permute_xyz_to_zxy(D);
 		*ptr__global__cameraPosition	= permute_xyz_to_zxy(C);
-		*ptr__global__cameraRight		= permute_xyz_to_zxy(MPoint(Right));;
-		*ptr__global__cameraUp			= permute_xyz_to_zxy(MPoint(Up));;
-
+		*ptr__global__cameraRight		= permute_xyz_to_zxy(Right);;
+		*ptr__global__cameraUp			= permute_xyz_to_zxy(Up);;
 	}
 
 	void PathTracerMayaImporter::ImportScene()
@@ -150,17 +150,17 @@ namespace PathTracerNS
 					// UV
 					&temp2,&temp2,&temp2,
 					// Normal
-					&permute_xyz_to_zxy(fNormalArray[TriangleVertices[i]]),
-					&permute_xyz_to_zxy(fNormalArray[TriangleVertices[i+1]]),
-					&permute_xyz_to_zxy(fNormalArray[TriangleVertices[i+2]]),
+					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i]])),
+					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+1]])),
+					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+2]])),
 					// Tangents
-					&permute_xyz_to_zxy(fTangentArray[TriangleVertices[i]]),
-					&permute_xyz_to_zxy(fTangentArray[TriangleVertices[i+1]]),
-					&permute_xyz_to_zxy(fTangentArray[TriangleVertices[i+2]]),
+					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i]])),
+					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+1]])),
+					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+2]])),
 					// Bitangents
-					&permute_xyz_to_zxy(fBinormalArray[TriangleVertices[i]]),
-					&permute_xyz_to_zxy(fBinormalArray[TriangleVertices[i+1]]),
-					&permute_xyz_to_zxy(fBinormalArray[TriangleVertices[i+2]]),
+					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i]])),
+					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+1]])),
+					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+2]])),
 					0);
 				triangleId++;
 			}
@@ -299,7 +299,7 @@ namespace PathTracerNS
 		l.color						= ToFloat4(fnLight.color());
 		l.cosOfInnerFallOffAngle	= 0;
 		l.cosOfOuterFallOffAngle	= 0;
-		l.direction					= Float4();
+		l.direction					= Float4(0,0,0,1);
 		l.position					= permute_xyz_to_xzy(MPoint()*M);
 		l.power						= fnLight.intensity();
 	};
@@ -311,14 +311,8 @@ namespace PathTracerNS
 		l.cosOfInnerFallOffAngle	= 0;
 		l.cosOfOuterFallOffAngle	= 0;
 		l.direction					= normalize(permute_xyz_to_zxy(MVector(0,0,-1)*M));
-		l.position					= Float4();
+		l.position					= Float4(0,0,0,1);
 		l.power						= fnLight.intensity();
-
-		//Debug
-		MVector test = MVector(0,0,-1)*M;
-		Float4 test2 = permute_xyz_to_zxy(test);
-		Float4 test3 = normalize(test2);
-
 	};
 
 	void PathTracerMayaImporter::Light_Create(Light& l, const MMatrix& M, const MFnSpotLight& fnLight)

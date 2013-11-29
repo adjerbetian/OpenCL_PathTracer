@@ -97,6 +97,8 @@ namespace PathTracerNS
 		float x, y, z, w;
 	};
 
+	typedef Float4 RGBAColor;
+
 	class Char4
 	{
 	public:
@@ -121,20 +123,20 @@ namespace PathTracerNS
 
 	inline float	dot				(const Float2& v1, const Float2& v2)		{return (v1.x * v2.x) + (v1.y * v2.y);};
 	inline float	dot				(const Float4& v1, const Float4& v2)		{return (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z);};
-	inline Float4	cross			(const Float4& v1, const Float4& v2)		{return Float4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 0 );};
+	inline Float4	cross			(const Float4& v1, const Float4& v2)		{return Float4( (v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x), 1 );};
 	inline Float4	ppmin			(const Float4& v1, const Float4& v2)		{return Float4( std::min<float>(v1.x, v2.x), std::min<float>(v1.y, v2.y), std::min<float>(v1.z, v2.z), std::min<float>(v1.w, v2.w));};
 	inline Float4	ppmax			(const Float4& v1, const Float4& v2)		{return Float4( std::max<float>(v1.x, v2.x), std::max<float>(v1.y, v2.y), std::max<float>(v1.z, v2.z), std::max<float>(v1.w, v2.w));};
 	inline Float4	pmin			(const Float4& v1, float a)					{return ppmin(v1, Float4(a,a,a,a));};
 	inline Float4	pmax			(const Float4& v1, float a)					{return ppmax(v1, Float4(a,a,a,a));};
 	inline Float4	exp				(const Float4& v)							{return Float4( std::exp(v.x), std::exp(v.y), std::exp(v.z), std::exp(v.w));};
 
-	inline float	exp				(float a)									{return std::exp(a);};
-	inline float	log				(float a)									{return std::log(a);};
-	inline float	sqrt			(float a)									{return std::sqrt(a);};
+	//inline float	exp				(float a)									{return std::exp(a);};
+	//inline float	log				(float a)									{return std::log(a);};
+	//inline float	sqrt			(float a)									{return std::sqrt(a);};
 
 	inline float	length			(const Float4& v)							{ return std::sqrt(dot(v,v));};
 	inline float	distance		(const Float4& v1, const Float4& v2)		{ return length(v2 - v1);};
-	inline Float4	normalize		(const Float4& v)							{ return v / length(v);};
+	inline Float4	normalize		(const Float4& v)							{ Float4 vn = v / length(v); vn.w = v.w; return vn;};
 
 
 	//	Vector

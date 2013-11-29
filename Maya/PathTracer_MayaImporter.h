@@ -18,6 +18,9 @@ namespace PathTracerNS
 	inline Float4	permute_xyz_to_zxy	(const MPoint &m)	{return Float4((float) (m.z/m.w), (float) (m.x/m.w), (float) (m.y/m.w), 1.f);};
 	inline Float4	permute_xyz_to_xzy	(const MPoint &m)	{return Float4((float) (m.x/m.w), (float) (m.z/m.w), (float) (m.y/m.w), 1.f);};
 
+	inline Float4	permute_xyz_to_zxy	(const MVector &v)	{return Float4((float) v.z, (float) v.x, (float) v.y, 0.f);};
+	inline Float4	permute_xyz_to_xzy	(const MVector &v)	{return Float4((float) v.x, (float) v.z, (float) v.y, 0.f);};
+
 	inline Float4 ToFloat4 (const MPoint& v)	{return Float4((float) (v.x/v.w), (float) (v.y/v.w), (float) (v.z/v.w), 1.f);};
 	inline Float4 ToFloat4 (const MVector& v)	{return Float4((float) v.x, (float) v.y, (float) v.z, 1.f);};
 	inline Float4 ToFloat4 (const MColor& v)	{return Float4((float) v.r, (float) v.g, (float) v.b, v.a);};

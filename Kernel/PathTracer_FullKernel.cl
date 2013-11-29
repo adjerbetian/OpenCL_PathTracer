@@ -969,13 +969,15 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 			for(uint i = 0; i < global__lightsSize; i++)
 			{
 				light = global__lights[i];
-
-				if(get_global_id(0)==0 && get_global_id(1) == 0)
-					printf("lightDirection : %v4f\n", light.direction);
 				Ray3D lightRay;
 				float4 fullRay =  light.type == LIGHT_DIRECTIONNAL ? -light.direction : light.position - (*p);
+
 				if(get_global_id(0)==0 && get_global_id(1) == 0)
+				{
 					printf("fullRay : %v4f\n", fullRay);
+					printf("lightDirection : %v4f\n", light.direction);
+				}
+
 				Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 
 				float lightDistance = light.type == LIGHT_DIRECTIONNAL ? INFINITY : length(fullRay);
@@ -983,7 +985,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 				BRDF = Material_BRDF(mat, &oppositeDirection, N, &cameraRay->direction);
 
 				if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
-					L += Light_PowerToward(&light, p, N) * BRDF * tint;
+					L += Light_PowerToward(&light, p, N) * BRDF * tint * light.color;
 			}
 		}
 	}
@@ -1214,6 +1216,25 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__sky
 	)
 {
+	
+	//if(get_global_id(0)==0 && get_global_id(1)==0)
+	//{
+	//	printf("kernel__cameraPosition	= %v4f \n", kernel__cameraPosition	);
+	//	printf("kernel__cameraDirection	= %v4f \n", kernel__cameraDirection	);
+	//	printf("kernel__cameraRight		= %v4f \n", kernel__cameraRight		);
+	//	printf("kernel__cameraUp		= %v4f \n", kernel__cameraUp		);
+	//
+	//	Triangle	__global	const *global__triangulation	= (Triangle __global	const *) global__void__triangulation;
+	//
+	//	printf("Triangle 1 : \n");
+	//	printf("\tS1 = %v4f \n", global__triangulation[0].S1 );
+	//	printf("\tS2 = %v4f \n", global__triangulation[0].S2 );
+	//	printf("\tS3 = %v4f \n", global__triangulation[0].S3 );
+	//	printf("Triangle 2 : \n");
+	//	printf("\tS1 = %v4f \n", global__triangulation[1].S1 );
+	//	printf("\tS2 = %v4f \n", global__triangulation[1].S2 );
+	//	printf("\tS3 = %v4f \n", global__triangulation[1].S3 );
+	//}
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION
@@ -1273,10 +1294,6 @@ __kernel void Kernel_Main(
 	{
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
-			radianceToCompute += intersectionColor * transferFunction;
-			transferFunction *= intersectionColor;
-			radianceToCompute = RGBACOLOR(1,1,1,1)*fabs(dot(r.direction,intersectedTriangle.N));
-
 			//if(r.isInWater)
 			//{
 			//	*radianceToCompute += Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR, r, &intersectionPoint) * (*transferFunction);
@@ -1302,9 +1319,8 @@ __kernel void Kernel_Main(
 		else // Sky
 		{
 			activeRay = false;
-
-			//RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r );
-			//radianceToCompute += (skyColor * transferFunction);
+			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r );
+			radianceToCompute += (skyColor * transferFunction);
 		}
 
 		///////////////////////////////////////////////////////////////////////////////////////

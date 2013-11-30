@@ -192,14 +192,14 @@ float Material_BRDF( Material const *This, float4 const *incidentDirection, floa
 		return (1 - rFresnel1) * (1 - rFresnel2) * PATH_PI_INVERSE;
 	}
 
-	ASSERT(false);
+	ASSERT("Material_BRDF - Non standart material", false);
 	return 1;
 
 };
 
 float Material_FresnelGlassReflectionFraction( Material const *This, float4 const* incidentDirection, float4 const *N)
 {
-	ASSERT(This->type == MAT_GLASS);
+	ASSERT("Material_FresnelGlassReflectionFraction not glass", This->type == MAT_GLASS);
 
 	float n1, n2;
 
@@ -218,7 +218,7 @@ float Material_FresnelGlassReflectionFraction( Material const *This, float4 cons
 
 	float rFresnel = (rPara*rPara + rPerp*rPerp)/2.0f;
 
-	ASSERT(rFresnel <= 1);
+	ASSERT("Material_FresnelGlassReflectionFraction incorrect rFresnel", rFresnel <= 1);
 
 	return rFresnel;
 
@@ -251,7 +251,7 @@ float Material_FresnelWaterReflectionFraction( Material const *This, float4 cons
 
 	float rFresnel = (rPara*rPara + rPerp*rPerp)/2.0f;
 
-	ASSERT(rFresnel <= 1);
+	ASSERT("Material_FresnelWaterReflectionFraction incorrect rFresnel", rFresnel <= 1);
 
 	if(refractionDirection != NULL)
 		*refractionDirection = *incidentDirection * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
@@ -263,8 +263,8 @@ float Material_FresnelWaterReflectionFraction( Material const *This, float4 cons
 
 float Material_FresnelVarnishReflectionFraction( Material const *This, float4 const* incidentDirection , float4 const *N, bool isInVarnish, float4 *refractionDirection)
 {
-	ASSERT(This->type == MAT_VARNHISHED);
-	ASSERT( dot(*incidentDirection, *N) <= 0 );
+	ASSERT("Material_FresnelVarnishReflectionFraction material not varnished", This->type == MAT_VARNHISHED);
+	ASSERT("Material_FresnelVarnishReflectionFraction incorrect incident direction", dot(*incidentDirection, *N) <= 0 );
 
 	float n1, n2;
 
@@ -291,7 +291,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, float4 co
 
 	float rFresnel = (rPara*rPara + rPerp*rPerp)/2.0f;
 
-	ASSERT(rFresnel <= 1);
+	ASSERT("Material_FresnelVarnishReflectionFraction incorrect rFresnel", rFresnel <= 1);
 
 	if(refractionDirection != NULL)
 		*refractionDirection = *incidentDirection * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
@@ -301,7 +301,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, float4 co
 
 float4 Material_FresnelReflection( Material const *This, float4 const *v, float4 const *N)
 {
-	ASSERT(This->type != MAT_STANDART);
+	ASSERT("Material_FresnelReflection incorrect material type", This->type != MAT_STANDART);
 
 	float4 reflection = (*v) - ( (*N) * ( 2 * dot(*v, *N) ) );
 	return reflection;
@@ -310,7 +310,7 @@ float4 Material_FresnelReflection( Material const *This, float4 const *v, float4
 
 float4 Material_CosineSampleHemisphere(int *kernel__seed, float4 const *N)
 {
-	ASSERT(fabs(length(*N) - 1.0f) < 0.0001f);
+	ASSERT("Material_CosineSampleHemisphere normal length not 1", fabs(length(*N) - 1.0f) < 0.0001f);
 
 	//	1 - Calcul d'un rayon aléatoire sur l'hémisphère canonique
 
@@ -338,7 +338,7 @@ float4 Material_CosineSampleHemisphere(int *kernel__seed, float4 const *N)
 		dot(FLOAT4(sn.z, tn.z, (*N).z, 0), v),
 		0));
 
-	ASSERT( dot(vWorld, *N) >= 0);
+	ASSERT("Material_CosineSampleHemisphere sampled direction incorrect", dot(vWorld, *N) >= 0);
 
 	return vWorld;
 };
@@ -416,7 +416,7 @@ void Material_ConcentricSampleDisk(int *kernel__seed, float *dx, float *dy)
 	*dx = r * cos( theta );	
 	*dy = r * sin( theta );
 
-	ASSERT((*dx)*(*dx) + (*dy)*(*dy) < 1);
+	ASSERT("Material_ConcentricSampleDisk incorrect sample dx dy", (*dx)*(*dx) + (*dy)*(*dy) < 1);
 };
 
 
@@ -426,7 +426,7 @@ RGBAColor Material_WaterAbsorption(float dist)
 		return RGBACOLOR(0.f, 0.f, 0.f, 0.f);
 
 	RGBAColor absorption = exp( - MATERIAL_WATER_ABSORPTION_COLOR * dist );
-	ASSERT(absorption.x >= 0 && absorption.x <= 1 && absorption.y >= 0 && absorption.y <= 1 && absorption.z >= 0 && absorption.z <= 1);
+	ASSERT("Material_WaterAbsorption incorrect absorption", absorption.x >= 0 && absorption.x <= 1 && absorption.y >= 0 && absorption.y <= 1 && absorption.z >= 0 && absorption.z <= 1);
 
 	return absorption;
 }
@@ -565,12 +565,12 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 		return false;					// Le triangle est derriere nous (cas particulier à traiter si l'origine du rayon est dans la feuille du BVH)... Peut-être à enlever.
 
 
-	Material mat;
-	Material_Create(&mat, MAT_STANDART);
-	RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
+	Material mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
+	RGBAColor materialColor		= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
 
-	//Material const mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
-	//RGBAColor const materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
+	//Material mat;
+	//Material_Create(&mat, MAT_STANDART);
+	//RGBAColor materialColor	= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
 
 	//if(mat.hasAlphaMap && RGBAColor_IsTransparent(&materialColor)) // Transparent
 	//	return false;
@@ -589,14 +589,16 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 
 RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, bool positiveNormal, float s, float t)
 {
-	return RGBACOLOR(0.8,0.8,0.8,1);
-	//Material const mat = positiveNormal ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
+	Material const mat = positiveNormal ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
 
-	//if(mat.isSimpleColor)
-	//	return mat.simpleColor;
+	if(mat.isSimpleColor)
+		return mat.simpleColor;
 
-	//float2 uvText = positiveNormal ? (This->UVP1*(1-s-t)) + (This->UVP2*s) + (This->UVP3*t) : (This->UVN1*(1-s-t)) + (This->UVN2*s) + (This->UVN3*t);
-	//return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__texturesData, uvText.x, uvText.y );
+	ASSERT("Triangle_GetColorValueAt material is not simple color", mat.isSimpleColor);
+	return RGBACOLOR(1,0,0,0);
+
+	float2 uvText = positiveNormal ? (This->UVP1*(1-s-t)) + (This->UVP2*s) + (This->UVP3*t) : (This->UVN1*(1-s-t)) + (This->UVN2*s) + (This->UVN3*t);
+	return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__texturesData, uvText.x, uvText.y );
 }
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
@@ -960,7 +962,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 		}
 	}
 
-	ASSERT(L.x >= 0 && L.y >= 0 && L.z >= 0);
+	ASSERT("Scene_ComputeDirectIllumination incorrect radiance L", L.x >= 0 && L.y >= 0 && L.z >= 0);
 
 	return L;
 
@@ -1261,7 +1263,7 @@ __kernel void Kernel_Main(
 			float4 rOpositeDirection = - r.direction;
 			Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
 			Ns = normalize(Ns);
-			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
+			ASSERT("Kernel_Main incorrect normals", dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
 			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ng);
 			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);

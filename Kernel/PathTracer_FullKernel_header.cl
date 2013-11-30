@@ -24,8 +24,8 @@
 #define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : local id : ( %v2u ) : \t global id : ( %v2u ) : \t "Y" \n", (uint2) (get_local_id(0),  get_local_id(1)) , (uint2) (get_global_id(0), get_global_id(1)) , Z)
 
 // Assert
-#define ASSERT(X) if(!(X)) { printf("***************  ERROR ******************* : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#X"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
-//#define ASSERT(X) 
+#define ASSERT(X , Y) if(!(Y)) { printf("***************  ERROR ******************* : "X" : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#Y"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
+//#define ASSERT(X,Y)
 
 
 #define INT4 (int4)
@@ -209,7 +209,7 @@ inline void Vector_PutInSameHemisphereAs(float4 *This, float4 const *N)
 	if( dotProd < 0.001f )
 		(*This) += (*N) * (0.01f - dotProd);
 
-	ASSERT(dot(*This, *N) > 0.0f);
+	ASSERT("Vector_PutInSameHemisphereAs", dot(*This, *N) > 0.0f);
 };
 
 inline float random	(int *seed)

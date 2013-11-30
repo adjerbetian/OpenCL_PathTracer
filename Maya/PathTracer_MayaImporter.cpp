@@ -4,7 +4,6 @@
 #include "../Alone/PathTracer_bitmap.h"
 
 #include <maya/MItDag.h>
-#include <maya/MFnMesh.h>
 #include <maya/MIOStream.h>
 #include <maya/MPointArray.h>
 #include <maya/MDagPath.h>
@@ -14,11 +13,8 @@
 #include <maya/MFnTransform.h>
 #include <maya/MPlug.h>
 #include <maya/MPlugArray.h>
-#include <maya/MFnLambertShader.h>
 #include <maya/MFloatVectorArray.h>
 #include <maya/MItDependencyNodes.h>
-#include <maya/MFnPhongShader.h>
-#include <maya/MFnBlinnShader.h>
 
 #include <vector>
 
@@ -33,7 +29,6 @@ namespace PathTracerNS
 		ImportLights();
 		LoadSky(loadSky);
 
-		*ptr__global__materiaux = new Material[1];
 		*ptr__global__textures = new Texture[1];
 
 		return true;
@@ -120,6 +115,7 @@ namespace PathTracerNS
 		}
 
 		itMesh.reset();
+		itMesh.next();
 		*ptr__global__triangulation = new Triangle[*ptr__global__triangulationSize];
 		uint triangleId = 0;
 
@@ -134,6 +130,8 @@ namespace PathTracerNS
 			MFloatVectorArray	fTangentArray;
 			MFloatVectorArray	fBinormalArray;
 			MString				fCurrentUVSetName;
+
+			uint materialId = Get_MeshMaterialId(fnMesh);
 
 			/////////////////////////////////////////////////////////////////////////
 			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
@@ -167,7 +165,7 @@ namespace PathTracerNS
 					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i]])),
 					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+1]])),
 					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+2]])),
-					0);
+					materialId, materialId);
 				triangleId++;
 			}
 
@@ -300,13 +298,13 @@ namespace PathTracerNS
 					FacesByMatID.resize(Shaders.length());
 
 					// put face index into correct array
-					for(int j=0;j < FaceIndices.length();++j)
+					for(uint j=0;j < FaceIndices.length();++j)
 					{
 						FacesByMatID[ FaceIndices[j] ].push_back(j);
 					}
 
 					// now write each material and the face indices that use them
-					for(int j=0;j < Shaders.length();++j)
+					for(uint j=0;j < Shaders.length();++j)
 					{
 						cout << "\t\t\t"
 							<< GetShaderName( Shaders[j] ).asChar()
@@ -327,7 +325,55 @@ namespace PathTracerNS
 		}
 	}
 
-	RGBAColor OutputColor(MFnDependencyNode& fn,const char* name)
+	int PathTracerMayaImporter::Get_MeshMaterialId(MFnMesh const& fnMesh)
+	{
+		// get the number of instances
+		int NumInstances = fnMesh.parentCount();
+
+		CONSOLE << fnMesh.name() << ENDL;
+		cout << "\tnumMeshInstances " << NumInstances << endl;
+
+		// attach a function set to the first instance parent transform
+		MFnDependencyNode fn( fnMesh.parent(0) );
+
+		// write the name of the parent transform
+		cout << "\t\tparent " << fn.name().asChar() << endl;
+
+		// this will hold references to the shaders used on the meshes
+		MObjectArray Shaders;
+
+		// this is used to hold indices to the materials returned in the object array
+		MIntArray    FaceIndices;
+
+		// get the shaders used by the i'th mesh instance
+		fnMesh.getConnectedShaders(0,Shaders,FaceIndices);
+
+		int shaderLength = Shaders.length();
+		if(Shaders.length() != 1)
+		{
+			CONSOLE << "ERROR : the material " << fnMesh.name() << " has more than one or no material. " << ENDL;
+			return 0;
+		}
+
+		MString shaderName = GetShaderName( Shaders[0] );
+		//Looking for the material :
+		for(uint i=0; i < *ptr__global__materiauxSize; i++)
+		{
+			if(MString((*ptr__global__materiaux)[i].textureName) == shaderName)
+				return i;
+		}
+
+		CONSOLE << "ERROR : MATERIAL NOT FOUND for " << fnMesh.name() << ENDL;
+		return 0;
+
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	RGBAColor PathTracerMayaImporter::OutputColor(MFnDependencyNode const& fn,const char* name)
 	{
 		MPlug p;
 
@@ -401,12 +447,12 @@ namespace PathTracerNS
 			<< texname.asChar() << "\n";
 
 		*/
-		return true;
 	}
 
 
-	void CreateMaterials()
+	void PathTracerMayaImporter::CreateMaterials()
 	{
+		int materialId = 0;
 		MItDependencyNodes itDep(MFn::kLambert);
 		while (!itDep.isDone()) 
 		{
@@ -416,18 +462,14 @@ namespace PathTracerNS
 			case MFn::kPhong:
 				{
 					MFnPhongShader fn( itDep.item() );
-					Material_Create(fn);
+					Material_Create(&(*ptr__global__materiaux)[materialId], fn);
 				}
 				break;
 				// if found lambert shader
 			case MFn::kLambert:
 				{
 					MFnLambertShader fn( itDep.item() );
-					cout<<"Lambert "<<fn.name().asChar()<<"\n";
-					OutputColor(fn,"ambientColor");
-					OutputColor(fn,"color");
-					OutputColor(fn,"incandescence");
-					OutputColor(fn,"transparency");
+					Material_Create(&(*ptr__global__materiaux)[materialId], fn);
 					//OutputBumpMap(itDep.item());
 					//OutputEnvMap(itDep.item());
 				}
@@ -436,12 +478,7 @@ namespace PathTracerNS
 			case MFn::kBlinn:
 				{
 					MFnBlinnShader fn( itDep.item() );
-					cout<<"Blinn "<<fn.name().asChar()<<"\n";
-					OutputColor(fn,"ambientColor");
-					OutputColor(fn,"color");
-					OutputColor(fn,"specularColor");
-					OutputColor(fn,"incandescence");
-					OutputColor(fn,"transparency");
+					Material_Create(&(*ptr__global__materiaux)[materialId], fn);
 					cout	<<"\teccentricity "
 						<<fn.eccentricity()<< endl;
 					cout	<< "\tspecularRollOff "
@@ -453,12 +490,14 @@ namespace PathTracerNS
 			default:
 				break;
 			}
+
+			materialId++;
 			itDep.next();
 
 		}
 	}
 
-	int CountMaterials()
+	int PathTracerMayaImporter::CountMaterials()
 	{
 		int numMaterials = 0;
 		// iterate through the mesh nodes in the scene
@@ -475,12 +514,6 @@ namespace PathTracerNS
 
 		return numMaterials;
 	}
-
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 	void PathTracerMayaImporter::ImportMaterials()
 	{
@@ -638,7 +671,7 @@ namespace PathTracerNS
 		l.power						= fnLight.intensity();
 	};
 
-	void PathTracerMayaImporter::Material_Create( Material *This, MFnPhongShader fn)
+	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)
 	{
 		This->type = MAT_STANDART;
 		This->textureName = fn.name().asChar();
@@ -646,18 +679,34 @@ namespace PathTracerNS
 		This->isSimpleColor = true;
 		This->hasAlphaMap = false;
 
-		This->opacity = 1;
-		This->simpleColor = RGBAColor(1,0,0,0);
+		RGBAColor transparencyColor = OutputColor(fn,"transparency");
+		This->opacity = transparencyColor.w;
+		This->simpleColor = OutputColor(fn,"color");
+	}
 
-		OutputColor(fn,"ambientColor");
-		OutputColor(fn,"color");
-		OutputColor(fn,"specularColor");
-		OutputColor(fn,"incandescence");
-		OutputColor(fn,"transparency");
-		cout<<"\tcos "<<fn.cosPower()<< endl; 
-		//OutputBumpMap(itDep.item());
-		//OutputEnvMap(itDep.item());
+	void PathTracerMayaImporter::Material_Create(Material *This, MFnLambertShader const& fn)
+	{
+		This->type = MAT_STANDART;
+		This->textureName = fn.name().asChar();
+		This->textureId = 0;
+		This->isSimpleColor = true;
+		This->hasAlphaMap = false;
 
+		This->opacity = 1 - length(OutputColor(fn,"transparency"));
+		This->simpleColor = OutputColor(fn,"color");
+	}
+
+	void PathTracerMayaImporter::Material_Create(Material *This, MFnBlinnShader const& fn)
+	{
+		This->type = MAT_STANDART;
+		This->textureName = fn.name().asChar();
+		This->textureId = 0;
+		This->isSimpleColor = true;
+		This->hasAlphaMap = false;
+
+		RGBAColor transparencyColor = OutputColor(fn,"transparency");
+		This->opacity = transparencyColor.w;
+		This->simpleColor = OutputColor(fn,"color");
 	}
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,
@@ -666,10 +715,10 @@ namespace PathTracerNS
 		Float4 const *n1, Float4 const *n2, Float4 const *n3,
 		Float4 const *t1, Float4 const *t2, Float4 const *t3,
 		Float4 const *bt1, Float4 const *bt2, Float4 const *bt3,
-		uint matIndex )
+		uint positiveMatIndex, uint negativeMatIndex )
 	{
-		This->materialWithPositiveNormalIndex = matIndex;
-		This->materialWithNegativeNormalIndex = 0;
+		This->materialWithPositiveNormalIndex = positiveMatIndex;
+		This->materialWithNegativeNormalIndex = negativeMatIndex;
 
 		BoundingBox_Create( &This->AABB, s1, s2, s3);
 

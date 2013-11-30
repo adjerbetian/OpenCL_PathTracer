@@ -16,16 +16,22 @@
 #include <maya/MPlugArray.h>
 #include <maya/MFnLambertShader.h>
 #include <maya/MFloatVectorArray.h>
+#include <maya/MItDependencyNodes.h>
+#include <maya/MFnPhongShader.h>
+#include <maya/MFnBlinnShader.h>
+
+#include <vector>
 
 namespace PathTracerNS
 {
 
-	bool PathTracerMayaImporter::Import()
+	bool PathTracerMayaImporter::Import(bool loadSky)
 	{
 		SetCam();
+		ImportMaterials();
 		ImportScene();
 		ImportLights();
-		LoadSky();
+		LoadSky(loadSky);
 
 		*ptr__global__materiaux = new Material[1];
 		*ptr__global__textures = new Texture[1];
@@ -60,11 +66,11 @@ namespace PathTracerNS
 
 	void PathTracerMayaImporter::SetCam()
 	{
-		//const MString cameraName = "perspShape";
 		const MString cameraName = "raytraceCamShape";
 		MDagPath camera;
 
-		GetCam(cameraName, camera);
+		if(!GetCam(cameraName, camera))
+			GetCam("perspShape", camera);
 
 		MFnCamera		fnCamera(camera);
 		MFnTransform	fnTransformCamera(camera);
@@ -205,13 +211,319 @@ namespace PathTracerNS
 		}
 	}
 
-	void PathTracerMayaImporter::LoadSky()
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	MString GetShaderName(MObject shadingEngine)
+	{
+		// attach a function set to the shading engine
+		MFnDependencyNode fn( shadingEngine );
+
+		// get access to the surfaceShader attribute. This will be connected to
+		// lambert , phong nodes etc.
+		MPlug sshader = fn.findPlug("surfaceShader");
+
+		// will hold the connections to the surfaceShader attribute
+		MPlugArray materials;
+
+		// get the material connected to the surface shader
+		sshader.connectedTo(materials,true,false);
+
+		// if we found a material
+		if(materials.length())
+		{
+			MFnDependencyNode fnMat(materials[0].node());
+			return fnMat.name();
+		}
+		return "none";
+	}
+
+
+	void OutputMeshInstances(MObject mesh)
+	{
+		MFnMesh fnMesh(mesh);
+
+		// get the number of instances
+		int NumInstances = fnMesh.parentCount();
+
+		cout << "\tnumMeshInstances " << NumInstances << endl;
+
+		// loop through each instance of the mesh
+		for(int i=0;i< NumInstances;++i)
+		{
+			// attach a function set to this instances parent transform
+			MFnDependencyNode fn( fnMesh.parent(i) );
+
+			// write the name of the parent transform
+			cout << "\t\tparent " << fn.name().asChar() << endl;
+
+			// this will hold references to the shaders used on the meshes
+			MObjectArray Shaders;
+
+			// this is used to hold indices to the materials returned in the object array
+			MIntArray    FaceIndices;
+
+			// get the shaders used by the i'th mesh instance
+			fnMesh.getConnectedShaders(i,Shaders,FaceIndices);
+
+			switch(Shaders.length()) {
+
+				// if no shader applied to the mesh instance
+			case 0:
+				{
+					cout << "\t\tmaterials 0\n";
+				}
+				break;
+
+				// if all faces use the same material
+			case 1:
+				{
+					cout << "\t\tmaterials 1\n";
+					cout << "\t\t\t"
+						<< GetShaderName( Shaders[0] ).asChar()
+						<< endl;
+				}
+				break;
+
+				// if more than one material is used, write out the face indices the materials
+				// are applied to.
+			default:
+				{
+					cout << "\t\tmaterials " << Shaders.length() << endl;
+
+					// i'm going to sort the face indicies into groups based on
+					// the applied material - might as well... ;)
+					std::vector< std::vector< int > > FacesByMatID;
+
+					// set to same size as num of shaders
+					FacesByMatID.resize(Shaders.length());
+
+					// put face index into correct array
+					for(int j=0;j < FaceIndices.length();++j)
+					{
+						FacesByMatID[ FaceIndices[j] ].push_back(j);
+					}
+
+					// now write each material and the face indices that use them
+					for(int j=0;j < Shaders.length();++j)
+					{
+						cout << "\t\t\t"
+							<< GetShaderName( Shaders[j] ).asChar()
+							<< "\n\t\t\t"
+							<< FacesByMatID[j].size()
+							<< "\n\t\t\t\t";
+
+						std::vector< int >::iterator it = FacesByMatID[j].begin();
+						for( ; it != FacesByMatID[j].end(); ++it )
+						{
+							cout << *it << " ";
+						}
+						cout << endl;
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	RGBAColor OutputColor(MFnDependencyNode& fn,const char* name)
+	{
+		MPlug p;
+
+		MString r = name;
+		r += "R";
+		MString g = name;
+		g += "G";
+		MString b = name;
+		b += "B";
+		MString a = name;
+		a += "A";
+
+		// get the color value
+		RGBAColor color;
+
+		// get a plug to the attribute
+		p = fn.findPlug(r);
+		p.getValue(color.x);
+		p = fn.findPlug(g);
+		p.getValue(color.y);
+		p = fn.findPlug(b);
+		p.getValue(color.z);
+		p = fn.findPlug(a);
+		p.getValue(color.w);
+		p = fn.findPlug(name);
+
+		return color;
+
+		/*
+
+		// will hold the texture node name
+		MString texname;
+
+		// get plugs connected to colour attribute
+		MPlugArray plugs;
+		p.connectedTo(plugs,true,false);
+
+		// see if any file textures are present
+		for(int i=0;i!=plugs.length();++i)
+		{
+			// if file texture found
+			if(plugs[i].node().apiType() == MFn::kFileTexture) 
+			{
+				// bind a function set to it ....
+				MFnDependencyNode fnDep(plugs[i].node());
+
+				// to get the node name
+				texname = fnDep.name();
+
+				// stop looping
+				break;
+
+			}
+
+		}
+		if(	name == "color" && 
+			color.r <0.01 && 
+			color.g < 0.01 && 
+			color.b < 0.01)
+
+		{
+			color.r=color.g=color.b=0.6f;
+
+		}
+		// output the name, color and texture ID
+		cout	<< "\t" << name << " "
+			<< color.r << " "
+			<< color.g << " "
+			<< color.b << " "
+			<< color.a << " tex= "
+			<< texname.asChar() << "\n";
+
+		*/
+		return true;
+	}
+
+
+	void CreateMaterials()
+	{
+		MItDependencyNodes itDep(MFn::kLambert);
+		while (!itDep.isDone()) 
+		{
+			switch(itDep.item().apiType())
+			{
+				// if found phong shader
+			case MFn::kPhong:
+				{
+					MFnPhongShader fn( itDep.item() );
+					Material_Create(fn);
+				}
+				break;
+				// if found lambert shader
+			case MFn::kLambert:
+				{
+					MFnLambertShader fn( itDep.item() );
+					cout<<"Lambert "<<fn.name().asChar()<<"\n";
+					OutputColor(fn,"ambientColor");
+					OutputColor(fn,"color");
+					OutputColor(fn,"incandescence");
+					OutputColor(fn,"transparency");
+					//OutputBumpMap(itDep.item());
+					//OutputEnvMap(itDep.item());
+				}
+				break;
+				// if found blinn shader
+			case MFn::kBlinn:
+				{
+					MFnBlinnShader fn( itDep.item() );
+					cout<<"Blinn "<<fn.name().asChar()<<"\n";
+					OutputColor(fn,"ambientColor");
+					OutputColor(fn,"color");
+					OutputColor(fn,"specularColor");
+					OutputColor(fn,"incandescence");
+					OutputColor(fn,"transparency");
+					cout	<<"\teccentricity "
+						<<fn.eccentricity()<< endl;
+					cout	<< "\tspecularRollOff "
+						<< fn.specularRollOff()<< endl;
+					//OutputBumpMap(itDep.item());
+					//OutputEnvMap(itDep.item()); 
+				}
+				break;
+			default:
+				break;
+			}
+			itDep.next();
+
+		}
+	}
+
+	int CountMaterials()
+	{
+		int numMaterials = 0;
+		// iterate through the mesh nodes in the scene
+		MItDependencyNodes itDep(MFn::kLambert);
+
+		// we have to keep iterating until we get through
+		// all of the nodes in the scene
+		//
+		while (!itDep.isDone()) 
+		{
+			numMaterials++;
+			itDep.next();
+		}
+
+		return numMaterials;
+	}
+
+
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+	void PathTracerMayaImporter::ImportMaterials()
+	{
+
+		// from : http://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/research/maya/mfnmesh.htm
+		// and  : http://nccastaff.bournemouth.ac.uk/jmacey/RobTheBloke/www/research/maya/mfnmaterial.htm
+
+		int numMaterials = CountMaterials();
+
+		*ptr__global__materiauxSize = numMaterials;
+		*ptr__global__materiaux = new Material[numMaterials];
+
+		CreateMaterials();
+	}
+
+
+
+
+
+
+	void PathTracerMayaImporter::LoadSky(bool loadSky)
 	{
 		ptr__global__sky->cosRotationAngle = 1;
 		ptr__global__sky->sinRotationAngle = 0;
 		ptr__global__sky->exposantFactorX = 0;
 		ptr__global__sky->exposantFactorY = 0;
 		ptr__global__sky->groundScale = 1;
+
+		if(!loadSky)
+		{
+			for(int i=0; i<6; i++)
+			{
+				ptr__global__sky->skyTextures[i].height = 1;
+				ptr__global__sky->skyTextures[i].width = 1;
+				ptr__global__sky->skyTextures[i].offset = 0;
+			}
+			*ptr__global__texturesDataSize = 1;
+			*ptr__global__texturesData = new Uchar4;
+			*ptr__global__texturesData[0] = Uchar4(0,0,0,0);
+
+			return;
+		}
+
 
 		int fullWidth, fullHeight;
 		long int size;
@@ -326,16 +638,26 @@ namespace PathTracerNS
 		l.power						= fnLight.intensity();
 	};
 
-	void PathTracerMayaImporter::Material_Create( Material *This)
+	void PathTracerMayaImporter::Material_Create( Material *This, MFnPhongShader fn)
 	{
 		This->type = MAT_STANDART;
-		This->textureName = NULL;
+		This->textureName = fn.name().asChar();
 		This->textureId = 0;
 		This->isSimpleColor = true;
 		This->hasAlphaMap = false;
-		This->opacity = 1;
 
+		This->opacity = 1;
 		This->simpleColor = RGBAColor(1,0,0,0);
+
+		OutputColor(fn,"ambientColor");
+		OutputColor(fn,"color");
+		OutputColor(fn,"specularColor");
+		OutputColor(fn,"incandescence");
+		OutputColor(fn,"transparency");
+		cout<<"\tcos "<<fn.cosPower()<< endl; 
+		//OutputBumpMap(itDep.item());
+		//OutputEnvMap(itDep.item());
+
 	}
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,

@@ -25,6 +25,7 @@
 
 #ifdef MAYA
 #include <maya/MIOStream.h>
+#include <maya/MGlobal.h>
 #define CONSOLE cout
 #define ENDL endl
 #else

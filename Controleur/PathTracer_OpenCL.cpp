@@ -4,7 +4,7 @@
 #include <ctime>
 #include <vector>
 #include <algorithm>
-
+#include <sstream>
 
 namespace PathTracerNS
 {

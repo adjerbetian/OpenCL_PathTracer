@@ -4,7 +4,7 @@
 
 namespace PathTracerNS
 {
-	const std::string PathTracerFileImporter::fileSizesPath		= PATHTRACER_SCENE_FOLDER"ExportedScene\\sizes.pth";
+	const std::string PathTracerFileImporter::fileSizesPath			= PATHTRACER_SCENE_FOLDER"ExportedScene\\sizes.pth";
 	const std::string PathTracerFileImporter::filePointersPath		= PATHTRACER_SCENE_FOLDER"ExportedScene\\pointers.pth";
 	const std::string PathTracerFileImporter::fileTextureDataPath	= PATHTRACER_SCENE_FOLDER"ExportedScene\\textureData.pth";
 
@@ -67,7 +67,7 @@ namespace PathTracerNS
 
 
 
-	bool PathTracerFileImporter::Import()
+	bool PathTracerFileImporter::Import(bool loadSky)
 	{
 		FILE* fichierSizes = NULL,
 			* fichierPtr   = NULL,
@@ -122,6 +122,28 @@ namespace PathTracerNS
 		nRead = fread(*ptr__global__texturesData, sizeof(Uchar4), *ptr__global__texturesDataSize, fichierTex);
 
 		fclose(fichierTex);
+
+
+		//Unload sky uf necessary
+
+		if(!loadSky)
+		{
+			ptr__global__sky->cosRotationAngle = 1;
+			ptr__global__sky->sinRotationAngle = 0;
+			ptr__global__sky->exposantFactorX = 0;
+			ptr__global__sky->exposantFactorY = 0;
+			ptr__global__sky->groundScale = 1;
+
+			for(int i=0; i<6; i++)
+			{
+				ptr__global__sky->skyTextures[i].height = 1;
+				ptr__global__sky->skyTextures[i].width = 1;
+				ptr__global__sky->skyTextures[i].offset = 0;
+			}
+			*ptr__global__texturesDataSize = 1;
+			*ptr__global__texturesData[0] = Uchar4(0,0,0,0);
+		}
+
 
 		return true;
 	}

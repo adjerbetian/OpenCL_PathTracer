@@ -32,11 +32,12 @@ namespace PathTracerNS
 		PathTracerMayaImporter():PathTracerImporter() {}
 
 
-		virtual bool Import				();
+		virtual bool Import				(bool loadSky);
 
 		void ImportScene				();
+		void ImportMaterials			();
 		void ImportLights				();
-		void LoadSky					();
+		void LoadSky					(bool loadSky);
 
 		void SetCam						();
 		bool GetCam						(const MString &cameraName, MDagPath &camera);

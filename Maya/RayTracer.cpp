@@ -1,39 +1,9 @@
 #include "RayTracer.h"
 #include "../Controleur/PathTracer.h"
 #include "PathTracer_MayaImporter.h"
-
-
-#include <maya/MItDag.h>
-#include <maya/MFnMesh.h>
-#include <maya/MIOStream.h>
-#include <maya/MPointArray.h>
-#include <maya/MDagPath.h>
-#include <maya/MFnCamera.h>
-#include <maya/MImage.h>
-#include <maya/MMatrix.h>
-#include <maya/MFnTransform.h>
-#include <maya/MEulerRotation.h>
-
+#include <maya/MGlobal.h>
 #include <ctime>
 
-
-const MString RayTracer::cameraName = "raytracingCamera";
-const MString RayTracer::destinationFile = "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\raytrace.bmp";
-const MString RayTracer::fileExtension = "bmp";
-
-
-MString toString(const MPoint& M)
-{
-	MString s;
-	s += "[ ";
-	s += + M.x;
-	s += " ,  ";
-	s += + M.y;
-	s += " , ";
-	s += + M.z;
-	s += " ]";
-	return s;
-}
 
 void* RayTracer::creator() 
 { 
@@ -43,20 +13,23 @@ void* RayTracer::creator()
 
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
+	MGlobal::displayInfo("Computing...");
+
 	int numImageToRender = argList.asInt(0);
 	if(numImageToRender == 0)
 		numImageToRender = 1;
 
 	bool saveRenderedImages = argList.asBool(1);
+	bool loadSky = true;
 
 	clock_t start = clock();
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerMayaImporter());
-	PathTracerNS::PathTracer_Main(numImageToRender, saveRenderedImages);
+	PathTracerNS::PathTracer_Main(numImageToRender, saveRenderedImages, loadSky);
 
 	double timing = (clock() - start)/1000.0;
 
 	CONSOLE << "Time spend : " << timing << "s" << ENDL;
-	//ToneMappingTest(0,NULL);
+	MGlobal::displayInfo("done.");
 
 	return MS::kSuccess;
 }

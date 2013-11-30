@@ -90,12 +90,7 @@ namespace PathTracerNS
 		Float4 origin;
 		Float4 direction;
 		Float4 inverse;
-		RGBAColor transferFunction;
-		cl_uint2 pixel;
-		int reflectionId;
-		char positiveDirection[3];
 		char isInWater;
-		char isActive;
 	} Ray3D;
 
 	ALIGN(4) typedef struct
@@ -237,18 +232,12 @@ namespace PathTracerNS
 		This->inverse.y = 1.0f / This->direction.y;
 		This->inverse.z = 1.0f / This->direction.z;
 		This->inverse.w = 0;
-
-		This->positiveDirection[0] = ( This->inverse.x > 0 );
-		This->positiveDirection[1] = ( This->inverse.y > 0 );
-		This->positiveDirection[2] = ( This->inverse.z > 0 );
 	};
 
 	inline void Ray3D_Create( Ray3D *This, Float4 const *o, Float4 const *d, bool _isInWater)
 	{
 		This->origin = *o;
 		This->isInWater = _isInWater;
-		This->reflectionId = 0;
-		This->isActive = true;
 
 		Ray3D_SetDirection(This, d);
 	};
@@ -261,10 +250,7 @@ namespace PathTracerNS
 		r.direction = This->direction * (-1);
 		r.inverse = This->inverse * (-1);
 		r.isInWater = This->isInWater;
-		r.reflectionId = This->reflectionId;
 
-		for(int i=0; i<3; i++)
-			r.positiveDirection[i] = !This->positiveDirection[i];
 		return r;
 	};
 }

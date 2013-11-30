@@ -73,8 +73,7 @@ typedef struct
 	float4 origin;
 	float4 direction;
 	float4 inverse;
-	char	positiveDirection[3];
-	char	isInWater;
+	char   isInWater;
 } Ray3D;
 
 typedef struct
@@ -251,10 +250,6 @@ inline void Ray3D_SetDirection( Ray3D *This, float4 const *d)
 	This->inverse.y = 1.0f / This->direction.y;
 	This->inverse.z = 1.0f / This->direction.z;
 	This->inverse.w = 0;
-
-	This->positiveDirection[0] = ( This->inverse.x > 0 );
-	This->positiveDirection[1] = ( This->inverse.y > 0 );
-	This->positiveDirection[2] = ( This->inverse.z > 0 );
 };
 
 inline void Ray3D_Create( Ray3D *This, float4 const *o, float4 const *d, bool _isInWater)
@@ -274,8 +269,6 @@ inline Ray3D Ray3D_Opposite( Ray3D const *This )
 	r.inverse = - This->inverse;
 	r.isInWater = This->isInWater;
 
-	for(int i=0; i<3; i++)
-		r.positiveDirection[i] = !This->positiveDirection[i];
 	return r;
 };
 
@@ -429,9 +422,9 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 
 void		Material_Create								( Material *This, MaterialType _type);
 float		Material_BRDF								( Material const *This, float4 const *ri, float4 const *N, float4 const *rr);
-float		Material_FresnelGlassReflectionFraction		( Material const *This, Ray3D const *r , float4 const *N);
-float		Material_FresnelWaterReflectionFraction		( Material const *This, Ray3D const *r , float4 const *N, float4 *refractionDirection, float *refractionMultCoeff);
-float		Material_FresnelVarnishReflectionFraction	( Material const *This, Ray3D const *r , float4 const *N, bool isInVarnish, float4 *refractionDirection);
+float		Material_FresnelGlassReflectionFraction		( Material const *This, float4 const* incidentDirection, float4 const *N);
+float		Material_FresnelWaterReflectionFraction		( Material const *This, float4 const* incidentDirection, float4 const *N, bool isInWater  , float4 *refractionDirection, float *refractionMultCoeff);
+float		Material_FresnelVarnishReflectionFraction	( Material const *This, float4 const* incidentDirection, float4 const *N, bool isInVarnish, float4 *refractionDirection);
 float4		Material_FresnelReflection					( Material const *This, float4 const *v, float4 const *N);
 
 // Methodes statiques
@@ -446,7 +439,7 @@ RGBAColor	Material_WaterAbsorption		(float dist);
 ///						SKY
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor	Sky_GetColorValue		( Sky __global const *This , uchar4 __global const *global__texturesData, Ray3D const *r);
+RGBAColor	Sky_GetColorValue		( Sky __global const *This , uchar4 __global const *global__texturesData, float4 const* direction);
 RGBAColor	Sky_GetFaceColorValue	( Sky __global const *This , uchar4 __global const *global__texturesData, int faceId, float u, float v);
 
 

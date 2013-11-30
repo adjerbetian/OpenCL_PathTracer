@@ -67,7 +67,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 	float tMin, tMax;
 	float tyMin, tyMax, tzMin, tzMax;
 
-	if(r->positiveDirection[0])
+	if(r->direction[0]>0)
 	{
 		tMin = ( This->pMin.x - r->origin.x )*r->inverse.x;
 		tMax = ( This->pMax.x - r->origin.x )*r->inverse.x;
@@ -81,7 +81,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 	if(tMin<0 && tMax<0)					// Boite dans la mauvaise direction selon x
 		return false;
 
-	if(r->positiveDirection[1])
+	if(r->direction[1]>0)
 	{
 		tyMin = ( This->pMin.y - r->origin.y )*r->inverse.y;
 		tyMax = ( This->pMax.y - r->origin.y )*r->inverse.y;
@@ -103,7 +103,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 	if(tyMax < tMax)
 		tMax = tyMax;
 
-	if(r->positiveDirection[2])
+	if(r->direction[2]>0)
 	{
 		tzMin = ( This->pMin.z - r->origin.z )*r->inverse.z;
 		tzMax = ( This->pMax.z - r->origin.z )*r->inverse.z;
@@ -159,60 +159,54 @@ void Material_Create( Material *This, MaterialType _type)
 /************************************************************************/
 
 //	Both ri and rr pointing toward the surface
-float Material_BRDF( Material const *This, float4 const *ri, float4 const *N, float4 const *rr)
+float Material_BRDF( Material const *This, float4 const *incidentDirection, float4 const *N, float4 const *reflectedDirection)
 {
 	if(This->type == MAT_STANDART)
 		return PATH_PI_INVERSE;
 
-	//if(This->type == MAT_GLASS)
-	//	return 1;
-	//
-	//if(This->type == MAT_WATER)		//	Scattering
-	//{
-	//	//	Schlick model
-	//	float denom = 1 + MATERIAL_KSCHLICK * dot(ri->direction, rr->direction);
-	//	return ( 1 - MATERIAL_KSCHLICK*MATERIAL_KSCHLICK ) / ( 4 * PATH_PI * denom * denom );
-	//}
-	//
-	//if(This->type == MAT_VARNHISHED)
-	//{
-	//	//	La lumière entre entre
-	//	float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, ri, N, false, NULL);
-	//
-	//	//	on cherche la direction de de diffusion originelle de rr
-	//	float4 originalRefractionDirection;
-	//	Material_FresnelVarnishReflectionFraction(This, rr, N, false, &originalRefractionDirection);
-	//
-	//	//	Calcul du deuxième coefficient de Fresnel
-	//	Ray3D insideRay;
-	//	float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
-	//	float4 NOpposite = -(*N);
-	//
-	//	Ray3D_Create(&insideRay, &rr->origin, &originalRefractionDirectionOpposite, rr->isInWater);
-	//	float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &insideRay, &NOpposite, true, NULL);
-	//
-	//	return (1 - rFresnel1) * (1 - rFresnel2) * PATH_PI_INVERSE;
-	//}
+	if(This->type == MAT_GLASS)
+		return 1;
+	
+	if(This->type == MAT_WATER)		//	Scattering
+	{
+		//	Schlick model
+		float denom = 1 + MATERIAL_KSCHLICK * dot(*incidentDirection, *reflectedDirection);
+		return ( 1 - MATERIAL_KSCHLICK*MATERIAL_KSCHLICK ) / ( 4 * PATH_PI * denom * denom );
+	}
+	
+	if(This->type == MAT_VARNHISHED)
+	{
+		//	La lumière entre entre
+		float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, incidentDirection, N, false, NULL);
+	
+		//	on cherche la direction de de diffusion originelle de rr
+		float4 originalRefractionDirection;
+		Material_FresnelVarnishReflectionFraction(This, reflectedDirection, N, false, &originalRefractionDirection);
+	
+		//	Calcul du deuxième coefficient de Fresnel
+		float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
+		float4 NOpposite = -(*N);
+	
+		float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &originalRefractionDirectionOpposite, &NOpposite, true, NULL);
+	
+		return (1 - rFresnel1) * (1 - rFresnel2) * PATH_PI_INVERSE;
+	}
 
 	ASSERT(false);
 	return 1;
 
 };
 
-float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const *r , float4 const *N)
+float Material_FresnelGlassReflectionFraction( Material const *This, float4 const* incidentDirection, float4 const *N)
 {
 	ASSERT(This->type == MAT_GLASS);
 
 	float n1, n2;
 
-	if(r->isInWater)
-		n1 = MATERIAL_N_WATER;
-	else
-		n1 = 1;
-
+	n1 = 1;						// We suppose we are not in water
 	n2 = MATERIAL_N_GLASS;
 
-	float cos1 = - dot(r->direction, *N);
+	float cos1 = - dot(*incidentDirection, *N);
 	float sin1 = sqrt(1 - cos1 * cos1);
 	float sin2 = n1 * sin1 / n2;
 	if(sin2 >= 1) // Totalement réfléchi
@@ -230,13 +224,11 @@ float Material_FresnelGlassReflectionFraction( Material const *This, Ray3D const
 
 }
 
-float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const *r , float4 const *N, float4 *refractionDirection, float *refractionMultCoeff)
+float Material_FresnelWaterReflectionFraction( Material const *This, float4 const* incidentDirection, float4 const *N, bool alreadyInWater, float4 *refractionDirection, float *refractionMultCoeff)
 {
-	ASSERT(This->type == MAT_WATER);
-
 	float n1, n2;
 
-	if(r->isInWater)
+	if(alreadyInWater)
 	{
 		n1 = MATERIAL_N_WATER;
 		n2 = 1;
@@ -247,7 +239,7 @@ float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const
 		n2 = MATERIAL_N_WATER;
 	}
 
-	float cos1 = - dot(r->direction, *N);
+	float cos1 = - dot(*incidentDirection, *N);
 	float sin1 = sqrt(1 - cos1 * cos1);
 	float sin2 = n1 * sin1 / n2;
 	if(sin2 >= 1) // Totalement réfléchi
@@ -262,24 +254,32 @@ float Material_FresnelWaterReflectionFraction( Material const *This, Ray3D const
 	ASSERT(rFresnel <= 1);
 
 	if(refractionDirection != NULL)
-		*refractionDirection = r->direction * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
+		*refractionDirection = *incidentDirection * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
 	if(refractionMultCoeff != NULL)
 		*refractionMultCoeff = (n2*n2)/(n1*n1);
 
 	return rFresnel;
 }
 
-float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D const *r , float4 const *N, bool isInVarnish, float4 *refractionDirection)
+float Material_FresnelVarnishReflectionFraction( Material const *This, float4 const* incidentDirection , float4 const *N, bool isInVarnish, float4 *refractionDirection)
 {
 	ASSERT(This->type == MAT_VARNHISHED);
-	ASSERT( dot(r->direction, *N) <= 0 );
+	ASSERT( dot(*incidentDirection, *N) <= 0 );
 
 	float n1, n2;
 
-	n1 = isInVarnish ? MATERIAL_N_VARNISH : (r->isInWater ? MATERIAL_N_WATER : 1.0f);
-	n2 = isInVarnish ? (r->isInWater ? MATERIAL_N_WATER : 1.0f) : MATERIAL_N_VARNISH;
+	if(isInVarnish)
+	{
+		n1 = MATERIAL_N_VARNISH;
+		n2 = 1.0f; //We supppose we are not in water
+	}
+	else
+	{
+		n1 = 1.0f; //We supppose we are not in water
+		n2 = MATERIAL_N_VARNISH;
+	}
 
-	float cos1 = fmin(1.f , - dot(r->direction, *N) );
+	float cos1 = fmin(1.f , - dot(*incidentDirection, *N) );
 	float sin1 = sqrt(1 - cos1 * cos1);
 	float sin2 = n1 * sin1 / n2;
 	if(sin2 >= 1) // Totalement réfléchi
@@ -294,7 +294,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, Ray3D con
 	ASSERT(rFresnel <= 1);
 
 	if(refractionDirection != NULL)
-		*refractionDirection = r->direction * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
+		*refractionDirection = *incidentDirection * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
 
 	return rFresnel;
 }
@@ -439,27 +439,12 @@ RGBAColor Material_WaterAbsorption(float dist)
 
 
 
-RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *global__texturesData, Ray3D const *r)
+RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *global__texturesData, float4 const* direction)
 {
-	/*
-	float t;
-
-	// Sol
-	if(!r->positiveDirection[2])
-	{
-		t = - r->origin.z / r->direction.z;
-		float xSol = r->origin.x + t * r->direction.x;
-		float ySol = r->origin.y + t * r->direction.y;
-
-		return Sky_GetFaceColorValue( This, global__texturesData, 5, xSol*This->groundScale , ySol*This->groundScale );
-	}
-	*/
-
-	// Ciel
-
-	float x = This->cosRotationAngle * r->direction.x - This->sinRotationAngle * r->direction.y;
-	float y = This->sinRotationAngle * r->direction.x + This->cosRotationAngle * r->direction.y;
-	float z = r->direction.z;
+	//First, we rotate the sky
+	float x = This->cosRotationAngle * direction->x - This->sinRotationAngle * direction->y;
+	float y = This->sinRotationAngle * direction->x + This->cosRotationAngle * direction->y;
+	float z = direction->z;
 
 	int faceId = 0;
 	float u = 0, v = 0;
@@ -673,7 +658,7 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *int
 		}
 		else
 		{
-			if(r->positiveDirection[currentNode->cutAxis])
+			if(r->direction[currentNode->cutAxis]>0)
 			{
 				son1 = &global__bvh[currentNode->son1Id];
 				son2 = &global__bvh[currentNode->son2Id];
@@ -734,9 +719,6 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 	Node const __global *son1;
 	Node const __global *son2;
 
-	if(get_global_id(0) == 0 && get_global_id(1) == 0)
-		printf("BVHIntersectShadowRay : \n\tRay3D_Origin := %v4f; \n\tRay3D_Direction := %v4f; \n\tsquaredDistance := %f; \n", r->origin, r->direction, squaredDistance);
-
 	while(true)	// On sort de la boucle lorsque l'on dépile le stack et que ce dernier est vide
 	{
 		if(currentNode->isLeaf)
@@ -763,7 +745,7 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 		else
 		{
 
-			if(r->positiveDirection[currentNode->cutAxis])
+			if(r->direction[currentNode->cutAxis]>0)
 			{
 				son1 = &global__bvh[currentNode->son1Id];
 				son2 = &global__bvh[currentNode->son2Id];
@@ -821,7 +803,6 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 
 	float4 outDirection = r->direction;
 
-	/*
 	if(mat->type == MAT_STANDART)
 	{
 		*transferFunction *= (*materialColor);
@@ -831,7 +812,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	}
 	else if(mat->type == MAT_GLASS)
 	{
-		float rFresnel = Material_FresnelGlassReflectionFraction(mat, r, Ns);
+		float rFresnel = Material_FresnelGlassReflectionFraction(mat, &r->direction, Ns);
 
 		//	Reflection
 		if( random(seed) < rFresnel )
@@ -850,7 +831,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 	{
 		float4 refractedDirection;
 		float refractionMultCoeff;
-		float rFresnel = Material_FresnelWaterReflectionFraction(mat, r, Ns, &refractedDirection, &refractionMultCoeff);
+		float rFresnel = Material_FresnelWaterReflectionFraction(mat, &r->direction, Ns, r->isInWater, &refractedDirection, &refractionMultCoeff);
 
 		//	Reflection
 		if(random(seed) < rFresnel)
@@ -866,15 +847,10 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 			*transferFunction *= refractionMultCoeff;
 		}
 	}
-	*/
-
-	*transferFunction *= (*materialColor);
-	radianceToCompute = (*directIlluminationRadiance) * (*transferFunction);
-	outDirection = Material_CosineSampleHemisphere(seed, Ns);
-	N = *Ns;
 
 	Vector_PutInSameHemisphereAs(&outDirection, &N);
 	Ray3D_SetDirection(r, &outDirection);
+//	r->origin = *p + 0.01f * outDirection;
 	r->origin = *p + 0.01f * outDirection;
 
 	return radianceToCompute;
@@ -971,12 +947,6 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 				light = global__lights[i];
 				Ray3D lightRay;
 				float4 fullRay =  light.type == LIGHT_DIRECTIONNAL ? -light.direction : light.position - (*p);
-
-				if(get_global_id(0)==0 && get_global_id(1) == 0)
-				{
-					printf("fullRay : %v4f\n", fullRay);
-					printf("lightDirection : %v4f\n", light.direction);
-				}
 
 				Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
 
@@ -1217,25 +1187,6 @@ __kernel void Kernel_Main(
 	)
 {
 	
-	//if(get_global_id(0)==0 && get_global_id(1)==0)
-	//{
-	//	printf("kernel__cameraPosition	= %v4f \n", kernel__cameraPosition	);
-	//	printf("kernel__cameraDirection	= %v4f \n", kernel__cameraDirection	);
-	//	printf("kernel__cameraRight		= %v4f \n", kernel__cameraRight		);
-	//	printf("kernel__cameraUp		= %v4f \n", kernel__cameraUp		);
-	//
-	//	Triangle	__global	const *global__triangulation	= (Triangle __global	const *) global__void__triangulation;
-	//
-	//	printf("Triangle 1 : \n");
-	//	printf("\tS1 = %v4f \n", global__triangulation[0].S1 );
-	//	printf("\tS2 = %v4f \n", global__triangulation[0].S2 );
-	//	printf("\tS3 = %v4f \n", global__triangulation[0].S3 );
-	//	printf("Triangle 2 : \n");
-	//	printf("\tS1 = %v4f \n", global__triangulation[1].S1 );
-	//	printf("\tS2 = %v4f \n", global__triangulation[1].S2 );
-	//	printf("\tS3 = %v4f \n", global__triangulation[1].S3 );
-	//}
-
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -1313,13 +1264,13 @@ __kernel void Kernel_Main(
 			ASSERT(dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
 			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ng);
-			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, NULL, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
+			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			reflectionId++;
 		}
 		else // Sky
 		{
 			activeRay = false;
-			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r );
+			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r.direction );
 			radianceToCompute += (skyColor * transferFunction);
 		}
 

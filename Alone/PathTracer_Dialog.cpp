@@ -22,9 +22,10 @@ namespace PathTracerNS
 
 	void PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
 	{
+		static int numImage = 0;
+
 		if(saveRenderedImages)
 		{
-			static int numImage = 1;
 
 			std::wostringstream oss;
 			oss << exportFolderPath;
@@ -43,65 +44,69 @@ namespace PathTracerNS
 			BYTE* buffer = ConvertRGBAToBMPBuffer(imageColor, imageRay, pathTracerWidth, pathTracerHeight, &newBufferSize);
 			SaveBMP(buffer, pathTracerWidth, pathTracerHeight, newBufferSize, filePath);
 			delete[] buffer;
-
-			numImage++;
 		}
 
 #ifdef MAYA
 
-		/////////////////////////////////////////////////////////////////////////////
-		/// Print in Maya:
-		/////////////////////////////////////////////////////////////////////////////
-
-		MStatus stat = MS::kSuccess;
-
-		// Check if the render view exists. It should always exist, unless
-		// Maya is running in batch mode.
-		//
-		if (!MRenderView::doesRenderEditorExist())
+		if(numImage%20 == 0)
 		{
-			CONSOLE << "Cannot renderViewInteractiveRender in batch render mode." << ENDL;
-			CONSOLE << "Run in interactive mode, so that the render editor exists." << ENDL;
-			return;
-		};
 
-		bool doNotClearBackground = true;
+			/////////////////////////////////////////////////////////////////////////////
+			/// Print in Maya:
+			/////////////////////////////////////////////////////////////////////////////
 
-		if (MRenderView::startRender( pathTracerWidth, pathTracerHeight, doNotClearBackground, true) != MS::kSuccess)
-		{
-			CONSOLE << "renderViewInteractiveRender: error occurred in startRender." << ENDL;
-			return;
-		}
+			MStatus stat = MS::kSuccess;
 
-		RV_PIXEL* pixels = new RV_PIXEL[pathTracerWidth * pathTracerHeight];
-		// Fill buffer with uniform color
-		for (unsigned int index = 0; index < pathTracerWidth * pathTracerHeight; ++index )
-		{
-			pixels[index].r = imageColor[index].x * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-			pixels[index].g = imageColor[index].y * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-			pixels[index].b = imageColor[index].z * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-			pixels[index].a = imageColor[index].w * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-		}
+			// Check if the render view exists. It should always exist, unless
+			// Maya is running in batch mode.
+			//
+			if (!MRenderView::doesRenderEditorExist())
+			{
+				CONSOLE << "Cannot renderViewInteractiveRender in batch render mode." << ENDL;
+				CONSOLE << "Run in interactive mode, so that the render editor exists." << ENDL;
+				return;
+			};
 
-		// Pushing buffer to Render View
-		if (MRenderView::updatePixels(0, pathTracerWidth-1, 0, pathTracerHeight-1, pixels) 
-			!= MS::kSuccess)
-		{
-			CONSOLE << "renderViewInteractiveRender: error occurred in updatePixels." << ENDL;
+			bool doNotClearBackground = true;
+
+			if (MRenderView::startRender( pathTracerWidth, pathTracerHeight, doNotClearBackground, true) != MS::kSuccess)
+			{
+				CONSOLE << "renderViewInteractiveRender: error occurred in startRender." << ENDL;
+				return;
+			}
+
+			RV_PIXEL* pixels = new RV_PIXEL[pathTracerWidth * pathTracerHeight];
+			// Fill buffer with uniform color
+			for (unsigned int index = 0; index < pathTracerWidth * pathTracerHeight; ++index )
+			{
+				pixels[index].r = imageColor[index].x * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+				pixels[index].g = imageColor[index].y * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+				pixels[index].b = imageColor[index].z * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+				pixels[index].a = imageColor[index].w * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+			}
+
+			// Pushing buffer to Render View
+			if (MRenderView::updatePixels(0, pathTracerWidth-1, 0, pathTracerHeight-1, pixels) 
+				!= MS::kSuccess)
+			{
+				CONSOLE << "renderViewInteractiveRender: error occurred in updatePixels." << ENDL;
+				delete[] pixels;
+				return;
+			}
 			delete[] pixels;
-			return;
-		}
-		delete[] pixels;
 
-		// Inform the Render View that we have completed rendering the entire image.
-		//
-		if (MRenderView::endRender() != MS::kSuccess)
-		{
-			CONSOLE << "renderViewInteractiveRender: error occurred in endRender.";
-			return;
+			// Inform the Render View that we have completed rendering the entire image.
+			//
+			if (MRenderView::endRender() != MS::kSuccess)
+			{
+				CONSOLE << "renderViewInteractiveRender: error occurred in endRender.";
+				return;
+			}
 		}
-
 #endif // END MAYA
+
+		numImage++;
+
 
 	}
 

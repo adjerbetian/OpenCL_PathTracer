@@ -143,7 +143,8 @@ namespace PathTracerNS
 
 			Float2 temp2;
 			Float4 temp4;
-			for(uint i=0; i<TriangleVertices.length(); i+=3)
+			const int TriangleVerticesLength = TriangleVertices.length();
+			for(uint i=0; i<TriangleVerticesLength; i+=3)
 			{
 				Triangle_Create(
 					*ptr__global__triangulation + triangleId,

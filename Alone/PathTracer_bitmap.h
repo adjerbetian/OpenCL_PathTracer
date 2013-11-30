@@ -2,8 +2,8 @@
 #ifndef PATHTRACER_BITMAP
 #define PATHTRACER_BITMAP
 
-#include <WTypes.h>
 #include "../Controleur/PathTracer_Utils.h"
+#include <WTypes.h>
 
 
 namespace PathTracerNS

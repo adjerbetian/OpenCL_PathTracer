@@ -4,6 +4,8 @@
 #include "PathTracer_PreProc.h"
 #include <algorithm>
 #include <cmath>
+#include <sstream>
+
 
 namespace PathTracerNS
 {
@@ -93,6 +95,8 @@ namespace PathTracerNS
 		inline void operator = (const Float4& v)				{ x = v.x; y = v.y; z = v.z; w = v.w;};
 		inline bool operator == (const Float4& v) const			{ return ( x == v.x && y == v.y && z == v.z && w == v.w);};
 		inline bool operator != (const Float4& v) const			{ return ( x != v.x || y != v.y || z != v.z || w != v.w);};
+
+		inline std::string toString() const						{ std::stringstream oss; oss << "[ " << x << " , " << y << " , " << z << " , " << w << " ]"; return oss.str();};
 
 		float x, y, z, w;
 	};

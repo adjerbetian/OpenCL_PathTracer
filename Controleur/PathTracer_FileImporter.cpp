@@ -144,7 +144,6 @@ namespace PathTracerNS
 			*ptr__global__texturesData[0] = Uchar4(0,0,0,0);
 		}
 
-
 		return true;
 	}
 

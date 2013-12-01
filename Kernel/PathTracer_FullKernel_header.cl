@@ -162,8 +162,8 @@ typedef struct
 	float			opacity;				//	Pour le verre
 	int				textureId;
 	MaterialType	type;
-	char			isSimpleColor;
-	char			hasAlphaMap;
+	bool			isSimpleColor;
+	bool			hasAlphaMap;
 } Material;
 
 
@@ -391,9 +391,8 @@ inline float Light_PowerToward( Light const* This, float4 const* p, float4 const
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint textureId, uchar4 __global const *global__texturesData, float u, float v)
+inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uchar4 __global const *global__texturesData, float u, float v)
 {
-
 	Texture tex = *This;
 
 	float4 bgra;
@@ -409,7 +408,17 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uint 
 
 	bgra = convert_float4(global__texturesData[index])/255.f;
 	bgra.w = 1.f - bgra.w;
-//	return bgra.zyxw;
+
+	if(get_global_id(0) == 100 && get_global_id(1) == 100)
+	{
+		printf("Texture info : \n");
+		printf("\t( u , v ) = ( %v2f )\n", (float2)(u,v));
+		printf("\t(width, height, offset, 0) = %v4i \n", (int4)(tex.width, tex.height, tex.offset, 0));
+		printf("\t(x,y) = %v2u \n", (uint2)(x,y));
+		printf("\tindex = %u \n", index);
+	}
+	
+	//	return bgra.zyxw;
 	return bgra;
 };
 

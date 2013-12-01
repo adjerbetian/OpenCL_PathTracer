@@ -245,15 +245,16 @@ namespace PathTracerNS
 		memset ( newbuf, 0, *newsize );
 
 		long newpos = 0;
+		long pos = 0;
 		for ( int y = 0; y < height; y++ )
 		{
 			for ( int x = 0; x < width; x++ )
 			{
-				int nRays = imageRay == NULL ? 1 : max(imageRay[y*width+x], 1);
+				int nRays = imageRay == NULL ? 1 : max(imageRay[pos], 1);
 
 				int r,g,b;
 
-				if( (imageColor[y*width+x].x < 0) || (imageColor[y*width+x].x < 0) || (imageColor[y*width+x].x < 0) )
+				if( (imageColor[pos].x < 0) || (imageColor[pos].x < 0) || (imageColor[pos].x < 0) )
 				{
 					r = 255;
 					g = 0;
@@ -261,9 +262,9 @@ namespace PathTracerNS
 				}
 				else
 				{
-					r = (int) min(imageColor[y*width+x].x * 255.f / nRays, 255.f);
-					g = (int) min(imageColor[y*width+x].y * 255.f / nRays, 255.f);
-					b = (int) min(imageColor[y*width+x].z * 255.f / nRays, 255.f);
+					r = (int) min(imageColor[pos].x * 255.f / nRays, 255.f);
+					g = (int) min(imageColor[pos].y * 255.f / nRays, 255.f);
+					b = (int) min(imageColor[pos].z * 255.f / nRays, 255.f);
 				}
 
 				newbuf[newpos + 0] = b;		// swap r and b
@@ -271,6 +272,7 @@ namespace PathTracerNS
 				newbuf[newpos + 2] = r;		// swap b and r
 
 				newpos += 3;
+				pos++;
 			}
 			newpos += padding;
 		}

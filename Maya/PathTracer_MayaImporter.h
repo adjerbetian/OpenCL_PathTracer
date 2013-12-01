@@ -19,6 +19,9 @@
 #include <maya/MFnPhongShader.h>
 #include <maya/MFnBlinnShader.h>
 
+#include <map>
+#include <string>
+
 namespace PathTracerNS
 {
 
@@ -41,17 +44,20 @@ namespace PathTracerNS
 
 		virtual bool Import				(bool loadSky);
 
-		void ImportScene				();
-		void ImportMaterials			();
-		void ImportLights				();
-		void LoadSky					(bool loadSky);
+		void ImportMesh							();
+		void ImportMaterials					();
+		void ImportTexturesAndSky				(bool loadSky);
+		void ImportLights						();
+		int  LoadSkyAndAllocateTextureMemory	(bool loadSky);
 
 		void SetCam						();
 		bool GetCam						(const MString &cameraName, MDagPath &camera);
 
-		int			CountMaterials		();
+		int			CountObject			(MFn::Type objType);
+
 		void		CreateMaterials		();
-		RGBAColor	OutputColor			(MFnDependencyNode const& fn,const char* name);
+		RGBAColor	GetMaterialColor	(MFnDependencyNode const& fn,const char* name);
+		int			GetTextureId		(MFnDependencyNode const& fn);
 		int			Get_MeshMaterialId	(MFnMesh const& fnMesh);
 
 
@@ -59,6 +65,7 @@ namespace PathTracerNS
 		void Light_Create				(Light& l, const MMatrix& M, const MFnDirectionalLight& fnLight);
 		void Light_Create				(Light& l, const MMatrix& M, const MFnSpotLight& fnLight);
 
+		void Material_Create			(Material *This);
 		void Material_Create			(Material *This, MFnPhongShader   const& fn);
 		void Material_Create			(Material *This, MFnLambertShader const& fn);
 		void Material_Create			(Material *This, MFnBlinnShader   const& fn);
@@ -72,6 +79,10 @@ namespace PathTracerNS
 			uint positiveMatIndex, uint negativeMatIndex );
 
 		inline double		Triangle_MaxSquaredDistanceTo	(Triangle const	*This, Triangle const *t) { return std::max<float>(std::max<float>(Vector_SquaredDistanceTo(&This->S1, &t->S1), Vector_SquaredDistanceTo(&This->S2, &t->S2)), Vector_SquaredDistanceTo(&This->S3, &t->S3));};
+
+
+		std::map<std::string, int> MaterialNameId;
+		std::map<std::string, int> TextureNameId;
 
 	};
 

@@ -58,7 +58,8 @@ namespace PathTracerNS
 
 		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
 		//const size_t constGlobalWorkSize[2] = { 1 , 1 };
-		const size_t constLocalWorkSize[2]  = { 1, 1 };
+		const size_t constLocalWorkSize[2]  = { 16, 1 };
+		//const size_t constLocalWorkSize[2]  = { 32, 1 };
 
 		cl_uint imageId = 0;
 
@@ -246,8 +247,7 @@ namespace PathTracerNS
 		return src;
 	}
 
-
-	cl_platform_id OpenCL_GetIntelOCLPlatform()
+	cl_platform_id OpenCL_GetPlatform(char const *platformName)
 	{
 		cl_platform_id pPlatforms[10] = { 0 };
 		char pPlatformName[128] = { 0 };
@@ -263,7 +263,7 @@ namespace PathTracerNS
 				return NULL;
 			}
 
-			if (!strcmp(pPlatformName, "Intel(R) OpenCL"))
+			if (!strcmp(pPlatformName, platformName))
 				return pPlatforms[ui];
 		}
 
@@ -306,14 +306,15 @@ namespace PathTracerNS
 		if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
 		else		 printf("Trying to run on a CPU \n");
 
-		cl_platform_id intel_platform_id = OpenCL_GetIntelOCLPlatform();
-		if( intel_platform_id == NULL )
+		cl_platform_id platform_id = OpenCL_GetPlatform("Intel(R) OpenCL");
+		//cl_platform_id platform_id = OpenCL_GetPlatform("AMD Accelerated Parallel Processing");
+		if( platform_id == NULL )
 		{
 			printf("ERROR: Failed to find Intel OpenCL platform.\n");
 			return false;
 		}
 
-		cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)intel_platform_id, NULL };
+		cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, NULL };
 
 		// create the OpenCL context on a CPU/PG 
 		if(runOnGPU) opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);

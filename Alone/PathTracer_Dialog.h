@@ -47,6 +47,7 @@ namespace PathTracerNS
 
 		uint				pathTracerWidth;
 		uint				pathTracerHeight;
+		uint				imageIndex;
 		bool				saveRenderedImages;
 
 		static const char*	exportFolderPath;

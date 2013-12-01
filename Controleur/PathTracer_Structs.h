@@ -58,8 +58,8 @@ namespace PathTracerNS
 		float			opacity;				//	Pour le verre
 		int				textureId;
 		MaterialType	type;
-		char			isSimpleColor;
-		char			hasAlphaMap;
+		bool			isSimpleColor;
+		bool			hasAlphaMap;
 	} Material;
 
 

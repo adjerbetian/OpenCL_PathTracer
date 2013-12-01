@@ -17,25 +17,24 @@ namespace PathTracerNS
 
 	PathTracerDialog::PathTracerDialog()
 		:pathTracerWidth(0),
-		pathTracerHeight(0)
+		pathTracerHeight(0),
+		imageIndex(1)
 	{}
 
 	void PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
 	{
-		static int numImage = 0;
-
 		if(saveRenderedImages)
 		{
 
 			std::wostringstream oss;
 			oss << exportFolderPath;
-			if(numImage / 100 == 0)
+			if(imageIndex / 100 == 0)
 			{
 				oss << "0";
-				if(numImage / 10 == 0)
+				if(imageIndex / 10 == 0)
 					oss << "0";
 			}
-			oss << numImage << ".bmp";
+			oss << imageIndex << ".bmp";
 
 			std::wstring sFilePath = oss.str();
 			LPCWSTR filePath = sFilePath.c_str();
@@ -48,7 +47,7 @@ namespace PathTracerNS
 
 #ifdef MAYA
 
-		if(numImage%20 == 0)
+		//if(imageIndex%20 == 0)
 		{
 
 			/////////////////////////////////////////////////////////////////////////////
@@ -105,9 +104,7 @@ namespace PathTracerNS
 		}
 #endif // END MAYA
 
-		numImage++;
-
-
+		imageIndex++;
 	}
 
 	void PathTracerDialog::PaintTexture(Uchar4 const * global__texturesData, Texture& texture)

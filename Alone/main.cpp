@@ -6,6 +6,6 @@
 int main()
 {
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerFileImporter());
-	PathTracerNS::PathTracer_Main(1, true, true);
-	system("pause");
+	PathTracerNS::PathTracer_Main(1000, true, true);
+	//system("pause");
 }

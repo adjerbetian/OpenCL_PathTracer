@@ -67,7 +67,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 	float tMin, tMax;
 	float tyMin, tyMax, tzMin, tzMax;
 
-	if(r->direction[0]>0)
+	if(r->direction.x>0)
 	{
 		tMin = ( This->pMin.x - r->origin.x )*r->inverse.x;
 		tMax = ( This->pMax.x - r->origin.x )*r->inverse.x;
@@ -81,7 +81,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 	if(tMin<0 && tMax<0)					// Boite dans la mauvaise direction selon x
 		return false;
 
-	if(r->direction[1]>0)
+	if(r->direction.y>0)
 	{
 		tyMin = ( This->pMin.y - r->origin.y )*r->inverse.y;
 		tyMax = ( This->pMax.y - r->origin.y )*r->inverse.y;
@@ -103,7 +103,7 @@ bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const flo
 	if(tyMax < tMax)
 		tMax = tyMax;
 
-	if(r->direction[2]>0)
+	if(r->direction.z>0)
 	{
 		tzMin = ( This->pMin.z - r->origin.z )*r->inverse.z;
 		tzMax = ( This->pMax.z - r->origin.z )*r->inverse.z;
@@ -442,9 +442,9 @@ RGBAColor Material_WaterAbsorption(float dist)
 RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *global__texturesData, float4 const* direction)
 {
 	//First, we rotate the sky
-	float x = This->cosRotationAngle * direction->x - This->sinRotationAngle * direction->y;
-	float y = This->sinRotationAngle * direction->x + This->cosRotationAngle * direction->y;
-	float z = direction->z;
+	float x = This->cosRotationAngle * (*direction).x - This->sinRotationAngle * (*direction).y;
+	float y = This->sinRotationAngle * (*direction).x + This->cosRotationAngle * (*direction).y;
+	float z = (*direction).z;
 
 	int faceId = 0;
 	float u = 0, v = 0;
@@ -460,7 +460,7 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *
 		else
 		{
 			faceId = 0;
-			u = (1-x/z)/2;
+			u = (1+x/z)/2;
 			v = (1+y/z)/2;
 		}
 	}
@@ -500,7 +500,7 @@ RGBAColor Sky_GetColorValue( Sky __global const *This ,uchar4 __global __const *
 
 RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const *global__texturesData, int faceId, float u, float v)
 {
-	RGBAColor rgba = Texture_GetPixelColorValue(&This->skyTextures[faceId], faceId, global__texturesData, u, v);
+	RGBAColor rgba = Texture_GetPixelColorValue(&This->skyTextures[faceId], global__texturesData, u, v);
 
 	/*
 	if(faceId != 4)
@@ -594,20 +594,22 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 	if(mat.isSimpleColor)
 		return mat.simpleColor;
 
-	ASSERT("Triangle_GetColorValueAt material is not simple color", mat.isSimpleColor);
-	return RGBACOLOR(1,0,0,0);
+	ASSERT("Triangle_GetColorValueAt material has invalid texture index.", mat.textureId >= 0);
+	//Just in case
+	if(mat.textureId < 0)
+		return RGBACOLOR(1,0,0,0);
 
 	float2 uvText = positiveNormal ? (This->UVP1*(1-s-t)) + (This->UVP2*s) + (This->UVP3*t) : (This->UVN1*(1-s-t)) + (This->UVN2*s) + (This->UVN3*t);
-	return Texture_GetPixelColorValue( &global__textures[mat.textureId], mat.textureId + 6, global__texturesData, uvText.x, uvText.y );
+	return Texture_GetPixelColorValue( &global__textures[mat.textureId], global__texturesData, uvText.x, uvText.y );
 }
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
-	//return This->N;
-	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
-	if(positiveNormal)
-		return smoothNormal;
-	return -smoothNormal;
+	return This->N;
+	//float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
+	//if(positiveNormal)
+	//	return smoothNormal;
+	//return -smoothNormal;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -658,7 +660,7 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *int
 		}
 		else
 		{
-			if(r->direction[currentNode->cutAxis]>0)
+			if(((float*)(&r->direction))[currentNode->cutAxis]>0)
 			{
 				son1 = &global__bvh[currentNode->son1Id];
 				son2 = &global__bvh[currentNode->son2Id];
@@ -745,7 +747,7 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float
 		else
 		{
 
-			if(r->direction[currentNode->cutAxis]>0)
+			if(((float*)(&r->direction))[currentNode->cutAxis]>0)
 			{
 				son1 = &global__bvh[currentNode->son1Id];
 				son2 = &global__bvh[currentNode->son2Id];

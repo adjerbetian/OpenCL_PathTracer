@@ -169,6 +169,9 @@ namespace PathTracerNS
 
 	void PathTracerMayaImporter::ImportMesh()
 	{
+
+		// Also inspired from the site : http://ewertb.soundlinker.com/api/api.018.php
+
 		*ptr__global__triangulationSize = TotalNumberOfTriangles();
 		*ptr__global__triangulation = new Triangle[*ptr__global__triangulationSize];
 
@@ -292,92 +295,6 @@ namespace PathTracerNS
 		}
 
 
-		/*
-
-		itMesh.reset();
-		itMesh.next();
-
-		while(!itMesh.isDone())
-		{
-			itMesh.getPath(objPath);
-			MFnMesh fnMesh(objPath);
-			MItMeshPolygon itPolygon( objPath);
-			MIntArray TriangleCount;
-			MIntArray TriangleVertices;
-			MFloatArray u, v;
-			MPointArray Points;
-			MFloatVectorArray	fNormalArray;
-			MFloatVectorArray	fTangentArray;
-			MFloatVectorArray	fBinormalArray;
-
-			// Get Material
-			uint materialId = Get_MeshMaterialId(fnMesh);
-
-			// Get the vertices locations in space
-			fnMesh.getPoints(Points, MSpace::kWorld);
-
-			// Get Triangles vertices
-			fnMesh.getTriangles(TriangleCount, TriangleVertices);
-
-			// Get the face indices
-			MIntArray polygonVertices;
-			itPolygon.getVertices( polygonVertices );
-			MIntArray localIndex = GetLocalIndex( polygonVertices, TriangleVertices);
-
-			// Get all UVs for the first UV set.
-			MStringArray  UVSets;
-			fnMesh.getUVSetNames(UVSets);
-			fnMesh.getUVs(u, v, &UVSets[0]);
-
-			int ulength = u.length();
-			int vlength = v.length();
-			int polygonVerticesLength = polygonVertices.length();
-			int TriangleVerticesLength2 = TriangleVertices.length();
-			int localIndexLength = localIndex.length();
-
-			// Get the normals and Tangents
-			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
-			fnMesh.getTangents(fTangentArray  , MSpace::kWorld, &UVSets[0]);
-			fnMesh.getBinormals(fBinormalArray, MSpace::kWorld, &UVSets[0]);
-
-			// Go through the triangles of the mesh
-			const uint TriangleVerticesLength = TriangleVertices.length();
-			for(uint i=0; i<TriangleVerticesLength; i+=3)
-			{
-				Triangle_Create(
-					*ptr__global__triangulation + triangleId,
-					// Vertices
-					&permute_xyz_to_zxy(Points[TriangleVertices[i+0]]),
-					&permute_xyz_to_zxy(Points[TriangleVertices[i+1]]),
-					&permute_xyz_to_zxy(Points[TriangleVertices[i+2]]),
-					// UV Positiv normal face
-					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
-					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
-					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),
-					// UV Negativ normal face
-					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
-					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
-					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),
-					// Normal
-					&permute_xyz_to_zxy(MVector(fNormalArray[itPolygon.normalIndex(localIndex[i+0])])),
-					&permute_xyz_to_zxy(MVector(fNormalArray[itPolygon.normalIndex(localIndex[i+1])])),
-					&permute_xyz_to_zxy(MVector(fNormalArray[itPolygon.normalIndex(localIndex[i+2])])),
-					// Tangents
-					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+0]])),
-					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+1]])),
-					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+2]])),
-					// Bitangents
-					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+0]])),
-					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+1]])),
-					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+2]])),
-					materialId, materialId);
-				triangleId++;
-			}
-
-			itMesh.next();
-		}
-
-		*/
 	}
 
 	void PathTracerMayaImporter::ImportLights()
@@ -404,10 +321,6 @@ namespace PathTracerNS
 			itLight.next();
 		}
 	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	MString GetShaderName(MObject shadingEngine)
 	{

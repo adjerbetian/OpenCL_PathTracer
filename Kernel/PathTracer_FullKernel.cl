@@ -595,22 +595,29 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 		return mat.simpleColor;
 
 	ASSERT("Triangle_GetColorValueAt material has invalid texture index.", mat.textureId >= 0);
-	//Just in case
-	if(mat.textureId < 0)
-		return RGBACOLOR(1,1,1,0)*0.8f;
-		//return RGBACOLOR(1,0,0,0)*0.8f;
 
 	float2 uvText = positiveNormal ? (This->UVP1*(1-s-t)) + (This->UVP2*s) + (This->UVP3*t) : (This->UVN1*(1-s-t)) + (This->UVN2*s) + (This->UVN3*t);
+
+	if(!positiveNormal && get_global_id(0) == 0 && get_global_id(1) == 0)
+	{
+		printf("Triangle_GetColorValueAt :\n");
+		printf("\tUVN1 = %v2f\n", This->UVN1);
+		printf("\tUVN2 = %v2f\n", This->UVN2);
+		printf("\tUVN3 = %v2f\n", This->UVN3);
+		printf("\t(s,t) = %v2f\n", (float2)(s,t));
+	}
+
+
 	return Texture_GetPixelColorValue( &global__textures[mat.textureId], global__texturesData, uvText.x, uvText.y );
 }
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
-	return This->N;
-	//float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
-	//if(positiveNormal)
-	//	return smoothNormal;
-	//return -smoothNormal;
+	//return This->N;
+	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
+	if(positiveNormal)
+		return smoothNormal;
+	return -smoothNormal;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

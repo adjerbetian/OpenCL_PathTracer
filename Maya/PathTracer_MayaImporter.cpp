@@ -115,12 +115,14 @@ namespace PathTracerNS
 	//        in getVertices array then a value of (-1) will be inserted
 	//        in that position within the returned array.
 	// ********************************************************************
-	MIntArray GetLocalIndex( MIntArray & getVertices, MIntArray & getTriangle )
+	MIntArray GetLocalIndex( MIntArray const& getVertices, MIntArray const& getTriangle )
 	{
 		MIntArray   localIndex;
 		unsigned    gv, gt;
 
-		assert ( getTriangle.length() == 3 );    // Should always deal with a triangle
+		int test = getTriangle.length();
+
+		assert ( getTriangle.length() % 3 == 0 );    // Should always deal with a triangle
 
 		for ( gt = 0; gt < getTriangle.length(); gt++ )
 		{
@@ -197,11 +199,12 @@ namespace PathTracerNS
 			fnMesh.getPoints(Points, MSpace::kWorld);
 			fnMesh.getTriangles(TriangleCount, TriangleVertices);
 
-			uint uLength = u.length();
-			uint vLength = v.length();
+			//Normals
+			MItMeshPolygon itPolygon( objPath);
+			MIntArray polygonVertices;
+			itPolygon.getVertices( polygonVertices );
+			MIntArray localIndex = GetLocalIndex( polygonVertices, TriangleVertices);
 
-			Float2 temp2;
-			Float4 temp4;
 			const uint TriangleVerticesLength = TriangleVertices.length();
 			for(uint i=0; i<TriangleVerticesLength; i+=3)
 			{
@@ -211,14 +214,18 @@ namespace PathTracerNS
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+0]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+1]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+2]]),
-					// UV
+					// UV Positiv
+					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
+					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
+					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),
+					// UV Negativ
 					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
 					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
 					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),
 					// Normal
-					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+0]])),
-					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+1]])),
-					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+2]])),
+					&permute_xyz_to_zxy(MVector(fNormalArray[itPolygon.normalIndex(localIndex[i+0])])),
+					&permute_xyz_to_zxy(MVector(fNormalArray[itPolygon.normalIndex(localIndex[i+1])])),
+					&permute_xyz_to_zxy(MVector(fNormalArray[itPolygon.normalIndex(localIndex[i+2])])),
 					// Tangents
 					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+0]])),
 					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+1]])),
@@ -841,7 +848,8 @@ namespace PathTracerNS
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,
 		Float4 const *s1, Float4 const *s2, Float4 const *s3,
-		Float2 const *p1, Float2 const *p2, Float2 const *p3,
+		Float2 const *uvp1, Float2 const *uvp2, Float2 const *uvp3,
+		Float2 const *uvn1, Float2 const *uvn2, Float2 const *uvn3,
 		Float4 const *n1, Float4 const *n2, Float4 const *n3,
 		Float4 const *t1, Float4 const *t2, Float4 const *t3,
 		Float4 const *bt1, Float4 const *bt2, Float4 const *bt3,
@@ -859,7 +867,8 @@ namespace PathTracerNS
 			if(Vector_LexLessThan(s2, s3))
 			{
 				This->S1 = (*s1);	This->S2 = (*s2);	This->S3 = (*s3);
-				This->UVP1 = (*p1);	This->UVP2 = (*p2);	This->UVP3 = (*p3);
+				This->UVP1 = (*uvp1);	This->UVP2 = (*uvp2);	This->UVP3 = (*uvp3);
+				This->UVN1 = (*uvn1);	This->UVN2 = (*uvn2);	This->UVN3 = (*uvn3);
 				This->N1 = (*n1);	This->N2 = (*n2);	This->N3 = (*n3);
 				This->T1 = (*t1);	This->T2 = (*t2);	This->T3 = (*t3);
 				This->BT1 = (*bt1);	This->BT2 = (*bt2);	This->BT3 = (*bt3);
@@ -867,7 +876,8 @@ namespace PathTracerNS
 			else if(Vector_LexLessThan(s1, s3))
 			{
 				This->S1 = (*s1);	This->S2 = (*s3);	This->S3 = (*s2);
-				This->UVP1 = (*p1);	This->UVP2 = (*p3);	This->UVP3 = (*p2);
+				This->UVP1 = (*uvp1);	This->UVP2 = (*uvp3);	This->UVP3 = (*uvp2);
+				This->UVN1 = (*uvn1);	This->UVN2 = (*uvn3);	This->UVN3 = (*uvn2);
 				This->N1 = (*n1);	This->N2 = (*n3);	This->N3 = (*n2);
 				This->T1 = (*t1);	This->T2 = (*t3);	This->T3 = (*t2);
 				This->BT1 = (*bt1);	This->BT2 = (*bt3);	This->BT3 = (*bt2);
@@ -875,7 +885,8 @@ namespace PathTracerNS
 			else
 			{
 				This->S1 = (*s3);	This->S2 = (*s1);	This->S3 = (*s2);
-				This->UVP1 = (*p3);	This->UVP2 = (*p1);	This->UVP3 = (*p2);
+				This->UVP1 = (*uvp3);	This->UVP2 = (*uvp1);	This->UVP3 = (*uvp2);
+				This->UVN1 = (*uvn3);	This->UVN2 = (*uvn1);	This->UVN3 = (*uvn2);
 				This->N1 = (*n3);	This->N2 = (*n1);	This->N3 = (*n2);
 				This->T1 = (*t3);	This->T2 = (*t1);	This->T3 = (*t2);
 				This->BT1 = (*bt3);	This->BT2 = (*bt1);	This->BT3 = (*bt2);
@@ -886,7 +897,8 @@ namespace PathTracerNS
 			if(Vector_LexLessThan(s1, s3))
 			{
 				This->S1 = (*s2);	This->S2 = (*s1);	This->S3 = (*s3);
-				This->UVP1 = (*p2);	This->UVP2 = (*p1);	This->UVP3 = (*p3);
+				This->UVP1 = (*uvp2);	This->UVP2 = (*uvp1);	This->UVP3 = (*uvp3);
+				This->UVN1 = (*uvn2);	This->UVN2 = (*uvn1);	This->UVN3 = (*uvn3);
 				This->N1 = (*n2);	This->N2 = (*n1);	This->N3 = (*n3);
 				This->T1 = (*t2);	This->T2 = (*t1);	This->T3 = (*t3);
 				This->BT1 = (*bt2);	This->BT2 = (*bt1);	This->BT3 = (*bt3);
@@ -894,7 +906,8 @@ namespace PathTracerNS
 			else if(Vector_LexLessThan(s2, s3))
 			{
 				This->S1 = (*s2);	This->S2 = (*s3);	This->S3 = (*s1);
-				This->UVP1 = (*p2);	This->UVP2 = (*p3);	This->UVP3 = (*p1);
+				This->UVP1 = (*uvp2);	This->UVP2 = (*uvp3);	This->UVP3 = (*uvp1);
+				This->UVN1 = (*uvn2);	This->UVN2 = (*uvn3);	This->UVN3 = (*uvn1);
 				This->N1 = (*n2);	This->N2 = (*n3);	This->N3 = (*n1);
 				This->T1 = (*t2);	This->T2 = (*t3);	This->T3 = (*t1);
 				This->BT1 = (*bt2);	This->BT2 = (*bt3);	This->BT3 = (*bt1);
@@ -902,7 +915,8 @@ namespace PathTracerNS
 			else
 			{
 				This->S1 = (*s3);	This->S2 = (*s2);	This->S3 = (*s1);
-				This->UVP1 = (*p3);	This->UVP2 = (*p2);	This->UVP3 = (*p1);
+				This->UVP1 = (*uvp3);	This->UVP2 = (*uvp2);	This->UVP3 = (*uvp1);
+				This->UVN1 = (*uvn3);	This->UVN2 = (*uvn2);	This->UVN3 = (*uvn1);
 				This->N1 = (*n3);	This->N2 = (*n2);	This->N3 = (*n1);
 				This->T1 = (*t3);	This->T2 = (*t2);	This->T3 = (*t1);
 				This->BT1 = (*bt3);	This->BT2 = (*bt2);	This->BT3 = (*bt1);

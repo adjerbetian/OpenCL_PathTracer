@@ -24,8 +24,8 @@
 #define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : local id : ( %v2u ) : \t global id : ( %v2u ) : \t "Y" \n", (uint2) (get_local_id(0),  get_local_id(1)) , (uint2) (get_global_id(0), get_global_id(1)) , Z)
 
 // Assert
-#define ASSERT(X , Y) if(!(Y)) { printf("***************  ERROR ******************* : "X" : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#Y"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
-//#define ASSERT(X,Y)
+//#define ASSERT(X , Y) if(!(Y)) { printf("***************  ERROR ******************* : "X" : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#Y"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
+#define ASSERT(X,Y)
 
 
 #define INT4 (int4)
@@ -409,14 +409,14 @@ inline RGBAColor Texture_GetPixelColorValue( Texture __global const *This, uchar
 	bgra = convert_float4(global__texturesData[index])/255.f;
 	bgra.w = 1.f - bgra.w;
 
-	if(get_global_id(0) == 100 && get_global_id(1) == 100)
-	{
-		printf("Texture info : \n");
-		printf("\t( u , v ) = ( %v2f )\n", (float2)(u,v));
-		printf("\t(width, height, offset, 0) = %v4i \n", (int4)(tex.width, tex.height, tex.offset, 0));
-		printf("\t(x,y) = %v2u \n", (uint2)(x,y));
-		printf("\tindex = %u \n", index);
-	}
+	//if(get_global_id(0) == 100 && get_global_id(1) == 100)
+	//{
+	//	printf("Texture info : \n");
+	//	printf("\t( u , v ) = ( %v2f )\n", (float2)(u,v));
+	//	printf("\t(width, height, offset, 0) = %v4i \n", (int4)(tex.width, tex.height, tex.offset, 0));
+	//	printf("\t(x,y) = %v2u \n", (uint2)(x,y));
+	//	printf("\tindex = %u \n", index);
+	//}
 	
 	//	return bgra.zyxw;
 	return bgra;

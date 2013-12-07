@@ -15,6 +15,8 @@
 #include <maya/MPlugArray.h>
 #include <maya/MFloatVectorArray.h>
 #include <maya/MItDependencyNodes.h>
+#include <maya/MFloatArray.h>
+#include <maya/MItMeshPolygon.h>
 
 namespace PathTracerNS
 {
@@ -91,6 +93,54 @@ namespace PathTracerNS
 		*ptr__global__cameraUp			= permute_xyz_to_zxy(Up);;
 	}
 
+
+	// ********************************************************************
+	// From the site : http://ewertb.soundlinker.com/api/api.018.php
+	//
+	// MItMeshPolygon::getTriangle() returns object-relative vertex
+	// indices; BUT MItMeshPolygon::normalIndex() and ::getNormal() need
+	// face-relative vertex indices! This converts vertex indices from
+	// object-relative to face-relative.
+	//
+	// param  getVertices: Array of object-relative vertex indices for
+	//                     entire face.
+	// param  getTriangle: Array of object-relative vertex indices for
+	//                     local triangle in face.
+	//
+	// return Array of face-relative indicies for the specified vertices.
+	//        Number of elements in returned array == number in getTriangle
+	//        (should be 3).
+	//
+	// note   If getTriangle array does not include a corresponding vertex
+	//        in getVertices array then a value of (-1) will be inserted
+	//        in that position within the returned array.
+	// ********************************************************************
+	MIntArray GetLocalIndex( MIntArray & getVertices, MIntArray & getTriangle )
+	{
+		MIntArray   localIndex;
+		unsigned    gv, gt;
+
+		assert ( getTriangle.length() == 3 );    // Should always deal with a triangle
+
+		for ( gt = 0; gt < getTriangle.length(); gt++ )
+		{
+			for ( gv = 0; gv < getVertices.length(); gv++ )
+			{
+				if ( getTriangle[gt] == getVertices[gv] )
+				{
+					localIndex.append( gv );
+					break;
+				}
+			}
+
+			// if nothing was added, add default "no match"
+			if ( localIndex.length() == gt )
+				localIndex.append( -1 );
+		}
+
+		return localIndex;
+	}
+
 	void PathTracerMayaImporter::ImportMesh()
 	{
 		MItDag itMesh(MItDag::kDepthFirst,MFn::kMesh);
@@ -113,10 +163,11 @@ namespace PathTracerNS
 			itMesh.next();
 		}
 
-		itMesh.reset();
-		itMesh.next();
 		*ptr__global__triangulation = new Triangle[*ptr__global__triangulationSize];
 		uint triangleId = 0;
+
+		itMesh.reset();
+		itMesh.next();
 
 		while(!itMesh.isDone())
 		{
@@ -124,6 +175,7 @@ namespace PathTracerNS
 			MFnMesh fnMesh(objPath);
 			MIntArray TriangleCount;
 			MIntArray TriangleVertices;
+			MFloatArray u, v;
 			MPointArray Points;
 			MFloatVectorArray	fNormalArray;
 			MFloatVectorArray	fTangentArray;
@@ -133,13 +185,20 @@ namespace PathTracerNS
 
 			uint materialId = Get_MeshMaterialId(fnMesh);
 
-			/////////////////////////////////////////////////////////////////////////
-			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
+			// Get all UVs for the first UV set.
 			fnMesh.getCurrentUVSetName(fCurrentUVSetName);
+			fnMesh.getUVs(u, v, &fCurrentUVSetName);
+
+			/////////////////////////////////////////////////////////////////////////
+
+			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
 			fnMesh.getTangents(fTangentArray, MSpace::kWorld, &fCurrentUVSetName);
 			fnMesh.getBinormals(fBinormalArray, MSpace::kWorld, &fCurrentUVSetName);
 			fnMesh.getPoints(Points, MSpace::kWorld);
 			fnMesh.getTriangles(TriangleCount, TriangleVertices);
+
+			uint uLength = u.length();
+			uint vLength = v.length();
 
 			Float2 temp2;
 			Float4 temp4;
@@ -149,21 +208,23 @@ namespace PathTracerNS
 				Triangle_Create(
 					*ptr__global__triangulation + triangleId,
 					// Vertices
-					&permute_xyz_to_zxy(Points[TriangleVertices[i]]),
+					&permute_xyz_to_zxy(Points[TriangleVertices[i+0]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+1]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+2]]),
 					// UV
-					&temp2,&temp2,&temp2,
+					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
+					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
+					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),
 					// Normal
-					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i]])),
+					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+0]])),
 					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+1]])),
 					&permute_xyz_to_zxy(MVector(fNormalArray[TriangleVertices[i+2]])),
 					// Tangents
-					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i]])),
+					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+0]])),
 					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+1]])),
 					&permute_xyz_to_zxy(MVector(fTangentArray[TriangleVertices[i+2]])),
 					// Bitangents
-					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i]])),
+					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+0]])),
 					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+1]])),
 					&permute_xyz_to_zxy(MVector(fBinormalArray[TriangleVertices[i+2]])),
 					materialId, materialId);
@@ -341,9 +402,10 @@ namespace PathTracerNS
 		// get plugs connected to colour attribute
 		MPlugArray plugs;
 		p.connectedTo(plugs,true,false);
+		fn.findPlug("color").connectedTo(plugs,true,false);
+		uint plugsLength = plugs.length();
 
 		// see if any file textures are present
-		uint plugsLength = plugs.length();
 		for(int i = 0; i != plugsLength; ++i)
 		{
 			// if file texture found

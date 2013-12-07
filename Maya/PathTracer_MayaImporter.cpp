@@ -175,6 +175,7 @@ namespace PathTracerNS
 		{
 			itMesh.getPath(objPath);
 			MFnMesh fnMesh(objPath);
+			MItMeshPolygon itPolygon( objPath);
 			MIntArray TriangleCount;
 			MIntArray TriangleVertices;
 			MFloatArray u, v;
@@ -182,29 +183,38 @@ namespace PathTracerNS
 			MFloatVectorArray	fNormalArray;
 			MFloatVectorArray	fTangentArray;
 			MFloatVectorArray	fBinormalArray;
-			MString				fCurrentUVSetName;
 
-
+			// Get Material
 			uint materialId = Get_MeshMaterialId(fnMesh);
 
-			// Get all UVs for the first UV set.
-			fnMesh.getCurrentUVSetName(fCurrentUVSetName);
-			fnMesh.getUVs(u, v, &fCurrentUVSetName);
-
-			/////////////////////////////////////////////////////////////////////////
-
-			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
-			fnMesh.getTangents(fTangentArray, MSpace::kWorld, &fCurrentUVSetName);
-			fnMesh.getBinormals(fBinormalArray, MSpace::kWorld, &fCurrentUVSetName);
+			// Get the vertices locations in space
 			fnMesh.getPoints(Points, MSpace::kWorld);
+
+			// Get Triangles vertices
 			fnMesh.getTriangles(TriangleCount, TriangleVertices);
 
-			//Normals
-			MItMeshPolygon itPolygon( objPath);
+			// Get the face indices
 			MIntArray polygonVertices;
 			itPolygon.getVertices( polygonVertices );
 			MIntArray localIndex = GetLocalIndex( polygonVertices, TriangleVertices);
 
+			// Get all UVs for the first UV set.
+			MStringArray  UVSets;
+			fnMesh.getUVSetNames(UVSets);
+			fnMesh.getUVs(u, v, &UVSets[0]);
+
+			int ulength = u.length();
+			int vlength = v.length();
+			int polygonVerticesLength = polygonVertices.length();
+			int TriangleVerticesLength2 = TriangleVertices.length();
+			int localIndexLength = localIndex.length();
+
+			// Get the normals and Tangents
+			fnMesh.getNormals(fNormalArray, MSpace::kWorld);
+			fnMesh.getTangents(fTangentArray  , MSpace::kWorld, &UVSets[0]);
+			fnMesh.getBinormals(fBinormalArray, MSpace::kWorld, &UVSets[0]);
+
+			// Go through the triangles of the mesh
 			const uint TriangleVerticesLength = TriangleVertices.length();
 			for(uint i=0; i<TriangleVerticesLength; i+=3)
 			{
@@ -214,11 +224,11 @@ namespace PathTracerNS
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+0]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+1]]),
 					&permute_xyz_to_zxy(Points[TriangleVertices[i+2]]),
-					// UV Positiv
+					// UV Positiv normal face
 					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
 					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
 					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),
-					// UV Negativ
+					// UV Negativ normal face
 					&Float2(u[TriangleVertices[i+0]],v[TriangleVertices[i+0]]),
 					&Float2(u[TriangleVertices[i+1]],v[TriangleVertices[i+1]]),
 					&Float2(u[TriangleVertices[i+2]],v[TriangleVertices[i+2]]),

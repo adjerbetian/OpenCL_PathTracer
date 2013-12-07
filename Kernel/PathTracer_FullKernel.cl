@@ -613,7 +613,6 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
-	//return This->N;
 	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
 	if(positiveNormal)
 		return smoothNormal;

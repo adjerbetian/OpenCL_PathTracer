@@ -143,13 +143,13 @@ namespace PathTracerNS
 		return localIndex;
 	}
 
-	void PathTracerMayaImporter::ImportMesh()
+	int TotalNumberOfTriangles()
 	{
 		MItDag itMesh(MItDag::kDepthFirst,MFn::kMesh);
 		MDagPath objPath;
 
 		// First we get the total number of triangles in the scene
-		*ptr__global__triangulationSize = 0;
+		int numTriangles = 0;
 		while(!itMesh.isDone())
 		{
 			itMesh.getPath(objPath);
@@ -160,13 +160,139 @@ namespace PathTracerNS
 			fnMesh.getTriangles(TriangleCount, TraingleVertices);
 
 			for(uint i=0; i<TriangleCount.length(); i++)
-				*ptr__global__triangulationSize += TriangleCount[i];
+				numTriangles += TriangleCount[i];
 
 			itMesh.next();
 		}
+		return numTriangles;
+	}
 
+	void PathTracerMayaImporter::ImportMesh()
+	{
+		*ptr__global__triangulationSize = TotalNumberOfTriangles();
 		*ptr__global__triangulation = new Triangle[*ptr__global__triangulationSize];
+
 		uint triangleId = 0;
+
+		for(MItDag itMesh(MItDag::kDepthFirst,MFn::kMesh); !itMesh.isDone(); itMesh.next())
+		{
+			MDagPath objPath;
+			itMesh.getPath(objPath);
+			MFnMesh  fnMesh( objPath );
+			uint materialId = Get_MeshMaterialId(fnMesh);
+
+			//  Cache positions for each vertex
+			MPointArray meshPoints;
+			fnMesh.getPoints( meshPoints, MSpace::kWorld );
+
+			//  Cache normals for each vertex
+			MFloatVectorArray  meshNormals;
+			// Normals are per-vertex per-face..
+			// use MItMeshPolygon::normalIndex() for index
+			fnMesh.getNormals( meshNormals );
+
+			// Get UVSets for this mesh
+			MStringArray  UVSets;
+			fnMesh.getUVSetNames( UVSets );
+
+			// Get all UVs for the first UV set.
+			MFloatArray   u, v;
+			fnMesh.getUVs( u, v, &UVSets[0] );
+
+			for ( MItMeshPolygon  itPolygon( objPath, MObject::kNullObj ); !itPolygon.isDone(); itPolygon.next() )
+			{
+				// Get object-relative indices for the vertices in this face.
+				MIntArray polygonVertices;
+				itPolygon.getVertices( polygonVertices );
+
+				// Get triangulation of this poly.
+				int numTriangles;
+				itPolygon.numTriangles(numTriangles);
+				while ( numTriangles-- )
+				{
+					MPointArray nonTweaked;
+					// object-relative vertex indices for each triangle
+					MIntArray triangleVertices;
+					// face-relative vertex indices for each triangle
+					MIntArray localIndex;
+
+					itPolygon.getTriangle( numTriangles,
+						nonTweaked,
+						triangleVertices,
+						MSpace::kWorld );
+
+					// --------  Get Positions  --------
+
+					// While it may be tempting to use the points array returned
+					// by MItMeshPolygon::getTriangle(), don't. It does not represent
+					// poly tweaks in its coordinates!
+
+					// Positions are:
+					Float4 s1 = permute_xyz_to_zxy(meshPoints[triangleVertices[0]]);
+					Float4 s2 = permute_xyz_to_zxy(meshPoints[triangleVertices[1]]);
+					Float4 s3 = permute_xyz_to_zxy(meshPoints[triangleVertices[2]]);
+
+					// --------  Get Normals  --------
+
+					// (triangleVertices) is the object-relative vertex indices
+					// BUT MItMeshPolygon::normalIndex() and ::getNormal() needs
+					// face-relative vertex indices!
+
+					// Get face-relative vertex indices for this triangle
+					localIndex = GetLocalIndex( polygonVertices,
+						triangleVertices );
+
+					// Normals are:
+					Float4 n1 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[0] ) ] ) );
+					Float4 n2 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[0] ) ] ) );
+					Float4 n3 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[0] ) ] ) );
+
+					// --------  Get UVs  --------
+
+					// Note: In this example I'm only considering the first UV Set.
+					// If you want more simply loop through the sets in the UVSets array.
+
+					int uvID[3];
+
+					// Get UV values for each vertex within this polygon
+					for (int vtxInPolygon = 0; vtxInPolygon < 3; vtxInPolygon++ )
+					{
+						itPolygon.getUVIndex( localIndex[vtxInPolygon],
+							uvID[vtxInPolygon],
+							&UVSets[0] );
+					}
+
+					// UVs are:
+					Float2 uv1 = Float2(u[uvID[0]], v[uvID[0]]);
+					Float2 uv2 = Float2(u[uvID[1]], v[uvID[1]]);
+					Float2 uv3 = Float2(u[uvID[2]], v[uvID[2]]);
+
+					Triangle_Create(
+						*ptr__global__triangulation + triangleId,
+						// Vertices
+						s1, s2, s3,
+						// UV Positiv normal face
+						uv1, uv2, uv3,
+						// UV Negativ normal face
+						uv1, uv2, uv3,
+						// Normal
+						n1, n2, n3,
+						// Tangents
+						Float4(), Float4(), Float4(),
+						// Bitangents
+						Float4(), Float4(), Float4(),
+						//Materials
+						materialId, materialId);
+					triangleId++;
+
+
+				}    // while (triangles)
+
+			}    // itPolygon()
+		}
+
+
+		/*
 
 		itMesh.reset();
 		itMesh.next();
@@ -250,6 +376,8 @@ namespace PathTracerNS
 
 			itMesh.next();
 		}
+
+		*/
 	}
 
 	void PathTracerMayaImporter::ImportLights()
@@ -467,7 +595,7 @@ namespace PathTracerNS
 			unsigned int w,h;
 			img.getSize(w,h);
 
-			*ptr__global__texturesDataSize += w * h;
+			*ptr__global__texturesDataSize += max(w * h,1);
 			it1.next();
 		}
 
@@ -496,8 +624,11 @@ namespace PathTracerNS
 			img.readFromTextureNode(Textures[textureId]);
 
 			// get the image size
-			unsigned int d =img.depth();
-			img.getSize(tex->width, tex->height);
+			uint d =img.depth();
+			uint w,h;
+			img.getSize(w, h);
+			tex->width  = max(w ,1);
+			tex->height = max(h, 1);
 			offset += tex->width * tex->height;
 
 			// write image attributes
@@ -513,14 +644,14 @@ namespace PathTracerNS
 				memcpy(
 					(void *) (*ptr__global__texturesData + tex->offset),
 					(void *) img.pixels(),
-					4 * sizeof(char) * tex->width * tex->height
+					4 * sizeof(char) * w * h
 					);
 			}
 			else if(d == 3) // we supppose d = 3
 			{
 				// write 24bit data in chunks so we skip 
 				// the fourth alpha byte
-				for(unsigned int j=0; j < tex->width*tex->height*4; j+=4 )
+				for(unsigned int j=0; j < w*h*4; j+=4 )
 				{
 					Uchar4 *destPixel = (*ptr__global__texturesData + tex->offset + j);
 					uchar *srcPixel = img.pixels()+j;
@@ -794,7 +925,7 @@ namespace PathTracerNS
 
 		//Texture
 		This->textureId = GetTextureId(fn);
-		This->isSimpleColor = This->textureId >= 0;
+		This->isSimpleColor = This->textureId < 0;
 
 		//Alpha map
 		This->hasAlphaMap = false;
@@ -840,7 +971,7 @@ namespace PathTracerNS
 
 		//Texture
 		This->textureId = GetTextureId(fn);
-		This->isSimpleColor = This->textureId >= 0;
+		This->isSimpleColor = This->textureId < 0;
 
 		//Alpha map
 		This->hasAlphaMap = false;
@@ -857,79 +988,79 @@ namespace PathTracerNS
 	}
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,
-		Float4 const *s1, Float4 const *s2, Float4 const *s3,
-		Float2 const *uvp1, Float2 const *uvp2, Float2 const *uvp3,
-		Float2 const *uvn1, Float2 const *uvn2, Float2 const *uvn3,
-		Float4 const *n1, Float4 const *n2, Float4 const *n3,
-		Float4 const *t1, Float4 const *t2, Float4 const *t3,
-		Float4 const *bt1, Float4 const *bt2, Float4 const *bt3,
+		Float4 const& s1,	Float4 const& s2,	Float4 const& s3,
+		Float2 const& uvp1, Float2 const& uvp2, Float2 const& uvp3,
+		Float2 const& uvn1, Float2 const& uvn2, Float2 const& uvn3,
+		Float4 const& n1,	Float4 const& n2,	Float4 const& n3,
+		Float4 const& t1,	Float4 const& t2,	Float4 const& t3,
+		Float4 const& bt1,	Float4 const& bt2,	Float4 const& bt3,
 		uint positiveMatIndex, uint negativeMatIndex )
 	{
 		This->materialWithPositiveNormalIndex = positiveMatIndex;
 		This->materialWithNegativeNormalIndex = negativeMatIndex;
 
-		BoundingBox_Create( &This->AABB, s1, s2, s3);
+		BoundingBox_Create( This->AABB, s1, s2, s3);
 
-		This->N = normalize(cross( (*s2)-(*s1), (*s3)-(*s1) ));
+		This->N = normalize(cross( s2-s1, s3-s1 ));
 
 		if(Vector_LexLessThan(s1, s2))
 		{
 			if(Vector_LexLessThan(s2, s3))
 			{
-				This->S1 = (*s1);	This->S2 = (*s2);	This->S3 = (*s3);
-				This->UVP1 = (*uvp1);	This->UVP2 = (*uvp2);	This->UVP3 = (*uvp3);
-				This->UVN1 = (*uvn1);	This->UVN2 = (*uvn2);	This->UVN3 = (*uvn3);
-				This->N1 = (*n1);	This->N2 = (*n2);	This->N3 = (*n3);
-				This->T1 = (*t1);	This->T2 = (*t2);	This->T3 = (*t3);
-				This->BT1 = (*bt1);	This->BT2 = (*bt2);	This->BT3 = (*bt3);
+				This->S1		= s1;	This->S2		= s2;	This->S3		= s3;
+				This->UVP1	= uvp1;	This->UVP2	= uvp2;	This->UVP3	= uvp3;
+				This->UVN1	= uvn1;	This->UVN2	= uvn2;	This->UVN3	= uvn3;
+				This->N1		= n1;	This->N2		= n2;	This->N3		= n3;
+				This->T1		= t1;	This->T2		= t2;	This->T3		= t3;
+				This->BT1	= bt1;	This->BT2	= bt2;	This->BT3	= bt3;
 			}
 			else if(Vector_LexLessThan(s1, s3))
 			{
-				This->S1 = (*s1);	This->S2 = (*s3);	This->S3 = (*s2);
-				This->UVP1 = (*uvp1);	This->UVP2 = (*uvp3);	This->UVP3 = (*uvp2);
-				This->UVN1 = (*uvn1);	This->UVN2 = (*uvn3);	This->UVN3 = (*uvn2);
-				This->N1 = (*n1);	This->N2 = (*n3);	This->N3 = (*n2);
-				This->T1 = (*t1);	This->T2 = (*t3);	This->T3 = (*t2);
-				This->BT1 = (*bt1);	This->BT2 = (*bt3);	This->BT3 = (*bt2);
+				This->S1		= s1;	This->S2		= s3;	This->S3		= s2;
+				This->UVP1	= uvp1;	This->UVP2	= uvp3;	This->UVP3	= uvp2;
+				This->UVN1	= uvn1;	This->UVN2	= uvn3;	This->UVN3	= uvn2;
+				This->N1		= n1;	This->N2		= n3;	This->N3		= n2;
+				This->T1		= t1;	This->T2		= t3;	This->T3		= t2;
+				This->BT1	= bt1;	This->BT2	= bt3;	This->BT3	= bt2;
 			}
 			else
 			{
-				This->S1 = (*s3);	This->S2 = (*s1);	This->S3 = (*s2);
-				This->UVP1 = (*uvp3);	This->UVP2 = (*uvp1);	This->UVP3 = (*uvp2);
-				This->UVN1 = (*uvn3);	This->UVN2 = (*uvn1);	This->UVN3 = (*uvn2);
-				This->N1 = (*n3);	This->N2 = (*n1);	This->N3 = (*n2);
-				This->T1 = (*t3);	This->T2 = (*t1);	This->T3 = (*t2);
-				This->BT1 = (*bt3);	This->BT2 = (*bt1);	This->BT3 = (*bt2);
+				This->S1 = s3;	This->S2 = s1;	This->S3 = s2;
+				This->UVP1 = uvp3;	This->UVP2 = uvp1;	This->UVP3 = uvp2;
+				This->UVN1 = uvn3;	This->UVN2 = uvn1;	This->UVN3 = uvn2;
+				This->N1 = n3;	This->N2 = n1;	This->N3 = n2;
+				This->T1 = t3;	This->T2 = t1;	This->T3 = t2;
+				This->BT1 = bt3;	This->BT2 = bt1;	This->BT3 = bt2;
 			}
 		}
 		else
 		{
 			if(Vector_LexLessThan(s1, s3))
 			{
-				This->S1 = (*s2);	This->S2 = (*s1);	This->S3 = (*s3);
-				This->UVP1 = (*uvp2);	This->UVP2 = (*uvp1);	This->UVP3 = (*uvp3);
-				This->UVN1 = (*uvn2);	This->UVN2 = (*uvn1);	This->UVN3 = (*uvn3);
-				This->N1 = (*n2);	This->N2 = (*n1);	This->N3 = (*n3);
-				This->T1 = (*t2);	This->T2 = (*t1);	This->T3 = (*t3);
-				This->BT1 = (*bt2);	This->BT2 = (*bt1);	This->BT3 = (*bt3);
+				This->S1 = s2;	This->S2 = s1;	This->S3 = s3;
+				This->UVP1 = uvp2;	This->UVP2 = uvp1;	This->UVP3 = uvp3;
+				This->UVN1 = uvn2;	This->UVN2 = uvn1;	This->UVN3 = uvn3;
+				This->N1 = n2;	This->N2 = n1;	This->N3 = n3;
+				This->T1 = t2;	This->T2 = t1;	This->T3 = t3;
+				This->BT1 = bt2;	This->BT2 = bt1;	This->BT3 = bt3;
 			}
 			else if(Vector_LexLessThan(s2, s3))
 			{
-				This->S1 = (*s2);	This->S2 = (*s3);	This->S3 = (*s1);
-				This->UVP1 = (*uvp2);	This->UVP2 = (*uvp3);	This->UVP3 = (*uvp1);
-				This->UVN1 = (*uvn2);	This->UVN2 = (*uvn3);	This->UVN3 = (*uvn1);
-				This->N1 = (*n2);	This->N2 = (*n3);	This->N3 = (*n1);
-				This->T1 = (*t2);	This->T2 = (*t3);	This->T3 = (*t1);
-				This->BT1 = (*bt2);	This->BT2 = (*bt3);	This->BT3 = (*bt1);
+				This->S1 = s2;	This->S2 = s3;	This->S3 = s1;
+				This->UVP1 = uvp2;	This->UVP2 = uvp3;	This->UVP3 = uvp1;
+				This->UVN1 = uvn2;	This->UVN2 = uvn3;	This->UVN3 = uvn1;
+				This->N1 = n2;	This->N2 = n3;	This->N3 = n1;
+				This->T1 = t2;	This->T2 = t3;	This->T3 = t1;
+				This->BT1 = bt2;	This->BT2 = bt3;	This->BT3 = bt1;
 			}
 			else
 			{
-				This->S1 = (*s3);	This->S2 = (*s2);	This->S3 = (*s1);
-				This->UVP1 = (*uvp3);	This->UVP2 = (*uvp2);	This->UVP3 = (*uvp1);
-				This->UVN1 = (*uvn3);	This->UVN2 = (*uvn2);	This->UVN3 = (*uvn1);
-				This->N1 = (*n3);	This->N2 = (*n2);	This->N3 = (*n1);
-				This->T1 = (*t3);	This->T2 = (*t2);	This->T3 = (*t1);
-				This->BT1 = (*bt3);	This->BT2 = (*bt2);	This->BT3 = (*bt1);
+				This->S1 = s3;	This->S2 = s2;	This->S3 = s1;
+				This->UVP1 = uvp3;	This->UVP2 = uvp2;	This->UVP3 = uvp1;
+				This->UVN1 = uvn3;	This->UVN2 = uvn2;	This->UVN3 = uvn1;
+				This->N1 = n3;	This->N2 = n2;	This->N3 = n1;
+				This->T1 = t3;	This->T2 = t2;	This->T3 = t1;
+				This->BT1 = bt3;	This->BT2 = bt2;	This->BT3 = bt1;
 			}
 		}
 
@@ -943,7 +1074,7 @@ namespace PathTracerNS
 		This->BT2 = normalize(This->BT2);
 		This->BT3 = normalize(This->BT3);
 
-		RTASSERT(Vector_LexLessThan(&This->S1, &This->S2) && Vector_LexLessThan(&This->S2, &This->S3));
+		RTASSERT(Vector_LexLessThan(This->S1, This->S2) && Vector_LexLessThan(This->S2, This->S3));
 	};
 
 

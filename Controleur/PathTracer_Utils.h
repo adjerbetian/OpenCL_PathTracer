@@ -145,11 +145,11 @@ namespace PathTracerNS
 
 	//	Vector
 
-	inline float Vector_SquaredNorm			(Float4 const	*This)					{ return dot(*This, *This);};
-	inline float Vector_SquaredDistanceTo	(Float4 const	*This, Float4 const *v)	{ Float4 temp = (*v) - ((*This)); return Vector_SquaredNorm(&temp);};
-	inline bool	 Vector_LexLessThan			(Float4 const	*This, Float4 const *v)	{ return ( (*This).x < (*v).x ) || ( ((*This).x == (*v).x) && ((*This).y < (*v).y) ) || ( ((*This).x == (*v).x) && ((*This).y == (*v).y) && ((*This).z < (*v).z) );};
-	inline float Vector_Max					(Float4 const	*This)					{ return std::max<float>((*This).x, std::max<float>((*This).y, (*This).z));};
-	inline float Vector_Mean				(Float4 const	*This)					{ return ( (*This).x + (*This).y + (*This).z ) / 3;};
+	inline float Vector_SquaredNorm			(Float4 const &This)					{ return dot(This, This);};
+	inline float Vector_SquaredDistanceTo	(Float4 const &This, Float4 const& v)	{ return Vector_SquaredNorm(v - (This));};
+	inline bool	 Vector_LexLessThan			(Float4 const &This, Float4 const& v)	{ return ( This.x < v.x ) || ( (This.x == v.x) && (This.y < v.y) ) || ( (This.x == v.x) && (This.y == v.y) && (This.z < v.z) );};
+	inline float Vector_Max					(Float4 const &This)					{ return std::max<float>(This.x, std::max<float>(This.y, This.z));};
+	inline float Vector_Mean				(Float4 const &This)					{ return ( This.x + This.y + This.z ) / 3;};
 
 	inline void Vector_PutInSameHemisphereAs( Float4 *This, Float4 const *N)
 	{

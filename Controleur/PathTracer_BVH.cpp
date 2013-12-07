@@ -140,7 +140,7 @@ namespace PathTracerNS
 			return currentIndex+1;
 		}
 
-		if( Vector_SquaredDistanceTo(&N->centroidsAABB.pMax, &N->centroidsAABB.pMin) < const__leafMinDiagLength )
+		if( Vector_SquaredDistanceTo(N->centroidsAABB.pMax, N->centroidsAABB.pMin) < const__leafMinDiagLength )
 		{
 			N->isLeaf = true;
 			N->comments = NODE_LEAF_MIN_DIAG;

@@ -132,14 +132,14 @@ namespace PathTracerNS
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-	inline void	BoundingBox_Create ( BoundingBox *This, Float4 const *s1, Float4 const *s2, Float4 const *s3)
+	inline void	BoundingBox_Create ( BoundingBox& This, Float4 const& s1, Float4 const& s2, Float4 const& s3)
 	{
-		This->isEmpty = false;
+		This.isEmpty = false;
 
-		This->pMin = ppmin(ppmin(*s1, *s2), *s3);
-		This->pMax = ppmax(ppmax(*s1, *s2), *s3);
+		This.pMin = ppmin(ppmin(s1, s2), s3);
+		This.pMax = ppmax(ppmax(s1, s2), s3);
 
-		This->centroid = (This->pMin + This->pMax) / 2;
+		This.centroid = (This.pMin + This.pMax) / 2;
 	}
 
 	inline int BoundingBox_WidestDim ( BoundingBox const *This )

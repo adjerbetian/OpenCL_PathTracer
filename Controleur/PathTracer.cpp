@@ -50,7 +50,9 @@ namespace PathTracerNS
 	uint				 global__imageHeight			= 0;		// Hauteur de l'image de rendu
 	uint				 global__imageSize				= 0;		// Largeur * Hauteur
 	RGBAColor			*global__imageColor				= NULL;		// Somme des couleurs rendues
-	uint				*global__imageRayNb				= NULL;		// Nombre de rayons ayant contribué aux pixels
+	uint				*global__imageRayNb				= NULL;		// Nombre de rayons ayant contribue aux pixels
+	uint				*global__imageRayDepth			= NULL;		// Depth of the ray at each pixel
+	uint				*global__rayDepths				= NULL;		// Number of ray for each depth
 
 
 	////////////////////////////////////////////////////////////////////////////////////
@@ -119,6 +121,8 @@ namespace PathTracerNS
 			global__imageSize			,
 			global__imageColor			,
 			global__imageRayNb			,
+			global__imageRayDepth		,
+			global__rayDepths			,
 			global__bvhMaxDepth			,
 
 			&global__sky
@@ -132,6 +136,8 @@ namespace PathTracerNS
 			global__imageSize			,
 			global__imageColor			,
 			global__imageRayNb			,
+			global__imageRayDepth		,
+			global__rayDepths			,
 			&PathTracer_UpdateWindow	,
 			numImagesToRender
 			);
@@ -200,13 +206,19 @@ namespace PathTracerNS
 
 		RTASSERT(global__imageWidth > 0 && global__imageHeight > 0);
 
-		global__imageColor = new RGBAColor[global__imageWidth*global__imageHeight];
-		global__imageRayNb = new uint[global__imageWidth*global__imageHeight];
+		global__imageColor		= new RGBAColor[global__imageWidth*global__imageHeight];
+		global__imageRayNb		= new uint[global__imageWidth*global__imageHeight];
+		global__imageRayDepth	= new uint[global__imageWidth*global__imageHeight];
+		global__rayDepths		= new uint[MAX_REFLECTION_NUMBER+1];
+
+		for(int x=0; x<MAX_REFLECTION_NUMBER+1; x++)
+			global__rayDepths[x] = 0;
 
 		for(uint x=0; x<global__imageSize; x++)
 		{
 			global__imageColor[x] = RGBAColor(0,0,0,0);
-			global__imageRayNb[x] = 0;
+			global__imageRayNb   [x] = 0;
+			global__imageRayDepth[x] = 0;
 		}
 	}
 
@@ -269,6 +281,8 @@ namespace PathTracerNS
 
 		delete[] global__imageColor;
 		delete[] global__imageRayNb;
+		delete[] global__imageRayDepth;
+		delete[] global__rayDepths;
 
 		delete[] global__bvh;
 		delete[] global__triangulation;

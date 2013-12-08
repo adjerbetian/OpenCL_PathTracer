@@ -1188,8 +1188,11 @@ __kernel void Kernel_Main(
 
 	uint     global__lightsSize,
 
-	float4	__global			*global__imageColor,
-	uint	__global			*global__imageRayNb,
+	volatile float4	__global *global__imageColor,
+	volatile uint	__global *global__imageRayNb,
+	volatile uint	__global *global__imageRayDepth,
+	volatile uint	__global *global__rayDepths,
+
 	void	__global	const	*global__void__bvh,
 	void	__global	const	*global__void__triangulation,
 	void	__global	const	*global__void__lights,
@@ -1314,7 +1317,9 @@ __kernel void Kernel_Main(
 	}
 
 	// Si le rayon est termine
-	global__imageRayNb[globalImageOffset]++;
-	global__imageColor[globalImageOffset] += radianceToCompute;
+	atomic_inc(&global__imageRayNb[globalImageOffset]);
+	atomic_add(global__imageRayDepth, reflectionId);
+	atomic_inc(&global__rayDepths[reflectionId]);
 
+	global__imageColor[globalImageOffset] += radianceToCompute;
 }

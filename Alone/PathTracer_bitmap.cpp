@@ -37,8 +37,14 @@ namespace PathTracerNS
 		return true;
 	}
 
-	BYTE* LoadBMP ( int* width, int* height, long* size, LPCTSTR bmpfile )
+	BYTE* LoadBMP ( int* width, int* height, long* size, char* filePath )
 	{
+		// Creation of the LPCTSTR bmpfile
+		int cubeMapPathLength = strlen( filePath );
+		wchar_t *cubeMapPathWChr = new wchar_t[cubeMapPathLength];
+		MultiByteToWideChar(0, 0, filePath, cubeMapPathLength + 1, cubeMapPathWChr, cubeMapPathLength + 1);
+		LPCTSTR bmpfile = cubeMapPathWChr;
+
 		BITMAPFILEHEADER bmpheader;
 		BITMAPINFOHEADER bmpinfo;
 		DWORD bytesread;

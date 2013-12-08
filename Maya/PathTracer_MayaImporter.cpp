@@ -366,7 +366,7 @@ namespace PathTracerNS
 
 		int shaderLength = Shaders.length();
 		if(Shaders.length() != 1)
-			CONSOLE << "WARNING : the material " << fnMesh.name() << " has more than one or no material. We will take only the first." << ENDL;
+			CONSOLE << "WARNING : the mesh " << fnMesh.name() << " has more than one or no material. We will take only the first." << ENDL;
 
 		MString shaderName = GetShaderName( Shaders[0] );
 
@@ -703,8 +703,19 @@ namespace PathTracerNS
 		long int size;
 
 		// We load the sky bmp file
-		LPCTSTR filePath = L"C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\cubemap.bmp";
-		uchar* sky = (uchar *) LoadBMP(&fullWidth,&fullHeight,&size, filePath);
+		uchar* sky = (uchar *) LoadBMP(&fullWidth,&fullHeight,&size, PATHTRACER_SCENE_FOLDER"cubemap.bmp");
+
+		if(sky == NULL)
+		{
+			CONSOLE << "ERROR : cannot open cube map. Creating a black sky." << ENDL;
+			// we create a black cube map
+			fullWidth = 4;
+			fullHeight = 3;
+			sky = new uchar[3*(3*4)]; 
+			for(int i=0; i<3*(3*4); i++)
+				sky[i] = 0;
+		}
+
 
 		// We store the width of the texture (it is a cube map)
 		const uint texWidth = fullWidth/4;

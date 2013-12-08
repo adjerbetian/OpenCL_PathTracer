@@ -20,6 +20,8 @@ namespace PathTracerNS
 		uint		global__imageSize,
 		RGBAColor	*global__imageColor,
 		uint		*global__imageRayNb,
+		uint		*global__imageRayDepth,
+		uint		*global__rayDepths,
 		bool		(*UpdateWindowFunc)(void),
 		uint		numImagesToRender = 1
 		);
@@ -27,8 +29,8 @@ namespace PathTracerNS
 
 	bool	OpenCL_InitializeMemory		(
 		Float4		const	global__cameraDirection		,
-		Float4		const	global__cameraRight		,
-		Float4		const	global__cameraUp		,
+		Float4		const	global__cameraRight			,
+		Float4		const	global__cameraUp			,
 		Float4		const	global__cameraPosition		,
 
 		Node		const	*global__bvh				,
@@ -47,8 +49,10 @@ namespace PathTracerNS
 		uint		const	 global__imageWidth			,
 		uint		const	 global__imageHeight		,
 		uint		const	 global__imageSize			,
-		RGBAColor			*global__imageColor		,
-		uint				*global__imageRayNb		,
+		RGBAColor			*global__imageColor			,
+		uint				*global__imageRayNb			,
+		uint				*global__imageRayDepth		,
+		uint				*global__rayDepths			,
 		uint		const	 global__bvhMaxDepth		,
 
 		Sky			const	*global__sky				

@@ -1,5 +1,5 @@
 
-#include "C:\Users\Alexandre Djerbetian\documents\visual studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
+#include "C:\Users\djerbeti\documents\visual studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Utilitaires

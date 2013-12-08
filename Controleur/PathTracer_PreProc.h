@@ -7,8 +7,11 @@
 //							PARTIE SPECIFIQUE A LA MACHINE
 
 
-#define PATHTRACER_FOLDER "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\"
-#define PATHTRACER_SCENE_FOLDER "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\"
+//#define PATHTRACER_FOLDER "C:\\Users\\Alexandre Djerbetian\\Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\"
+//#define PATHTRACER_SCENE_FOLDER "C:\\Users\\Alexandre Djerbetian\\Pictures\\Maya\\"
+
+#define PATHTRACER_FOLDER "C:\\Users\\djerbeti\\Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\"
+#define PATHTRACER_SCENE_FOLDER "C:\\Users\\djerbeti\\Pictures\\Maya\\"
 
 /***********************************************************************************/
 

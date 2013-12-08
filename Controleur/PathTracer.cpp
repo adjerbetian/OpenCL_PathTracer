@@ -71,7 +71,7 @@ namespace PathTracerNS
 	/*	Fonction principale
 	 */
 
-	void PathTracer_Main(uint numImagesToRender, bool saveRenderedImages, bool loadSky)
+	void PathTracer_Main(uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
 	{
 		CONSOLE << ENDL;
 
@@ -86,10 +86,9 @@ namespace PathTracerNS
 		RTASSERT(global__bvhMaxDepth < BVH_MAX_DEPTH); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 		RTASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 
-		//	Si on veut exporter la scène, on décommente la ligne suivante
-#ifdef MAYA
-		PathTracer_Export();
-#endif
+		if(exportScene)
+			PathTracer_Export();
+
 		bool noError = true;
 
 		noError &= OpenCL_SetupContext();

@@ -40,21 +40,13 @@ namespace PathTracerNS
 		MItDag itCam(MItDag::kDepthFirst, MFn::kCamera);
 		bool cameraFound = false;
 
-		cout << "Looking for camera " << cameraName << " : ";
 		while(!itCam.isDone() && !cameraFound)
 		{
 			itCam.getPath(camera);
 			MFnCamera fn(camera);
-			if(fn.name() == cameraName)
-			{
-				cout << "found." << endl;
-				cameraFound = true;
-			}
+			cameraFound = fn.name() == cameraName;
 			itCam.next();
 		}
-
-		if(!cameraFound)
-			cout << "not found." << endl;
 
 		return cameraFound;
 	}
@@ -66,7 +58,10 @@ namespace PathTracerNS
 		MDagPath camera;
 
 		if(!GetCam(cameraName, camera))
+		{
+			CONSOLE << "WARNING : Camera \"" << cameraName << "\" was not found. Looking for persp camera. " << ENDL;
 			GetCam("perspShape", camera);
+		}
 
 		MFnCamera		fnCamera(camera);
 		MFnTransform	fnTransformCamera(camera);
@@ -247,8 +242,8 @@ namespace PathTracerNS
 
 					// Normals are:
 					Float4 n1 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[0] ) ] ) );
-					Float4 n2 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[0] ) ] ) );
-					Float4 n3 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[0] ) ] ) );
+					Float4 n2 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[1] ) ] ) );
+					Float4 n3 = permute_xyz_to_zxy( MVector( meshNormals[ itPolygon.normalIndex( localIndex[2] ) ] ) );
 
 					// --------  Get UVs  --------
 
@@ -377,7 +372,10 @@ namespace PathTracerNS
 
 		// If no material associated or unknown material, return standart material
 		if(shaderName == "none")
+		{
+			CONSOLE << "ERROR : MATERIAL \"none\" for " << fnMesh.name() << ENDL;
 			return 0;
+		}
 
 		//Looking for the material
 		if(MaterialNameId.find(shaderName.asChar()) != MaterialNameId.end())
@@ -461,6 +459,7 @@ namespace PathTracerNS
 		MPlugArray plugs;
 		p.connectedTo(plugs,true,false);
 		fn.findPlug("color").connectedTo(plugs,true,false);
+		//fn.findPlug("outColor").connectedTo(plugs,true,false);
 		uint plugsLength = plugs.length();
 
 		// see if any file textures are present
@@ -828,7 +827,7 @@ namespace PathTracerNS
 		This->isSimpleColor = true;
 		This->hasAlphaMap = false;
 		This->opacity = 1;
-		This->simpleColor = RGBAColor(1,1,1,0)*0.8f;
+		This->simpleColor = RGBAColor(1,0,0,0)*0.8f;
 	}
 
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)

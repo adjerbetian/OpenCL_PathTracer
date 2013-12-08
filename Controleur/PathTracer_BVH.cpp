@@ -113,10 +113,10 @@ namespace PathTracerNS
 		//	Paramètres utilisés pour la  construction du BVH
 
 		static const float		const__KI					= 1;
-		static const float		const__KT					= 0.00001f;
+		static const float		const__KT					= 0.01f;
 		static const size_t		const__leafMaxSize			= 4;					// Nombre maximum de triangles dans une feuille
-		static const float		const__leafMinDiagLength	= 0.000001f;			// Taille minimale de la diagonale de la Bounding Box des centroids
-		static const size_t		const__K					= 16;					// Nombre de plans testes
+		static const float		const__leafMinDiagLength	= 0.001f;				// Taille minimale de la diagonale de la Bounding Box des centroids
+		static const size_t		const__K					= 64;					// Nombre de plans testes
 
 		static uint currentDepth = 0;
 

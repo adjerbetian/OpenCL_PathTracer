@@ -25,7 +25,7 @@ namespace PathTracerNS
 
 	void	PathTracer_SetImporter				(PathTracerImporter* importer);
 
-	void	PathTracer_Main						(uint numImagesToRender, bool saveRenderedImages, bool loadSky);
+	void	PathTracer_Main						(uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene);
 	void	PathTracer_Initialize				(bool saveRenderedImages, bool loadSky);
 	void	PathTracer_InitializeImage			();
 	void	PathTracer_InitializeWindow			(bool saveRenderedImages);

@@ -613,7 +613,11 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
+	//return This->N;
 	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
+	//if(get_global_id(0) == 500 && get_global_id(1) == 500)
+	//	printf("N1 : %v4f \nN2 : %v4f \nN3 : %v4f\n", This->N1, This->N2, This->N3);
+	//float4 smoothNormal = normalize( (This->N2 * s) );
 	if(positiveNormal)
 		return smoothNormal;
 	return -smoothNormal;
@@ -1272,7 +1276,7 @@ __kernel void Kernel_Main(
 			Ns = normalize(Ns);
 			ASSERT("Kernel_Main incorrect normals", dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
-			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ng);
+			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ns);
 			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			reflectionId++;
 		}

@@ -21,10 +21,11 @@ MStatus RayTracer::doIt(const MArgList& argList)
 
 	bool saveRenderedImages = argList.asBool(1);
 	bool loadSky = true;
+	bool exportScene = false;
 
 	clock_t start = clock();
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerMayaImporter());
-	PathTracerNS::PathTracer_Main(numImageToRender, saveRenderedImages, loadSky);
+	PathTracerNS::PathTracer_Main(numImageToRender, saveRenderedImages, loadSky, exportScene);
 
 	double timing = (clock() - start)/1000.0;
 

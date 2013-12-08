@@ -303,15 +303,21 @@ namespace PathTracerNS
 		char device_name[128] = {0};
 		const bool runOnGPU = false;
 
-		if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
-		else		 printf("Trying to run on a CPU \n");
+		//if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
+		//else		 printf("Trying to run on a CPU \n");
 
-		cl_platform_id platform_id = OpenCL_GetPlatform("Intel(R) OpenCL");
-		//cl_platform_id platform_id = OpenCL_GetPlatform("AMD Accelerated Parallel Processing");
+		char const* platformName1 = "Intel(R) OpenCL";
+		char const* platformName2 = "AMD Accelerated Parallel Processing";
+
+		cl_platform_id platform_id = OpenCL_GetPlatform(platformName1);
 		if( platform_id == NULL )
 		{
-			printf("ERROR: Failed to find Intel OpenCL platform.\n");
-			return false;
+			platform_id = OpenCL_GetPlatform(platformName2);
+			if( platform_id == NULL )
+			{
+				printf("ERROR: Failed to find requested platforms. Stopping.\n");
+				return false;
+			}
 		}
 
 		cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, NULL };
@@ -381,15 +387,13 @@ namespace PathTracerNS
 			printf("ERROR: Failed to get device information (device name)...\n");
 			return false;
 		}
-		printf("Using device %s...\n", device_name);
-
 		err = clGetDeviceInfo(device_ID, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &num_cores, NULL);
 		if (err!=CL_SUCCESS)
 		{
 			printf("ERROR: Failed to get device information (max compute units)...\n");
 			return false;
 		}
-		printf("Using %d compute units...\n", num_cores);
+		printf("Using device %s and using %d compute units.\n", device_name, num_cores);
 
 		return true; // success...
 	}

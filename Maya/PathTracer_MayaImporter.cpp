@@ -997,7 +997,7 @@ namespace PathTracerNS
 		This->BT2 = normalize(This->BT2);
 		This->BT3 = normalize(This->BT3);
 
-		RTASSERT(Vector_LexLessThan(This->S1, This->S2) && Vector_LexLessThan(This->S2, This->S3));
+		ASSERT(Vector_LexLessThan(This->S1, This->S2) && Vector_LexLessThan(This->S2, This->S3));
 	};
 
 

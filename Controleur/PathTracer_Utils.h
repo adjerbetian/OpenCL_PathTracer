@@ -7,6 +7,7 @@
 #include <sstream>
 
 
+
 namespace PathTracerNS
 {
 
@@ -157,7 +158,7 @@ namespace PathTracerNS
 		if( dotProd < 0.001f )
 			(*This) += (*N) * (0.01f - dotProd);
 
-		RTASSERT( dot(*This, *N) > 0.0f);
+		ASSERT( dot(*This, *N) > 0.0f);
 	};
 
 

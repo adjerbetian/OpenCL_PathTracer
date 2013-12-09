@@ -6,6 +6,8 @@
 #include <ctime>
 #include <sstream>
 
+mstream console;
+
 namespace PathTracerNS
 {
 
@@ -85,8 +87,8 @@ namespace PathTracerNS
 
 		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
 
-		RTASSERT(global__bvhMaxDepth < BVH_MAX_DEPTH); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
-		RTASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
+		ASSERT(global__bvhMaxDepth < BVH_MAX_DEPTH); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
+		ASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 
 		if(exportScene)
 			PathTracer_Export();
@@ -204,7 +206,7 @@ namespace PathTracerNS
 	{
 		// Les données OpenCL sont prévues pour une image de taille 1280 x 720
 
-		RTASSERT(global__imageWidth > 0 && global__imageHeight > 0);
+		ASSERT(global__imageWidth > 0 && global__imageHeight > 0);
 
 		global__imageColor		= new RGBAColor[global__imageWidth*global__imageHeight];
 		global__imageRayNb		= new uint[global__imageWidth*global__imageHeight];

@@ -42,7 +42,7 @@ namespace PathTracerNS
 
 	void BVH_CreateNode( Node *This, int _triangleStartIndex, int _nTriangles, BoundingBox const *_trianglesAABB, BoundingBox const *_centroidsAABB, Triangle *triangulation)
 	{
-		RTASSERT(This != NULL);
+		ASSERT(This != NULL);
 		This->triangleStartIndex = _triangleStartIndex;
 		This->nbTriangles = _nTriangles;
 		This->son1Id = 0;
@@ -197,7 +197,7 @@ namespace PathTracerNS
 				else if(cutAxis == 1)	triangleBin = (int) (k1[cutAxis]*(triangulation[i].AABB.centroid.y - N->centroidsAABB.pMin.y));
 				else					triangleBin = (int) (k1[cutAxis]*(triangulation[i].AABB.centroid.z - N->centroidsAABB.pMin.z));
 
-				RTASSERT( triangleBin < const__K );
+				ASSERT( triangleBin < const__K );
 
 				elementaryNTriangles[cutAxis][triangleBin]++;
 				BoundingBox_UniteWith( &elementaryBoundingBoxes[cutAxis][triangleBin], &triangulation[i].AABB );

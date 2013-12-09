@@ -2,6 +2,7 @@
 #define PATHTRACER_PATHTRACERLUMENRTIMPORTER
 
 #include "../Controleur/PathTracer_Importer.h"
+
 #include <maya/MString.h>
 #include <maya/MDagPath.h>
 #include <maya/MPoint.h>
@@ -39,10 +40,10 @@ namespace PathTracerNS
 	{
 	public :
 
-		PathTracerMayaImporter():PathTracerImporter() {}
+		PathTracerMayaImporter():PathTracerImporter(){}
 
 
-		virtual bool Import				(bool loadSky);
+		virtual bool Import						(uint image_width, uint image_height, bool loadSky);
 
 		void ImportMesh							();
 		void ImportMaterials					();
@@ -50,7 +51,7 @@ namespace PathTracerNS
 		void ImportLights						();
 		int  LoadSkyAndAllocateTextureMemory	(bool loadSky);
 
-		void SetCam						();
+		void SetCam						(uint image_width, uint image_height);
 		bool GetCam						(const MString &cameraName, MDagPath &camera);
 
 		int			CountObject			(MFn::Type objType);

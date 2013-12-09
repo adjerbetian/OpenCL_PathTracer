@@ -18,7 +18,7 @@ namespace PathTracerNS
 	public:
 
 		PathTracerFileImporter();
-		virtual bool Import(bool loadSky);
+		virtual bool Import(uint image_width, uint image_height, bool loadSky);
 		void Export();
 
 		static const std::string fileSizesPath;

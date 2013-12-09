@@ -33,8 +33,6 @@ namespace PathTracerNS
 			nWritte = fwrite(ptr__global__materiauxSize		, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__texturesSize		, sizeof(uint), 1, fichier);
 			nWritte = fwrite(ptr__global__texturesDataSize	, sizeof(uint), 1, fichier);
-			nWritte = fwrite(ptr__global__imageWidth		, sizeof(uint), 1, fichier);
-			nWritte = fwrite(ptr__global__imageHeight		, sizeof(uint), 1, fichier);
 
 			fclose(fichier);
 		}
@@ -67,7 +65,7 @@ namespace PathTracerNS
 
 
 
-	bool PathTracerFileImporter::Import(bool loadSky)
+	bool PathTracerFileImporter::Import(uint image_width, uint image_height, bool loadSky)
 	{
 		FILE* fichierSizes = NULL,
 			* fichierPtr   = NULL,
@@ -98,8 +96,8 @@ namespace PathTracerNS
 		nRead = fread(ptr__global__materiauxSize	, sizeof(uint), 1, fichierSizes);
 		nRead = fread(ptr__global__texturesSize		, sizeof(uint), 1, fichierSizes);
 		nRead = fread(ptr__global__texturesDataSize	, sizeof(uint), 1, fichierSizes);
-		nRead = fread(ptr__global__imageWidth		, sizeof(uint), 1, fichierSizes);
-		nRead = fread(ptr__global__imageHeight		, sizeof(uint), 1, fichierSizes);
+		*ptr__global__imageWidth = image_width;
+		*ptr__global__imageHeight = image_height;
 
 		fclose(fichierSizes);
 

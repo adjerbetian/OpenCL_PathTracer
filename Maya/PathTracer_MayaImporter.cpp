@@ -21,9 +21,9 @@
 namespace PathTracerNS
 {
 
-	bool PathTracerMayaImporter::Import(bool loadSky)
+	bool PathTracerMayaImporter::Import(uint image_width, uint image_height, bool loadSky)
 	{
-		SetCam();
+		SetCam(image_width, image_height);
 		ImportTexturesAndSky(loadSky);
 		ImportMaterials();
 		ImportMesh();
@@ -52,7 +52,7 @@ namespace PathTracerNS
 	}
 
 
-	void PathTracerMayaImporter::SetCam()
+	void PathTracerMayaImporter::SetCam(uint image_width, uint image_height)
 	{
 		const MString cameraName = "raytraceCamShape";
 		MDagPath camera;
@@ -75,8 +75,8 @@ namespace PathTracerNS
 
 
 
-		*ptr__global__imageWidth = 1280;
-		*ptr__global__imageHeight = 720;
+		*ptr__global__imageWidth = image_width;
+		*ptr__global__imageHeight = image_height;
 
 		Up /= (float) (*ptr__global__imageWidth) / (float) (*ptr__global__imageHeight); 
 
@@ -675,8 +675,8 @@ namespace PathTracerNS
 
 	int PathTracerMayaImporter::LoadSkyAndAllocateTextureMemory(bool loadSky)
 	{
-		ptr__global__sky->cosRotationAngle = 0.5f;
-		ptr__global__sky->sinRotationAngle = 0.86602540378f;
+		ptr__global__sky->cosRotationAngle = 1;
+		ptr__global__sky->sinRotationAngle = 0;
 		ptr__global__sky->exposantFactorX = 0;
 		ptr__global__sky->exposantFactorY = 0;
 		ptr__global__sky->groundScale = 1;

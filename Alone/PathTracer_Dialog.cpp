@@ -41,7 +41,11 @@ namespace PathTracerNS
 
 			long newBufferSize = 0;
 			BYTE* buffer = ConvertRGBAToBMPBuffer(imageColor, imageRay, pathTracerWidth, pathTracerHeight, &newBufferSize);
-			SaveBMP(buffer, pathTracerWidth, pathTracerHeight, newBufferSize, filePath);
+			if(!SaveBMP(buffer, pathTracerWidth, pathTracerHeight, newBufferSize, filePath))
+			{
+				CONSOLE << "WARNING : unable to save rendered picture in the folder \"" << exportFolderPath << "\". Aborting saving." << ENDL;
+				saveRenderedImages = false;
+			}
 			delete[] buffer;
 		}
 

@@ -73,7 +73,7 @@ namespace PathTracerNS
 	/*	Fonction principale
 	 */
 
-	void PathTracer_Main(uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
+	void PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
 	{
 		CONSOLE << ENDL;
 
@@ -81,7 +81,7 @@ namespace PathTracerNS
 		CONSOLE << "                          PATH TRACER" << ENDL;
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 
-		PathTracer_Initialize(saveRenderedImages, loadSky);
+		PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky);
 
 		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
 
@@ -150,7 +150,7 @@ namespace PathTracerNS
 	/*	Gestion des différents initialiseurs
 	*/
 
-	void PathTracer_Initialize(bool saveRenderedImages, bool loadSky)
+	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky)
 	{
 		global__importer->Initialize(
 			&global__cameraDirection,
@@ -173,7 +173,7 @@ namespace PathTracerNS
 			&global__sky
 			);
 
-		if(!global__importer->Import(loadSky))
+		if(!global__importer->Import(image_width, image_height, loadSky))
 		{
 			system("pause");
 			exit(1);

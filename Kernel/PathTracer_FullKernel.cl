@@ -597,17 +597,6 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 	ASSERT("Triangle_GetColorValueAt material has invalid texture index.", mat.textureId >= 0);
 
 	float2 uvText = positiveNormal ? (This->UVP1*(1-s-t)) + (This->UVP2*s) + (This->UVP3*t) : (This->UVN1*(1-s-t)) + (This->UVN2*s) + (This->UVN3*t);
-
-	if(!positiveNormal && get_global_id(0) == 0 && get_global_id(1) == 0)
-	{
-		printf("Triangle_GetColorValueAt :\n");
-		printf("\tUVN1 = %v2f\n", This->UVN1);
-		printf("\tUVN2 = %v2f\n", This->UVN2);
-		printf("\tUVN3 = %v2f\n", This->UVN3);
-		printf("\t(s,t) = %v2f\n", (float2)(s,t));
-	}
-
-
 	return Texture_GetPixelColorValue( &global__textures[mat.textureId], global__texturesData, uvText.x, uvText.y );
 }
 

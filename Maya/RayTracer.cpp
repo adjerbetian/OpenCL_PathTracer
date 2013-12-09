@@ -4,6 +4,10 @@
 #include <maya/MGlobal.h>
 #include <ctime>
 
+#include <Windows.h>
+#include <Mmsystem.h>
+#pragma comment(lib, "winmm.lib")
+
 
 void* RayTracer::creator() 
 { 
@@ -54,7 +58,7 @@ MStatus RayTracer::doIt(const MArgList& argList)
 	bool exportScene = false;
 
 	bool saveRenderedImages = false;
-	bool loadSky = true;
+	bool loadSky = false;
 	uint image_width = 1920;
 	uint image_height = 1080;
 	uint numImageToRender = 1;
@@ -69,6 +73,8 @@ MStatus RayTracer::doIt(const MArgList& argList)
 
 	CONSOLE << "Time spend : " << timing << "s" << ENDL;
 	MGlobal::displayInfo("done.");
+
+	PlaySound(L"C:\\Windows\\Media\\notify.wav", NULL, SND_ASYNC );
 
 	return MS::kSuccess;
 }

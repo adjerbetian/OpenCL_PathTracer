@@ -376,10 +376,10 @@ inline float Light_PowerToward( Light const* This, float4 const* p, float4 const
 	{
 		float cosAngle = dot( normalize(*p - This->position) , This->direction);
 		if(cosAngle > This->cosOfInnerFallOffAngle)
-			return This->power / Vector_SquaredDistanceTo(&This->position, p) * dot(normalize(This->position - *p), *N);
+			return This->power * dot(normalize(This->position - *p), *N);
 		if(cosAngle < This->cosOfOuterFallOffAngle)
 			return 0.0f;
-		return This->power * (cosAngle - This->cosOfOuterFallOffAngle) / ( This->cosOfInnerFallOffAngle - This->cosOfOuterFallOffAngle ) / Vector_SquaredDistanceTo(&This->position, p) * dot(normalize(This->position - *p), *N);
+		return This->power * (cosAngle - This->cosOfOuterFallOffAngle) / ( This->cosOfInnerFallOffAngle - This->cosOfOuterFallOffAngle ) * dot(normalize(This->position - *p), *N);
 	}
 	return 0.f;
 }

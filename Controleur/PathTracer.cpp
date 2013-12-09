@@ -16,7 +16,7 @@ namespace PathTracerNS
 	//	Données d'import et d'affichage, dépendante du projet en Alone ou en LumenRT
 
 	PathTracerDialog	*global__window;				// Pointeur vers une fenêtre qui permet d'affichage du rendu
-	PathTracerImporter	*global__importer = NULL;		// Pointeur vers une instance dérivant de PathTracerImporter
+	PathTracerImporter	*global__importer = NULL;		// Pointeur vers une instance derivant de PathTracerImporter
 
 
 	//	Données de la scène :

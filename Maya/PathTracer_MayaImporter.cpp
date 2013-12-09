@@ -804,7 +804,7 @@ namespace PathTracerNS
 		l.cosOfInnerFallOffAngle	= 0;
 		l.cosOfOuterFallOffAngle	= 0;
 		l.direction					= Float4(0,0,0,1);
-		l.position					= permute_xyz_to_xzy(MPoint()*M);
+		l.position					= permute_xyz_to_zxy(MPoint()*M);
 		l.power						= fnLight.intensity();
 	};
 
@@ -823,10 +823,10 @@ namespace PathTracerNS
 	{
 		l.type						= LightType::LIGHT_SPOT;
 		l.color						= ToFloat4(fnLight.color());
-		l.cosOfInnerFallOffAngle	= (float) fnLight.penumbraAngle();
-		l.cosOfOuterFallOffAngle	= (float) fnLight.coneAngle();
-		l.direction					= normalize(ToFloat4(MVector(0,0,-1)*M));
-		l.position					= permute_xyz_to_xzy(MPoint()*M);
+		l.cosOfInnerFallOffAngle	= (float) cos(fnLight.coneAngle()/2);
+		l.cosOfOuterFallOffAngle	= (float) cos(fnLight.coneAngle()/2 + fnLight.penumbraAngle());
+		l.direction					= normalize(permute_xyz_to_zxy(MVector(0,0,-1)*M));
+		l.position					= permute_xyz_to_zxy(MPoint()*M);
 		l.power						= fnLight.intensity();
 	};
 
@@ -838,7 +838,7 @@ namespace PathTracerNS
 		This->isSimpleColor = true;
 		This->hasAlphaMap = false;
 		This->opacity = 1;
-		This->simpleColor = RGBAColor(1,0,0,0)*0.8f;
+		This->simpleColor = RGBAColor(0,0,0,0);
 	}
 
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)

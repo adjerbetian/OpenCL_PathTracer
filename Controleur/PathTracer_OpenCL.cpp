@@ -61,9 +61,7 @@ namespace PathTracerNS
 		cl_int errCode = 0;
 
 		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
-		//const size_t constGlobalWorkSize[2] = { 1 , 1 };
 		const size_t constLocalWorkSize[2]  = { 1, 1 };
-		//const size_t constLocalWorkSize[2]  = { 32, 1 };
 
 		cl_uint imageId = 0;
 

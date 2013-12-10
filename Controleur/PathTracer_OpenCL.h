@@ -20,10 +20,13 @@ namespace PathTracerNS
 		uint		global__imageSize,
 		RGBAColor	*global__imageColor,
 		uint		*global__imageRayNb,
-		uint		*global__imageRayDepth,
 		uint		*global__rayDepths,
+		uint		*global__rayIntersectedBBx,
+		uint		*global__rayIntersectedTri,
 		bool		(*UpdateWindowFunc)(void),
-		uint		numImagesToRender = 1
+		uint		numImagesToRender,
+		double*		pathTracingTime,
+		double*		displayTime
 		);
 
 
@@ -51,8 +54,9 @@ namespace PathTracerNS
 		uint		const	 global__imageSize			,
 		RGBAColor			*global__imageColor			,
 		uint				*global__imageRayNb			,
-		uint				*global__imageRayDepth		,
 		uint				*global__rayDepths			,
+		uint				*global__rayIntersectedBBx	,
+		uint				*global__rayIntersectedTri	,
 		uint		const	 global__bvhMaxDepth		,
 
 		Sky			const	*global__sky				

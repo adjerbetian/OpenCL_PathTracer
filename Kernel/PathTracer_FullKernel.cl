@@ -59,8 +59,10 @@ void PrefixSum_uint(uint __local volatile *values)
 ///						BOUNDING BOX
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const float squaredDistance)
+bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D *r, const float squaredDistance)
 {
+	r->intersectedBBx++;
+
 	if(This->isEmpty)
 		return false;
 
@@ -520,8 +522,10 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const
 ///						TRIANGLE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D const *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
+bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
 {
+	r->intersectedTri++;
+
 	// REMARQUE : Les triangles sont orientés avec la normale
 	//		--> Pas d'intersection si le rayon vient de derrière...
 
@@ -602,11 +606,7 @@ RGBAColor Triangle_GetColorValueAt(Texture __global const *global__textures, Mat
 
 float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float s, float t)
 {
-	//return This->N;
 	float4 smoothNormal = normalize( (This->N2 * s) + (This->N3 * t) + (This->N1 * (1 - s - t)) );
-	//if(get_global_id(0) == 500 && get_global_id(1) == 500)
-	//	printf("N1 : %v4f \nN2 : %v4f \nN3 : %v4f\n", This->N1, This->N2, This->N3);
-	//float4 smoothNormal = normalize( (This->N2 * s) );
 	if(positiveNormal)
 		return smoothNormal;
 	return -smoothNormal;
@@ -620,7 +620,7 @@ float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float
  *	La traversée de l'arbre se fait par paquet avec le groupe entier
  */
 
-bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
+bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
 {
 	float squaredDistance = INFINITY;
 
@@ -705,7 +705,7 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *int
 }
 
 
-bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float squaredDistance, RGBAColor *tint)
+bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squaredDistance, RGBAColor *tint)
 {
 	float4 *intersectionPoint = NULL;
 	Material *intersectedMaterial = NULL;
@@ -915,7 +915,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
  *			- Pour des scène en exterieur, il est préférable de tout le temps tester le soleil
  */
 
-RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N)
+RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *cameraRay, Material const *mat, const float4 *N)
 {
 	RGBAColor L		= RGBACOLOR(0,0,0,0);				//	Radiance à calculer
 	RGBAColor tint	= RGBACOLOR(1,1,1,1);				//	Teinte lors d'un shadow ray
@@ -958,6 +958,8 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 
 				if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
 					L += Light_PowerToward(&light, p, N) * BRDF * tint * light.color;
+				cameraRay->intersectedBBx += lightRay.intersectedBBx;
+				cameraRay->intersectedTri += lightRay.intersectedTri;
 			}
 		}
 	}
@@ -1118,16 +1120,15 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 	for(uint i = 0; i < global__lightsSize; i++)
 	{
 		light = global__lights[i];
-		Ray3D lightRay;
-		float4 fullRay = (*p) - light.position;
-		Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
-		Ray3D lightOpositeRay = Ray3D_Opposite(&lightRay);
 
-		G = - dot(lightRay.direction, *N ) * Light_PowerToward(&light, p, N); 	// = cos(angle) * power / d²
+		float4 lightRayDirection = normalize((*p) - light.position);
+		float4 lightOpositeRay = -lightRayDirection;
+
+		G = - dot(lightRayDirection, *N ) * Light_PowerToward(&light, p, N); 	// = cos(angle) * power / d²
 		if(G < 0)
 			G = 0;
 
-		BRDF = Material_BRDF(mat, &lightOpositeRay.direction, N, &cameraRay->direction);
+		BRDF = Material_BRDF(mat, &lightOpositeRay, N, &cameraRay->direction);
 
 		lightContributions[i] = G * BRDF;
 
@@ -1179,8 +1180,9 @@ __kernel void Kernel_Main(
 
 	volatile float4	__global *global__imageColor,
 	volatile uint	__global *global__imageRayNb,
-	volatile uint	__global *global__imageRayDepth,
 	volatile uint	__global *global__rayDepths,
+	volatile uint	__global *global__rayIntersectionBBx,
+	volatile uint	__global *global__rayIntersectionTri,
 
 	void	__global	const	*global__void__bvh,
 	void	__global	const	*global__void__triangulation,
@@ -1195,7 +1197,6 @@ __kernel void Kernel_Main(
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION
 	///////////////////////////////////////////////////////////////////////////////////////
-
 
 	Ray3D r;
 	int globalImageOffset;
@@ -1244,9 +1245,8 @@ __kernel void Kernel_Main(
 	Material intersectedMaterial;
 
 	bool activeRay = true;
-	int reflectionId = 0;
 
-	while(activeRay && reflectionId < MAX_REFLECTION_NUMBER)
+	while(activeRay && r.reflectionId < MAX_REFLECTION_NUMBER)
 	{
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
@@ -1265,12 +1265,13 @@ __kernel void Kernel_Main(
 			float4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,s,t);
 			float4 rOpositeDirection = - r.direction;
 			Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
+
 			Ns = normalize(Ns);
 			ASSERT("Kernel_Main incorrect normals", dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
 			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ns);
 			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
-			reflectionId++;
+			r.reflectionId++;
 		}
 		else // Sky
 		{
@@ -1294,9 +1295,9 @@ __kernel void Kernel_Main(
 			}
 		}
 
-		//if( RUSSIAN_ROULETTE && activeRay && reflectionId > MIN_REFLECTION_NUMBER )
+		//if( RUSSIAN_ROULETTE && activeRay && r.reflectionId > MIN_REFLECTION_NUMBER )
 		//{
-		//	float russianRouletteCoeff = maxContribution/(reflectionId - MIN_REFLECTION_NUMBER);
+		//	float russianRouletteCoeff = maxContribution/(r.reflectionId - MIN_REFLECTION_NUMBER);
 		//	if( russianRouletteCoeff < 1)
 		//	{
 		//		activeRay &= random(seed) > russianRouletteCoeff;
@@ -1307,8 +1308,17 @@ __kernel void Kernel_Main(
 
 	// Si le rayon est termine
 	atomic_inc(&global__imageRayNb[globalImageOffset]);
-	atomic_add(global__imageRayDepth, reflectionId);
-	atomic_inc(&global__rayDepths[reflectionId]);
+	atomic_inc(&global__rayDepths[r.reflectionId]);
+
+	if(r.intersectedBBx < MAX_INTERSETCION_NUMBER)
+		atomic_inc(&global__rayIntersectionBBx[r.intersectedBBx]);
+	else
+		PRINT_DEBUG_INFO2("global__rayIntersectionBBx to large", "r.intersectedBBx = %u", r.intersectedBBx);
+
+	if(r.intersectedTri < MAX_INTERSETCION_NUMBER)
+		atomic_inc(&global__rayIntersectionTri[r.intersectedTri]);
+	else
+		PRINT_DEBUG_INFO2("global__rayIntersectionTri to large", "r.intersectedTri = %u", r.intersectedTri);
 
 	global__imageColor[globalImageOffset] += radianceToCompute;
 }

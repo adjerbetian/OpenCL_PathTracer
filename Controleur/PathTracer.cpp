@@ -53,18 +53,14 @@ namespace PathTracerNS
 	uint				 global__imageSize				= 0;		// Largeur * Hauteur
 	RGBAColor			*global__imageColor				= NULL;		// Somme des couleurs rendues
 	uint				*global__imageRayNb				= NULL;		// Nombre de rayons ayant contribue aux pixels
-	uint				*global__imageRayDepth			= NULL;		// Depth of the ray at each pixel
 	uint				*global__rayDepths				= NULL;		// Number of ray for each depth
+	uint				*global__rayIntersectedBBx		= NULL;		// Number of ray for each number of BBx interstection
+	uint				*global__rayIntersectedTri		= NULL;		// Number of ray for each number of Tri interstection
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////   FONCTIONS    ///////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
-
-	/*	Permet de varier l'importateur :
-	 *		- Par exemple charger un fichier pré-enregistré
-	 *		- ou bien charger dynamiquement la scène depuis LumenRT
-	 */
 
 	void PathTracer_SetImporter(PathTracerImporter* importer)
 	{
@@ -72,29 +68,51 @@ namespace PathTracerNS
 	}
 
 
-	/*	Fonction principale
-	 */
-
 	void PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
 	{
 		CONSOLE << ENDL;
-
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE << "                          PATH TRACER" << ENDL;
+		CONSOLE << "                             PATH TRACER" << ENDL;
 		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+		CONSOLE << ENDL;
 
+		clock_t start;
+
+		double loadingTime;
+		double bvhBuildingTime;
+		double openclSettingTime;
+		double pathTracingTime;
+		double displayTime;
+
+		bool noError = true;
+
+
+
+		PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
 		PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky);
+		loadingTime = clock()-start;
 
+
+
+
+		PathTracer_PrintSection("BUILDING BVH"); start = clock();
 		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
+		bvhBuildingTime = clock()-start;
 
 		ASSERT(global__bvhMaxDepth < BVH_MAX_DEPTH); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 		ASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 
+
+
 		if(exportScene)
+		{
+			PathTracer_PrintSection("EXPORTING SCENE");
 			PathTracer_Export();
+		}
 
-		bool noError = true;
-
+		
+		
+		PathTracer_PrintSection("SETTING OPENCL CONTEXT"); start = clock();
 		noError &= OpenCL_SetupContext();
 
 		if(!noError) return ;
@@ -123,28 +141,42 @@ namespace PathTracerNS
 			global__imageSize			,
 			global__imageColor			,
 			global__imageRayNb			,
-			global__imageRayDepth		,
 			global__rayDepths			,
+			global__rayIntersectedBBx	,
+			global__rayIntersectedTri	,
 			global__bvhMaxDepth			,
 
 			&global__sky
 			);
 
 		if(!noError) return ;
+		openclSettingTime = clock()-start;
 
+		
+		
+		PathTracer_PrintSection("PATH TRACING");
 		noError &= OpenCL_RunKernel(
 			global__imageWidth			,
 			global__imageHeight			,
 			global__imageSize			,
 			global__imageColor			,
 			global__imageRayNb			,
-			global__imageRayDepth		,
 			global__rayDepths			,
+			global__rayIntersectedBBx	,
+			global__rayIntersectedTri	,
 			&PathTracer_UpdateWindow	,
-			numImagesToRender
+			numImagesToRender			,
+			&pathTracingTime			,
+			&displayTime
 			);
 
 		if(!noError) return ;
+		pathTracingTime	 = clock()-start;
+
+		
+		
+		PathTracer_PrintSection("STATISTICS");
+		PathTracer_ComputeStatistics(numImagesToRender, loadingTime, bvhBuildingTime, openclSettingTime, pathTracingTime, displayTime);
 
 		PathTracer_Clear();
 	}
@@ -175,17 +207,12 @@ namespace PathTracerNS
 			&global__sky
 			);
 
-		if(!global__importer->Import(image_width, image_height, loadSky))
-		{
-			system("pause");
-			exit(1);
-		}
+		global__importer->Import(image_width, image_height, loadSky);
 
 		PathTracer_InitializeImage();
 		PathTracer_InitializeWindow(saveRenderedImages);
 
 		PathTracer_PaintLoadingScreen();
-
 	}
 
 	/*	Crée un écran d'attente pour patientez pendant le traitement de la scène
@@ -208,19 +235,26 @@ namespace PathTracerNS
 
 		ASSERT(global__imageWidth > 0 && global__imageHeight > 0);
 
-		global__imageColor		= new RGBAColor[global__imageWidth*global__imageHeight];
-		global__imageRayNb		= new uint[global__imageWidth*global__imageHeight];
-		global__imageRayDepth	= new uint[global__imageWidth*global__imageHeight];
-		global__rayDepths		= new uint[MAX_REFLECTION_NUMBER+1];
+		global__imageColor			= new RGBAColor[global__imageWidth*global__imageHeight];
+		global__imageRayNb			= new uint[global__imageWidth*global__imageHeight];
+		global__rayDepths			= new uint[MAX_REFLECTION_NUMBER+1];
+		global__rayIntersectedBBx	= new uint[MAX_INTERSETCION_NUMBER];
+		global__rayIntersectedTri	= new uint[MAX_INTERSETCION_NUMBER];
 
 		for(int x=0; x<MAX_REFLECTION_NUMBER+1; x++)
+		{
 			global__rayDepths[x] = 0;
+		}
+		for(int x=0; x<MAX_INTERSETCION_NUMBER; x++)
+		{
+			global__rayIntersectedBBx[x] = 0;
+			global__rayIntersectedTri[x] = 0;
+		}
 
 		for(uint x=0; x<global__imageSize; x++)
 		{
 			global__imageColor[x] = RGBAColor(0,0,0,0);
 			global__imageRayNb   [x] = 0;
-			global__imageRayDepth[x] = 0;
 		}
 	}
 
@@ -283,8 +317,9 @@ namespace PathTracerNS
 
 		delete[] global__imageColor;
 		delete[] global__imageRayNb;
-		delete[] global__imageRayDepth;
 		delete[] global__rayDepths;
+		delete[] global__rayIntersectedBBx;
+		delete[] global__rayIntersectedTri;
 
 		delete[] global__bvh;
 		delete[] global__triangulation;
@@ -294,13 +329,58 @@ namespace PathTracerNS
 		delete[] global__texturesData;
 	}
 
+	void PathTracer_ComputeStatistics(uint numImageToRender, double loadingTime, double bvhBuildingTime, double openclSettingTime, double pathTracingTime, double displayTime)
+	{
+		unsigned long int numberOfShotRays = 0;
+		unsigned long int numberOfProcessedRays = 0;
+		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
+		{
+			numberOfShotRays += global__rayDepths[i];
+			numberOfProcessedRays += (i+1) * global__rayDepths[i];
+		}
+
+		CONSOLE << "Scene information" << ENDL;
+		CONSOLE << "\t" << "image size          : " << global__imageWidth << " x " << global__imageHeight << ENDL;
+		CONSOLE << "\t" << "number of triangles : " << global__triangulationSize << ENDL;
+		CONSOLE << "\t" << "number of lights    : " << global__lightsSize << ENDL;
+		CONSOLE << "\t" << "size of the bvh     : " << global__bvhSize << ENDL;
+		CONSOLE << "\t" << "depth of bvh        : " << global__bvhMaxDepth << ENDL;
+
+		CONSOLE << ENDL;
+		
+		CONSOLE << "Path tracing information" << ENDL;
+		CONSOLE << "\t" << "Number of shot rays : " << numberOfShotRays << ENDL;
+		CONSOLE << "\t" << "Depth histogram in %" << ENDL;
+		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
+			CONSOLE << "\t\t" << i << " : " << global__rayDepths[i] * 100.0 / numberOfShotRays << " %" << ENDL;
+
+		CONSOLE << ENDL;
+
+		CONSOLE << "Time information" << ENDL;
+		CONSOLE << "\t" << "Loading time        : " << loadingTime       << " ms" << ENDL;
+		CONSOLE << "\t" << "BVH building time   : " << bvhBuildingTime   << " ms" << ENDL;
+		CONSOLE << "\t" << "OpenCL setting time : " << openclSettingTime << " ms" << ENDL;
+		CONSOLE << "\t" << "Path Tracing time   : " << pathTracingTime   << " ms" << ENDL;
+		CONSOLE << "\t" << "Display time        : " << displayTime       << " ms" << ENDL;
+
+		CONSOLE << ENDL;
+
+		CONSOLE << "Time statistics" << ENDL;
+		CONSOLE << "\t" << "Average time per picture                  : " << pathTracingTime / numImageToRender      << " ms" << ENDL;
+		CONSOLE << "\t" << "Average time per 1000 full rays           : " << 1000. * pathTracingTime / numberOfShotRays      << " ms" << ENDL;
+		CONSOLE << "\t" << "Average time per 1000 (ray + shadow rays) : " << 1000. * pathTracingTime / numberOfProcessedRays << " ms" << ENDL;
+
+		CONSOLE << ENDL;
+
+	}
+
+
 	/*	Redirection de la fonction Update
 	 */
 
 	bool PathTracer_UpdateWindow()
 	{
-		global__window->PaintWindow(global__imageColor, global__imageRayNb);
-		return true;
+		return global__window->PaintWindow(global__imageColor, global__imageRayNb);
 	}
 
 
@@ -308,6 +388,17 @@ namespace PathTracerNS
 	//////////////////////////////////////////////////////////////////////////
 	// Fonctions d'impression
 	//////////////////////////////////////////////////////////////////////////
+
+	void PathTracer_PrintSection(char const* section)
+	{
+		CONSOLE << ENDL << ENDL;
+		CONSOLE << "*** " << section << " ";
+		for(int i=0; i<69 - strlen(section); i++)
+			CONSOLE << "*";
+		CONSOLE << ENDL;
+		CONSOLE << ENDL;
+	}
+
 
 	std::string BoundingBox_ToString( BoundingBox const *This)
 	{

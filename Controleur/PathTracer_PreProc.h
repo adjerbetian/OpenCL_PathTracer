@@ -17,6 +17,7 @@
 //							GLOBAL CONSTANTS
 
 #define MAX_REFLECTION_NUMBER 10
+#define MAX_INTERSETCION_NUMBER 5000 // for statistics - for both bbx and tri
 #define BVH_MAX_DEPTH 30
 #define MAX_LIGHT_SIZE 30
 #define ALIGN(X) __declspec(align(X))
@@ -30,8 +31,7 @@
 
 
 /***********************************************************************************/
-//							OUT STREAMS
-
+//					Variables depending on the project configuration
 
 #ifdef MAYA
 
@@ -49,32 +49,16 @@
 
 #endif
 
-//class teebuf: public std::streambuf {
-//public:
-//	typedef std::char_traits<char> traits_type;
-//	typedef traits_type::int_type  int_type;
-//
-//	teebuf(std::streambuf* sb1, std::streambuf* sb2):
-//		m_sb1(sb1),
-//		m_sb2(sb2)
-//	{}
-//	int_type overflow(int_type c) {
-//		if (m_sb1->sputc(c) == traits_type::eof()
-//			|| m_sb1->sputc(c) == traits_type::eof())
-//			return traits_type::eof();
-//		return c;
-//	}
-//private:
-//	std::streambuf* m_sb1;
-//	std::streambuf* m_sb2;
-//};
-
+/***********************************************************************************/
+//							OUT STREAMS
 
 class mstream // To out the stream in both the console and the log file
 {
 public:
 	std::ofstream coss;
 	mstream(void) : coss(PATHTRACER_SCENE_FOLDER"PathTracer_log.txt") {};
+
+	void reset() {coss.close(); coss.open(PATHTRACER_SCENE_FOLDER"PathTracer_log.txt");};
 
 	mstream& operator<< (std::ostream& (*pfun)(std::ostream&))
 	{
@@ -95,5 +79,7 @@ mstream& operator<< (mstream& st, T val)
 
 mstream extern console; // defined in PathTracer.cpp
 #define CONSOLE console
+
+
 
 #endif

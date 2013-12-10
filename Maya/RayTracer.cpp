@@ -53,8 +53,6 @@ void RayTracer::loadArgs(MArgList argList, uint& image_width, uint& image_height
 
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
-	MGlobal::displayInfo("Computing...");
-	
 	bool exportScene = false;
 
 	bool saveRenderedImages = false;
@@ -65,16 +63,11 @@ MStatus RayTracer::doIt(const MArgList& argList)
 
 	loadArgs(argList, image_width, image_height, numImageToRender, loadSky, saveRenderedImages);
 
-	clock_t start = clock();
+	CONSOLE.reset();
+
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerMayaImporter());
 	PathTracerNS::PathTracer_Main(image_width, image_height, numImageToRender, saveRenderedImages, loadSky, exportScene);
 
-	double timing = (clock() - start)/1000.0;
-
-	CONSOLE << "Time spend : " << timing << "s" << ENDL;
-	MGlobal::displayInfo("done.");
-
 	PlaySound(L"C:\\Windows\\Media\\notify.wav", NULL, SND_ASYNC );
-
 	return MS::kSuccess;
 }

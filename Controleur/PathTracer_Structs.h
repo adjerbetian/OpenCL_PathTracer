@@ -110,6 +110,7 @@ namespace PathTracerNS
 		Float2	UVP1, UVP2, UVP3;	// Position des sommets sur la texture sur la face positive
 		Float2	UVN1, UVN2, UVN3;	// Position des sommets sur la texture sur la face positive
 		BoundingBox AABB;
+		uint id;
 		uint materialWithPositiveNormalIndex;
 		uint materialWithNegativeNormalIndex;
 

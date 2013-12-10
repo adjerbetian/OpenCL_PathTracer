@@ -12,6 +12,7 @@
 #define RUSSIAN_ROULETTE false
 #define MIN_REFLECTION_NUMBER 3
 #define MAX_REFLECTION_NUMBER 10
+#define MAX_INTERSETCION_NUMBER 5000
 #define MIN_CONTRIBUTION_VALUE 0.001f
 #define BVH_MAX_DEPTH 30
 #define MAX_LIGHT_SIZE 30
@@ -21,11 +22,11 @@
 #define PRINT_DEBUG_INFO(X, Y, Z)
 
 // Pour des debug locaux
-#define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : local id : ( %v2u ) : \t global id : ( %v2u ) : \t "Y" \n", (uint2) (get_local_id(0),  get_local_id(1)) , (uint2) (get_global_id(0), get_global_id(1)) , Z)
+#define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : global id : ( %v2i ) : \t "Y" \n", (int2) (get_global_id(0), get_global_id(1)) , Z)
 
 // Assert
-//#define ASSERT(X , Y) if(!(Y)) { printf("***************  ERROR ******************* : "X" : Group x : %i : \tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t error : "#Y"\n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0)); }
-#define ASSERT(X,Y)
+#define ASSERT(X , Y) if(!(Y)) { printf("***************  ERROR ******************* : "X" : global id : ( %v2i ) : \t error : "#Y"\n", (int2) (get_global_id(0) , get_global_id(1)) ); }
+//#define ASSERT(X,Y)
 
 
 #define INT4 (int4)
@@ -73,6 +74,9 @@ typedef struct
 	float4 origin;
 	float4 direction;
 	float4 inverse;
+	uint   intersectedBBx;
+	uint   intersectedTri;
+	uint   reflectionId;
 	char   isInWater;
 } Ray3D;
 
@@ -187,6 +191,7 @@ typedef struct
 	float2	UVP1, UVP2, UVP3;	// Position des sommets sur la texture sur la face positive
 	float2	UVN1, UVN2, UVN3;	// Position des sommets sur la texture sur la face positive
 	BoundingBox AABB;
+	uint id;
 	uint materialWithPositiveNormalIndex;
 	uint materialWithNegativeNormalIndex;
 } Triangle;
@@ -256,7 +261,9 @@ inline void Ray3D_Create( Ray3D *This, float4 const *o, float4 const *d, bool _i
 {
 	This->origin = *o;
 	This->isInWater = _isInWater;
-
+	This->intersectedBBx = 0;
+	This->intersectedTri = 0;
+	This->reflectionId = 0;
 	Ray3D_SetDirection(This, d);
 };
 
@@ -359,7 +366,7 @@ inline void BoundingBox_Reset ( BoundingBox *This )
 	This->isEmpty = true;
 }
 
-bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D const *r, const float squaredDistance);
+bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D *r, const float squaredDistance);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -456,7 +463,7 @@ RGBAColor	Sky_GetFaceColorValue	( Sky __global const *This , uchar4 __global con
 ///						Triangle
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D const *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
+bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
 RGBAColor			Triangle_GetColorValueAt	(__global Texture const *global__textures, __global Material const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, bool positiveNormal, float s, float t);
 float4				Triangle_GetSmoothNormal	(Triangle const	*This, bool positiveNormal, float s, float t);
 float4				Triangle_GetNormal			(Triangle const	*This, bool positiveNormal);
@@ -468,15 +475,15 @@ inline float4		Triangle_GetNormal			(Triangle const *This, bool positiveNormal) 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-bool		BVH_IntersectRay					(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor);
-bool		BVH_IntersectShadowRay				(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *r, float squaredDistance, RGBAColor *tint);
+bool		BVH_IntersectRay					(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor);
+bool		BVH_IntersectShadowRay				(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squaredDistance, RGBAColor *tint);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
 RGBAColor	Scene_ComputeRadiance				(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, float4 const *Ng,  float4 const *Ns);
-RGBAColor	Scene_ComputeDirectIllumination		(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N);
+RGBAColor	Scene_ComputeDirectIllumination		(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *cameraRay, Material const *mat, const float4 *N);
 RGBAColor	Scene_ComputeScatteringIllumination	(KERNEL_GLOBAL_VAR_DECLARATION, const Ray3D *cameraRay, const float4 *intersectionPoint);
 bool		Scene_PickLight						(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N, Light *light, float *lightContribution);
 
@@ -499,8 +506,9 @@ __kernel void Kernel_Main(
 
 	volatile float4	__global *global__imageColor,
 	volatile uint	__global *global__imageRayNb,
-	volatile uint	__global *global__imageRayDepth,
 	volatile uint	__global *global__rayDepths,
+	volatile uint	__global *global__rayIntersectionBBx,
+	volatile uint	__global *global__rayIntersectionTri,
 
 	void	__global	const	*global__void__bvh,
 	void	__global	const	*global__void__triangulation,

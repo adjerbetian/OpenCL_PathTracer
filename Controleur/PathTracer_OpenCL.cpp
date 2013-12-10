@@ -24,8 +24,9 @@ namespace PathTracerNS
 
 	cl_mem				 kernel__imageColor				= NULL;
 	cl_mem				 kernel__imageRayNb				= NULL;
-	cl_mem				 kernel__imageRayDepth			= NULL;
 	cl_mem				 kernel__rayDepths				= NULL;
+	cl_mem				 kernel__rayIntersectedBBx		= NULL;
+	cl_mem				 kernel__rayIntersectedTri		= NULL;
 	cl_mem				 kernel__bvh					= NULL;
 	cl_mem				 kernel__triangulation			= NULL;
 	cl_mem				 kernel__lights					= NULL;
@@ -52,13 +53,20 @@ namespace PathTracerNS
 		uint		global__imageSize,
 		RGBAColor	*global__imageColor,
 		uint		*global__imageRayNb,
-		uint		*global__imageRayDepth,
 		uint		*global__rayDepths,
+		uint		*global__rayIntersectedBBx,
+		uint		*global__rayIntersectedTri,
 		bool		(*UpdateWindowFunc)(void),
-		uint		numImagesToRender
+		uint		numImagesToRender,
+		double*		pathTracingTime,
+		double*		displayTime
 		)
 	{
 		cl_int errCode = 0;
+
+		*pathTracingTime = 0;
+		*displayTime = 0;
+		clock_t startTime;
 
 		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
 		const size_t constLocalWorkSize[2]  = { 1, 1 };
@@ -67,6 +75,7 @@ namespace PathTracerNS
 
 		while(true && imageId < numImagesToRender)
 		{
+			startTime = clock();
 			CONSOLE << "Computing sample number " << imageId << ENDL;
 
 			/////////////////////////////////////////////////////////////////////////////////
@@ -79,21 +88,27 @@ namespace PathTracerNS
 			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 2, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
 			if(OpenCL_ErrorHandling(errCode)) return false;
 
-			clFinish(opencl__queue);
-
 			/////////////////////////////////////////////////////////////////////////////////
 			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
 			/////////////////////////////////////////////////////////////////////////////////
 			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor   ,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize			, (void *) global__imageColor   , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb   ,	CL_TRUE, 0, sizeof(uint)		* global__imageSize			, (void *) global__imageRayNb   , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayDepth,	CL_TRUE, 0, sizeof(uint)		* global__imageSize			, (void *) global__imageRayDepth, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayDepths    ,	CL_TRUE, 0, sizeof(uint)		* (MAX_REFLECTION_NUMBER+1)	, (void *) global__rayDepths    , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
 			clFinish(opencl__queue);
 
+			*pathTracingTime += clock() - startTime;
+
+			startTime = clock();
 			(*UpdateWindowFunc)();
+			*displayTime += clock() - startTime;
 
 			imageId++;
 		}
+
+		// Retrieving statistic information
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayDepths			,	CL_TRUE, 0, sizeof(uint)  * (MAX_REFLECTION_NUMBER+1) , (void *) global__rayDepths			, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedBBx	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER	  , (void *) global__rayIntersectedBBx  , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedTri	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER   , (void *) global__rayIntersectedTri	, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+		clFinish(opencl__queue);
 
 
 		/////////////////////////////////////////////////////////////////////////////////
@@ -102,8 +117,9 @@ namespace PathTracerNS
 
 		errCode = clReleaseMemObject(kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__imageRayNb);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__imageRayDepth);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__rayDepths);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseMemObject(kernel__rayIntersectedBBx);if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseMemObject(kernel__rayIntersectedTri);if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__bvh);				if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__triangulation);	if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clReleaseMemObject(kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
@@ -153,8 +169,9 @@ namespace PathTracerNS
 		uint		const	 global__imageSize			,
 		RGBAColor			*global__imageColor			,
 		uint				*global__imageRayNb			,
-		uint				*global__imageRayDepth		,
 		uint				*global__rayDepths			,
+		uint				*global__rayIntersectedBBx	,
+		uint				*global__rayIntersectedTri	,
 		uint		const	 global__bvhMaxDepth		,
 
 		Sky			const	*global__sky
@@ -168,17 +185,24 @@ namespace PathTracerNS
 		cl_int errCode = 0;
 		cl_uint i = 0;
 
-		kernel__imageColor		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(RGBAColor)    * global__imageSize						   , NULL							, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__imageRayNb		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(cl_uint)      * global__imageSize						   , NULL							, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__imageRayDepth	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(cl_uint)      * global__imageSize						   , NULL							, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__rayDepths		= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE                        , sizeof(cl_uint)      * (MAX_REFLECTION_NUMBER+1)				   , NULL							, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__bvh				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	  * global__bvhSize				,1), (void *) global__bvh			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__triangulation	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * global__triangulationSize	,1), (void *) global__triangulation	, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__lights			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	  * global__lightsSize			,1), (void *) global__lights		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__materiaux		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * global__materiauxSize		,1), (void *) global__materiaux		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__texturesData	= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	  * global__texturesDataSize	,1), (void *) global__texturesData	, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__textures		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * global__texturesSize			,1), (void *) global__textures		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__sky				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) global__sky			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		//(void *) global__imageColor		
+		//(void *) global__imageRayNb		
+		//(void *) global__rayDepths			
+		//(void *) global__rayIntersectedBBx	
+		//(void *) global__rayIntersectedTri	
+
+		kernel__imageColor			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)    * global__imageSize						   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__imageRayNb			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * global__imageSize						   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__rayDepths			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * (MAX_REFLECTION_NUMBER+1)				   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__rayIntersectedBBx	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * MAX_INTERSETCION_NUMBER					   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__rayIntersectedTri	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * MAX_INTERSETCION_NUMBER					   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__bvh					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	  * global__bvhSize				,1), (void *) global__bvh				, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__triangulation		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * global__triangulationSize	,1), (void *) global__triangulation		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__lights				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	  * global__lightsSize			,1), (void *) global__lights			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__materiaux			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * global__materiauxSize		,1), (void *) global__materiaux			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__texturesData		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	  * global__texturesDataSize	,1), (void *) global__texturesData		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__textures			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * global__texturesSize			,1), (void *) global__textures			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__sky					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) global__sky				, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
 
 
 		/////////////////////////////////////////////////////////////////////////////////
@@ -195,17 +219,18 @@ namespace PathTracerNS
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraUp);			if(OpenCL_ErrorHandling(errCode)) return false;
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__lightsSize);		if(OpenCL_ErrorHandling(errCode)) return false;
 
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),		(void*) &kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),		(void*) &kernel__imageRayNb);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayDepth),	(void*) &kernel__imageRayDepth);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayDepths),		(void*) &kernel__rayDepths);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__bvh),				(void*) &kernel__bvh);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__triangulation),	(void*) &kernel__triangulation);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__lights),			(void*) &kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__materiaux),		(void*) &kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures),		(void*) &kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__texturesData),	(void*) &kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),				(void*) &kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),			(void*) &kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),			(void*) &kernel__imageRayNb);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayDepths),			(void*) &kernel__rayDepths);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedBBx),	(void*) &kernel__rayIntersectedBBx);if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedTri),	(void*) &kernel__rayIntersectedTri);if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__bvh),					(void*) &kernel__bvh);				if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__triangulation),		(void*) &kernel__triangulation);	if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__lights),				(void*) &kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__materiaux),			(void*) &kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures),			(void*) &kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__texturesData),		(void*) &kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),					(void*) &kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
 
 		return true;
 	}

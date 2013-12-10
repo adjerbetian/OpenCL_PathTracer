@@ -33,7 +33,7 @@ namespace PathTracerNS
 	void	PathTracer_Clear					();
 	void	PathTracer_PaintLoadingScreen		();
 	bool	PathTracer_UpdateWindow				();
-
+	void	PathTracer_ComputeStatistics		(uint numImageToRender, double loadingTime, double bvhBuildingTime, double openclSettingTime, double pathTracingTime, double displayTime);
 
 	//	Fonction d'impression
 
@@ -43,6 +43,7 @@ namespace PathTracerNS
 	void			Node_Print							(Node const *This, uint n);
 	void			PathTracer_PrintBVH					();
 	void			PathTracer_PrintBVHCharacteristics	();
+	void			PathTracer_PrintSection				(const char* section);
 
 }
 

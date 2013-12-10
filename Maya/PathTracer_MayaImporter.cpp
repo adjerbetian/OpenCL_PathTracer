@@ -23,6 +23,10 @@ namespace PathTracerNS
 
 	bool PathTracerMayaImporter::Import(uint image_width, uint image_height, bool loadSky)
 	{
+		*ptr__global__imageWidth = image_width;
+		*ptr__global__imageHeight = image_height;
+		*ptr__global__imageSize = image_width * image_height;
+
 		SetCam(image_width, image_height);
 		ImportTexturesAndSky(loadSky);
 		ImportMaterials();
@@ -31,6 +35,12 @@ namespace PathTracerNS
 
 		MaterialNameId.clear();
 		TextureNameId.clear();
+
+		if(*ptr__global__triangulationSize == 0)
+		{
+			CONSOLE << "Scene is empty. Stopping." << ENDL;
+			return false;
+		}
 
 		return true;
 	}
@@ -67,25 +77,31 @@ namespace PathTracerNS
 		MFnTransform	fnTransformCamera(camera);
 		MMatrix			MCamera = fnTransformCamera.transformationMatrix();
 
-		MPoint	C		= fnCamera.eyePoint		  (MSpace::kWorld);
-		MVector D		= fnCamera.viewDirection  (MSpace::kWorld);
-		MVector Up		= fnCamera.upDirection	  (MSpace::kWorld);
-		MVector Right	= fnCamera.rightDirection (MSpace::kWorld);
-		double	pinHole	= fnCamera.focusDistance  ();
+		// First, we make the camera be coherent with what the user entered in width and height
+		double apectRatio =  ( (double) image_width ) / ( (double)  image_height ) ;
+		fnCamera.setAspectRatio(apectRatio);
 
+		MPoint	C			= fnCamera.eyePoint		  (MSpace::kWorld);
+		MVector D			= fnCamera.viewDirection  (MSpace::kWorld);
+		MVector Up			= fnCamera.upDirection	  (MSpace::kWorld);
+		MVector Right		= fnCamera.rightDirection (MSpace::kWorld);
+		double	focalLength	= fnCamera.focalLength	  ();
 
+		double apertureX, apertureY, offsetX, offsetY;
+		fnCamera.getViewParameters(apectRatio, apertureX, apertureY, offsetX, offsetY);		
 
-		*ptr__global__imageWidth = image_width;
-		*ptr__global__imageHeight = image_height;
+		// apertures are in inches... conversion in mm
+		apertureX *= 25.4;
+		apertureY *= 25.4;
 
-		Up /= (float) (*ptr__global__imageWidth) / (float) (*ptr__global__imageHeight); 
-
-		*ptr__global__imageSize = (*ptr__global__imageWidth) * (*ptr__global__imageHeight);
+		// We want to scale the vectors Right and Up to a factor that will prevent us from taking the focal length into account
+		Right *= apertureX / focalLength;
+		Up    *= apertureY / focalLength;
 
 		*ptr__global__cameraDirection	= permute_xyz_to_zxy(D);
 		*ptr__global__cameraPosition	= permute_xyz_to_zxy(C);
-		*ptr__global__cameraRight		= permute_xyz_to_zxy(Right);;
-		*ptr__global__cameraUp			= permute_xyz_to_zxy(Up);;
+		*ptr__global__cameraRight		= permute_xyz_to_zxy(Right);
+		*ptr__global__cameraUp			= permute_xyz_to_zxy(Up);
 	}
 
 
@@ -280,7 +296,7 @@ namespace PathTracerNS
 						// Bitangents
 						Float4(), Float4(), Float4(),
 						//Materials
-						materialId, materialId);
+						materialId, materialId, triangleId);
 					triangleId++;
 
 
@@ -917,10 +933,11 @@ namespace PathTracerNS
 		Float4 const& n1,	Float4 const& n2,	Float4 const& n3,
 		Float4 const& t1,	Float4 const& t2,	Float4 const& t3,
 		Float4 const& bt1,	Float4 const& bt2,	Float4 const& bt3,
-		uint positiveMatIndex, uint negativeMatIndex )
+		uint positiveMatIndex, uint negativeMatIndex, uint id )
 	{
 		This->materialWithPositiveNormalIndex = positiveMatIndex;
 		This->materialWithNegativeNormalIndex = negativeMatIndex;
+		This->id = id;
 
 		BoundingBox_Create( This->AABB, s1, s2, s3);
 
@@ -987,9 +1004,23 @@ namespace PathTracerNS
 			}
 		}
 
-		This->N1 = normalize(This->N1);
-		This->N2 = normalize(This->N2);
-		This->N3 = normalize(This->N3);
+		// We have noticed that sometime, maya gives wrong normals of length 0).
+		// Therefore, we check the validity of the inputs
+		// Actually, if the data are correct, the following line are equivalent to these 3 commented lines
+		//
+		//		This->N1 = normalize(This->N1);
+		//		This->N2 = normalize(This->N2);
+		//		This->N3 = normalize(This->N3);
+
+		float
+			l1 = length(This->N1),
+			l2 = length(This->N2),
+			l3 = length(This->N3);
+		if(l1 < 0.5) This->N1 = This->N; else This->N1 /= l1;
+		if(l2 < 0.5) This->N2 = This->N; else This->N2 /= l2;
+		if(l3 < 0.5) This->N3 = This->N; else This->N3 /= l3;
+
+
 		This->T1 = normalize(This->T1);
 		This->T2 = normalize(This->T2);
 		This->T3 = normalize(This->T3);

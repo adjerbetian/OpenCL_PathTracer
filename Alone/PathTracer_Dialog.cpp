@@ -21,7 +21,7 @@ namespace PathTracerNS
 		imageIndex(1)
 	{}
 
-	void PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
+	bool PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
 	{
 		if(saveRenderedImages)
 		{
@@ -67,7 +67,7 @@ namespace PathTracerNS
 			{
 				CONSOLE << "Cannot renderViewInteractiveRender in batch render mode." << ENDL;
 				CONSOLE << "Run in interactive mode, so that the render editor exists." << ENDL;
-				return;
+				return false;
 			};
 
 			bool doNotClearBackground = true;
@@ -75,7 +75,7 @@ namespace PathTracerNS
 			if (MRenderView::startRender( pathTracerWidth, pathTracerHeight, doNotClearBackground, true) != MS::kSuccess)
 			{
 				CONSOLE << "renderViewInteractiveRender: error occurred in startRender." << ENDL;
-				return;
+				return false;
 			}
 
 			RV_PIXEL* pixels = new RV_PIXEL[pathTracerWidth * pathTracerHeight];
@@ -94,7 +94,7 @@ namespace PathTracerNS
 			{
 				CONSOLE << "renderViewInteractiveRender: error occurred in updatePixels." << ENDL;
 				delete[] pixels;
-				return;
+				return false;
 			}
 			delete[] pixels;
 
@@ -103,12 +103,13 @@ namespace PathTracerNS
 			if (MRenderView::endRender() != MS::kSuccess)
 			{
 				CONSOLE << "renderViewInteractiveRender: error occurred in endRender.";
-				return;
+				return false;
 			}
 		}
 #endif // END MAYA
 
 		imageIndex++;
+		return true;
 	}
 
 	void PathTracerDialog::PaintTexture(Uchar4 const * global__texturesData, Texture& texture)

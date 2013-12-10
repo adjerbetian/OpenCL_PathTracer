@@ -333,11 +333,23 @@ namespace PathTracerNS
 	{
 		unsigned long int numberOfShotRays = 0;
 		unsigned long int numberOfProcessedRays = 0;
+		unsigned long int numberOfTestedBBx = 0;
+		unsigned long int numberOfTestedTri = 0;
+		unsigned long int numberOfIntersectedTri = 0;
+		
 		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
 		{
 			numberOfShotRays += global__rayDepths[i];
-			numberOfProcessedRays += (i+1) * global__rayDepths[i];
+			numberOfProcessedRays += (1 + global__lightsSize) * (i+1) * global__rayDepths[i];
+			numberOfIntersectedTri += (1 + global__lightsSize) * i * global__rayDepths[i];
 		}
+
+		for(int i=0; i<MAX_INTERSETCION_NUMBER; i++)
+		{
+			numberOfTestedBBx += i * global__rayIntersectedBBx[i];
+			numberOfTestedTri += i * global__rayIntersectedTri[i];
+		}
+
 
 		CONSOLE << "Scene information" << ENDL;
 		CONSOLE << "\t" << "image size          : " << global__imageWidth << " x " << global__imageHeight << ENDL;
@@ -349,7 +361,11 @@ namespace PathTracerNS
 		CONSOLE << ENDL;
 		
 		CONSOLE << "Path tracing information" << ENDL;
-		CONSOLE << "\t" << "Number of shot rays : " << numberOfShotRays << ENDL;
+		CONSOLE << "\t" << "Number of shot rays                    : " << numberOfShotRays << ENDL;
+		CONSOLE << "\t" << "Number of processed rays               : " << numberOfProcessedRays << ENDL;
+		CONSOLE << "\t" << "Average number of tested BBx per ray   : " << ((float) numberOfTestedBBx) / ((float) numberOfProcessedRays) << ENDL;
+		CONSOLE << "\t" << "Average number of tested Tri per ray   : " << ((float) numberOfTestedTri) / ((float) numberOfProcessedRays) << ENDL;
+		CONSOLE << "\t" << "Percentage of successful intersection : " << ((float) numberOfIntersectedTri * 100.) / ((float) numberOfTestedTri) << " % " << ENDL;
 		CONSOLE << "\t" << "Depth histogram in %" << ENDL;
 		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
 			CONSOLE << "\t\t" << i << " : " << global__rayDepths[i] * 100.0 / numberOfShotRays << " %" << ENDL;

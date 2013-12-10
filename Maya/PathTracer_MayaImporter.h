@@ -78,7 +78,7 @@ namespace PathTracerNS
 			Float4 const& n1,	Float4 const& n2,	Float4 const& n3,
 			Float4 const& t1,	Float4 const& t2,	Float4 const& t3,
 			Float4 const& bt1,	Float4 const& bt2,	Float4 const& bt3,
-			uint positiveMatIndex, uint negativeMatIndex, uint id );
+			uint positiveMatIndex, uint negativeMatIndex);
 
 		inline double		Triangle_MaxSquaredDistanceTo	(Triangle const& This, Triangle const& t) { return std::max<float>(std::max<float>(Vector_SquaredDistanceTo(This.S1, t.S1), Vector_SquaredDistanceTo(This.S2, t.S2)), Vector_SquaredDistanceTo(This.S3, t.S3));};
 

@@ -296,7 +296,7 @@ namespace PathTracerNS
 						// Bitangents
 						Float4(), Float4(), Float4(),
 						//Materials
-						materialId, materialId, triangleId);
+						materialId, materialId);
 					triangleId++;
 
 
@@ -933,11 +933,10 @@ namespace PathTracerNS
 		Float4 const& n1,	Float4 const& n2,	Float4 const& n3,
 		Float4 const& t1,	Float4 const& t2,	Float4 const& t3,
 		Float4 const& bt1,	Float4 const& bt2,	Float4 const& bt3,
-		uint positiveMatIndex, uint negativeMatIndex, uint id )
+		uint positiveMatIndex, uint negativeMatIndex)
 	{
 		This->materialWithPositiveNormalIndex = positiveMatIndex;
 		This->materialWithNegativeNormalIndex = negativeMatIndex;
-		This->id = id;
 
 		BoundingBox_Create( This->AABB, s1, s2, s3);
 

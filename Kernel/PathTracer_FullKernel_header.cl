@@ -191,7 +191,6 @@ typedef struct
 	float2	UVP1, UVP2, UVP3;	// Position des sommets sur la texture sur la face positive
 	float2	UVN1, UVN2, UVN3;	// Position des sommets sur la texture sur la face positive
 	BoundingBox AABB;
-	uint id;
 	uint materialWithPositiveNormalIndex;
 	uint materialWithNegativeNormalIndex;
 } Triangle;

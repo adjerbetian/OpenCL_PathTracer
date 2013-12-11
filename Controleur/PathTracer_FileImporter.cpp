@@ -77,10 +77,10 @@ namespace PathTracerNS
 
 		if(fichierSizes == NULL || fichierPtr == NULL || fichierTex == NULL)
 		{
-			CONSOLE << "Fail to read the files to import : " << ENDL;
-			if(fichierSizes == NULL) CONSOLE << "\t" << fileSizesPath.c_str() << ENDL;
-			if(fichierPtr   == NULL) CONSOLE << "\t" << filePointersPath.c_str() << ENDL;
-			if(fichierTex   == NULL) CONSOLE << "\t" << fileTextureDataPath.c_str() << ENDL;
+			CONSOLE_LOG << "Fail to read the files to import : " << ENDL;
+			if(fichierSizes == NULL) CONSOLE_LOG << "\t" << fileSizesPath.c_str() << ENDL;
+			if(fichierPtr   == NULL) CONSOLE_LOG << "\t" << filePointersPath.c_str() << ENDL;
+			if(fichierTex   == NULL) CONSOLE_LOG << "\t" << fileTextureDataPath.c_str() << ENDL;
 			return false;
 		}
 

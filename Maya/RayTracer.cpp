@@ -8,6 +8,9 @@
 #include <Mmsystem.h>
 #pragma comment(lib, "winmm.lib")
 
+#include <direct.h>
+
+
 
 void* RayTracer::creator() 
 { 
@@ -53,7 +56,7 @@ void RayTracer::loadArgs(MArgList argList, uint& image_width, uint& image_height
 
 MStatus RayTracer::doIt(const MArgList& argList) 
 {
-	bool exportScene = false;
+	bool exportScene = false; // in case we don't want to load each time the scene...
 
 	bool saveRenderedImages = false;
 	bool loadSky = false;
@@ -63,11 +66,16 @@ MStatus RayTracer::doIt(const MArgList& argList)
 
 	loadArgs(argList, image_width, image_height, numImageToRender, loadSky, saveRenderedImages);
 
-	CONSOLE.reset();
+#ifdef _DEBUG
+	CONSOLE_LOG.open(PATHTRACER_SCENE_FOLDER"PathTracer_log_deb.txt");
+#else
+	CONSOLE_LOG.open(PATHTRACER_SCENE_FOLDER"PathTracer_log_rel.txt");
+#endif
 
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerMayaImporter());
-	PathTracerNS::PathTracer_Main(image_width, image_height, numImageToRender, saveRenderedImages, loadSky, exportScene);
+	bool success = PathTracerNS::PathTracer_Main(image_width, image_height, numImageToRender, saveRenderedImages, loadSky, exportScene);
 
+	CONSOLE_LOG.close();
 	PlaySound(L"C:\\Windows\\Media\\notify.wav", NULL, SND_ASYNC );
-	return MS::kSuccess;
+	return success ? MS::kSuccess : MS::kFailure;
 }

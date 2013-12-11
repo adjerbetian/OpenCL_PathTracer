@@ -25,7 +25,7 @@ namespace PathTracerNS
 
 	void	PathTracer_SetImporter				(PathTracerImporter* importer);
 
-	void	PathTracer_Main						(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene);
+	bool	PathTracer_Main						(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene);
 	void	PathTracer_Initialize				(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky);
 	void	PathTracer_InitializeImage			();
 	void	PathTracer_InitializeWindow			(bool saveRenderedImages);
@@ -37,11 +37,10 @@ namespace PathTracerNS
 
 	//	Fonction d'impression
 
-	std::string		BoundingBox_ToString				(BoundingBox const *This);
-	std::string		Triangle_ToString					(Triangle const *This);
-	std::string		Vector_ToString						(Float4 const *This);
 	void			Node_Print							(Node const *This, uint n);
+	void			Triangle_Print						(Triangle const* This, uint id);
 	void			PathTracer_PrintBVH					();
+	void			PathTracer_PrintTriangulation		();
 	void			PathTracer_PrintBVHCharacteristics	();
 	void			PathTracer_PrintSection				(const char* section);
 

@@ -112,6 +112,7 @@ namespace PathTracerNS
 		BoundingBox AABB;
 		uint materialWithPositiveNormalIndex;
 		uint materialWithNegativeNormalIndex;
+		uint id;
 
 	} Triangle;
 
@@ -253,6 +254,19 @@ namespace PathTracerNS
 
 		return r;
 	};
+
+	inline std::string BoundingBox_ToString (BoundingBox const *This)
+	{
+		if(This->isEmpty)
+			return "AABB : empty";
+		return "AABB : " + This->pMin.toString() + " --> " + This->pMax.toString();
+	};
+	
+	inline std::string Triangle_ToString (Triangle const *This)
+	{
+		return "Triangle : [ " + This->S1.toString() + " , " + This->S2.toString() + " , " + This->S3.toString() + " ]  ----  " + BoundingBox_ToString(&This->AABB);
+	};
+
 }
 
 #endif

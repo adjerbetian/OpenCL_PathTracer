@@ -18,15 +18,28 @@
 #define MAX_LIGHT_SIZE 30
 
 // Debug log
-//#define PRINT_DEBUG_INFO(X, Y, Z) printf(X" : Group x : %i : \\tGroup y : %i : \t item x : %i : \t item y : %i : \t local id : %i : \t global id : %i : \t "#Y" \n", get_group_id(0),  get_group_id(1), get_local_id(0),  get_local_id(1), get_local_id(1) * get_local_size(0) + get_local_id(0), get_global_id(1)*get_global_size(0) + get_global_id(0) , Z)
-#define PRINT_DEBUG_INFO(X, Y, Z)
 
-// Pour des debug locaux
-#define PRINT_DEBUG_INFO2(X, Y, Z) printf(X" : global id : ( %v2i ) : \t "Y" \n", (int2) (get_global_id(0), get_global_id(1)) , Z)
+// if you want to have some OpenCL log info, uncomment this line
+//#define LOG_INFO
 
-// Assert
-#define ASSERT(X , Y) if(!(Y)) { printf("***************  ERROR ******************* : "X" : global id : ( %v2i ) : \t error : "#Y"\n", (int2) (get_global_id(0) , get_global_id(1)) ); }
-//#define ASSERT(X,Y)
+#ifdef LOG_INFO
+
+#define DEBUG_ITEM_CONDITION get_global_id(0) == 35 && get_global_id(1) == 71
+#define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2) if(DEBUG_ITEM_CONDITION) printf( message " --> "infoString1" : \t "infoString2" \n", infoVal1, infoVal2 )
+#define PRINT_DEBUG_INFO_1(message, infoString1, infoVal1) PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, "", 0)
+#define PRINT_DEBUG_INFO_0(message) PRINT_DEBUG_INFO_1(message, "", 0)
+#define ASSERT(message, validityTest) if(!(validityTest)) { printf("***************  ERROR ******************* : "message" : global id : ( %v2i ) : \t error : "#validityTest"\n", (int2) (get_global_id(0) , get_global_id(1)) ); }
+#define ASSERT_AND_INFO(message, validityTest, infoString, infoVal) if(!(validityTest)) { printf("***************  ERROR ******************* : "message" : global id : ( %v2i ) : \t error : "#validityTest" :\t information : "infoString"\n", (int2) (get_global_id(0) , get_global_id(1)), infoVal ); }
+
+#else
+
+#define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2)
+#define PRINT_DEBUG_INFO_1(message, infoString1, infoVal1)
+#define PRINT_DEBUG_INFO_0(message)
+#define ASSERT(X,Y)
+#define ASSERT_AND_INFO(message, validityTest, infoString, infoVal)
+
+#endif
 
 
 #define INT4 (int4)
@@ -193,6 +206,7 @@ typedef struct
 	BoundingBox AABB;
 	uint materialWithPositiveNormalIndex;
 	uint materialWithNegativeNormalIndex;
+	uint id;
 } Triangle;
 
 
@@ -380,12 +394,14 @@ inline float Light_PowerToward( Light const* This, float4 const* p, float4 const
 		return This->power / Vector_SquaredDistanceTo(&This->position, p) * fmax(dot(normalize(This->position - *p), *N),0.f);
 	if(This->type == LIGHT_SPOT)
 	{
-		float cosAngle = dot( normalize(*p - This->position) , This->direction);
+		float4 lightRayDirection = normalize(*p - This->position);
+		float cosAngle = dot( lightRayDirection , This->direction);
+
 		if(cosAngle > This->cosOfInnerFallOffAngle)
-			return This->power * dot(normalize(This->position - *p), *N);
+			return This->power * fmax(- dot(lightRayDirection, *N),0.f);
 		if(cosAngle < This->cosOfOuterFallOffAngle)
 			return 0.0f;
-		return This->power * (cosAngle - This->cosOfOuterFallOffAngle) / ( This->cosOfInnerFallOffAngle - This->cosOfOuterFallOffAngle ) * dot(normalize(This->position - *p), *N);
+		return This->power * (cosAngle - This->cosOfOuterFallOffAngle) / ( This->cosOfInnerFallOffAngle - This->cosOfOuterFallOffAngle ) * fmax(- dot(lightRayDirection, *N),0);
 	}
 	return 0.f;
 }

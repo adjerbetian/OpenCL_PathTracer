@@ -1,11 +1,11 @@
 
-#include "C:\Users\djerbeti\documents\visual studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
+#include "PathTracer_FullKernel_header.cl"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Utilitaires
 ////////////////////////////////////////////////////////////////////////////////////////
 
-/*	Somme préfixe parralele sur le tableau local *values
+/*	Somme prefixe parallele sur le tableau local *values
  *	Le tableau *values doit être de la taille du groupe
  *
  *	En sorti, on obtient le tableau dont chaque valeur est 
@@ -13,7 +13,7 @@
  */
 void PrefixSum_int(int __local volatile *values)
 {
-	PRINT_DEBUG_INFO("PrefixSum START", value : %u, values[get_local_id(0)]);
+	PRINT_DEBUG_INFO_1("PrefixSum START", "value : %u", values[get_local_id(0)]);
 
 	for( uint offset = 1; offset < get_local_size(0); offset *= 2)
 	{
@@ -29,12 +29,12 @@ void PrefixSum_int(int __local volatile *values)
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
-	PRINT_DEBUG_INFO("PrefixSum END", value : %u, values[get_local_id(0)]);
+	PRINT_DEBUG_INFO_1("PrefixSum END", "value : %u", values[get_local_id(0)]);
 }
 
 void PrefixSum_uint(uint __local volatile *values)
 {
-	PRINT_DEBUG_INFO("PrefixSum START", value : %u, values[get_local_id(0)]);
+	PRINT_DEBUG_INFO_1("PrefixSum START", "value : %u", values[get_local_id(0)]);
 
 	for( uint offset = 1; offset < get_local_size(0); offset *= 2)
 	{
@@ -50,7 +50,7 @@ void PrefixSum_uint(uint __local volatile *values)
 		barrier(CLK_LOCAL_MEM_FENCE);
 	}
 
-	PRINT_DEBUG_INFO("PrefixSum END", value : %u, values[get_local_id(0)]);
+	PRINT_DEBUG_INFO_1("PrefixSum END", "value : %u", values[get_local_id(0)]);
 }
 
 
@@ -373,11 +373,15 @@ void Material_ConcentricSampleDisk(int *kernel__seed, float *dx, float *dy)
 	//	|/______________\_|
 	//
 
-	// Si on est au centre
-	if( fabs(sx) < 0.0001f && fabs(sy) < 0.0001f )
+	if( fabs(sx) < 0.0001f)
 	{
-		r = 0;
-		theta = 0;
+			r = sy;
+			theta = 0;
+	}
+	else if( fabs(sy) < 0.0001f )
+	{
+			r = sx;
+			theta = 2;
 	}
 	else if(sx > -sy)
 	{
@@ -410,15 +414,15 @@ void Material_ConcentricSampleDisk(int *kernel__seed, float *dx, float *dy)
 			theta = 6.f - sy/sx;
 		}
 	}
-	theta *= PATH_PI / 4.f;	//	Coefficient commun à tous les cas ci-dessus
-	r *= 0.999;				//	Précaution en cas de d'erreur de précision numérique
+	theta *= PATH_PI / 4.f;	//	Coefficient commun a tous les cas ci-dessus
+	r *= 0.999;				//	Precaution en cas de d'erreur de précision numérique
 
-	//	4 - Calcul des coordonnées dans le cerle
+	//	4 - Calcul des coordonnees dans le cerle
 
 	*dx = r * cos( theta );	
 	*dy = r * sin( theta );
 
-	ASSERT("Material_ConcentricSampleDisk incorrect sample dx dy", (*dx)*(*dx) + (*dy)*(*dy) < 1);
+	ASSERT_AND_INFO("Material_ConcentricSampleDisk incorrect sample dx dy", (*dx)*(*dx) + (*dy)*(*dy) < 1, "( dx , dy , theta , r, sx, sy, u1, u2 ) : %v8f", (float8)(*dx,*dy, theta, r, sx, sy, u1, u2) );
 };
 
 
@@ -524,6 +528,8 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const
 
 bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
 {
+	PRINT_DEBUG_INFO_2("Triangle_Intersects - START \t\t\t", "Triangle id : %u", This->id, "r.intersectedTri : %u", r->intersectedTri);
+
 	r->intersectedTri++;
 
 	// REMARQUE : Les triangles sont orientés avec la normale
@@ -964,7 +970,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 		}
 	}
 
-	ASSERT("Scene_ComputeDirectIllumination incorrect radiance L", L.x >= 0 && L.y >= 0 && L.z >= 0);
+	ASSERT_AND_INFO("Scene_ComputeDirectIllumination incorrect radiance L", L.x >= 0 && L.y >= 0 && L.z >= 0, "L : %v4f", L);
 
 	return L;
 
@@ -1209,8 +1215,6 @@ __kernel void Kernel_Main(
 
 		globalImageOffset = yPixel * kernel__imageWidth + xPixel;
 
-		//PRINT_DEBUG_INFO2("KERNEL MAIN END", (uint2) (xPixel, yPixel) , (uint2) (xPixel, yPixel));
-
 		*seed = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
 
 		float xScreen = (xPixel + random(seed) - 0.5) / (float) kernel__imageWidth  - 0.5;
@@ -1220,6 +1224,7 @@ __kernel void Kernel_Main(
 		Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
 	}
 
+	PRINT_DEBUG_INFO_2("KERNEL MAIN - START \t\t\t\t", "seedValue : %i" , *seed, "globalImageOffset : %i", globalImageOffset );
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION DES VARIABLES DE PARCOURS
@@ -1248,8 +1253,13 @@ __kernel void Kernel_Main(
 
 	while(activeRay && r.reflectionId < MAX_REFLECTION_NUMBER)
 	{
+		PRINT_DEBUG_INFO_2("KERNEL MAIN - ACTIVE LOOP \t\t\t", "r.reflectionId : %u" , r.reflectionId, "r.intersectedTri : %u", r.intersectedTri);
+
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
+
+			PRINT_DEBUG_INFO_1("KERNEL MAIN - INTERSETCT BVH \t\t", "r.intersectedTri : %u", r.intersectedTri);
+
 			//if(r.isInWater)
 			//{
 			//	*radianceToCompute += Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR, r, &intersectionPoint) * (*transferFunction);
@@ -1275,6 +1285,8 @@ __kernel void Kernel_Main(
 		}
 		else // Sky
 		{
+			PRINT_DEBUG_INFO_0("KERNEL MAIN - INTERSETCT SKY");
+
 			activeRay = false;
 			RGBAColor skyColor = Sky_GetColorValue( global__sky, global__texturesData, &r.direction );
 			radianceToCompute += (skyColor * transferFunction);
@@ -1291,6 +1303,7 @@ __kernel void Kernel_Main(
 			maxContribution = Vector_Max(&transferFunction);
 			if(maxContribution <= MIN_CONTRIBUTION_VALUE)
 			{
+				PRINT_DEBUG_INFO_1("KERNEL MAIN - MAX CONTRIBUTION STOP ", "maxContribution : %f", maxContribution);
 				activeRay = false;
 			}
 		}
@@ -1306,6 +1319,8 @@ __kernel void Kernel_Main(
 		//}
 	}
 
+	PRINT_DEBUG_INFO_1("KERNEL MAIN - END \t\t\t\t", "radianceToCompute : %v4f", radianceToCompute);
+
 	// Si le rayon est termine
 	atomic_inc(&global__imageRayNb[globalImageOffset]);
 	atomic_inc(&global__rayDepths[r.reflectionId]);
@@ -1313,12 +1328,12 @@ __kernel void Kernel_Main(
 	if(r.intersectedBBx < MAX_INTERSETCION_NUMBER)
 		atomic_inc(&global__rayIntersectionBBx[r.intersectedBBx]);
 	else
-		PRINT_DEBUG_INFO2("global__rayIntersectionBBx to large", "r.intersectedBBx = %u", r.intersectedBBx);
+		ASSERT_AND_INFO("global__rayIntersectionBBx to large", r.intersectedBBx < MAX_INTERSETCION_NUMBER, "r.intersectedBBx = %u", r.intersectedBBx);
 
 	if(r.intersectedTri < MAX_INTERSETCION_NUMBER)
 		atomic_inc(&global__rayIntersectionTri[r.intersectedTri]);
 	else
-		PRINT_DEBUG_INFO2("global__rayIntersectionTri to large", "r.intersectedTri = %u", r.intersectedTri);
+		ASSERT_AND_INFO("global__rayIntersectionTri to large", r.intersectedTri < MAX_INTERSETCION_NUMBER, "r.intersectedTri = %u", r.intersectedTri);
 
 	global__imageColor[globalImageOffset] += radianceToCompute;
 }

@@ -68,13 +68,13 @@ namespace PathTracerNS
 	}
 
 
-	void PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
+	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
 	{
-		CONSOLE << ENDL;
-		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE << "                             PATH TRACER" << ENDL;
-		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
+		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+		CONSOLE_LOG << "                             PATH TRACER" << ENDL;
+		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+		CONSOLE_LOG << ENDL;
 
 		clock_t start;
 
@@ -86,14 +86,9 @@ namespace PathTracerNS
 
 		bool noError = true;
 
-
-
 		PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
 		PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky);
 		loadingTime = clock()-start;
-
-
-
 
 		PathTracer_PrintSection("BUILDING BVH"); start = clock();
 		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
@@ -115,7 +110,7 @@ namespace PathTracerNS
 		PathTracer_PrintSection("SETTING OPENCL CONTEXT"); start = clock();
 		noError &= OpenCL_SetupContext();
 
-		if(!noError) return ;
+		if(!noError) return false;
 
 		noError &= OpenCL_InitializeMemory	(
 			global__cameraDirection		,
@@ -149,7 +144,7 @@ namespace PathTracerNS
 			&global__sky
 			);
 
-		if(!noError) return ;
+		if(!noError) return false;
 		openclSettingTime = clock()-start;
 
 		
@@ -170,7 +165,7 @@ namespace PathTracerNS
 			&displayTime
 			);
 
-		if(!noError) return ;
+		if(!noError) return false;
 		pathTracingTime	 = clock()-start;
 
 		
@@ -179,6 +174,7 @@ namespace PathTracerNS
 		PathTracer_ComputeStatistics(numImagesToRender, loadingTime, bvhBuildingTime, openclSettingTime, pathTracingTime, displayTime);
 
 		PathTracer_Clear();
+		return true;
 	}
 
 	/*	Gestion des différents initialiseurs
@@ -351,42 +347,42 @@ namespace PathTracerNS
 		}
 
 
-		CONSOLE << "Scene information" << ENDL;
-		CONSOLE << "\t" << "image size          : " << global__imageWidth << " x " << global__imageHeight << ENDL;
-		CONSOLE << "\t" << "number of triangles : " << global__triangulationSize << ENDL;
-		CONSOLE << "\t" << "number of lights    : " << global__lightsSize << ENDL;
-		CONSOLE << "\t" << "size of the bvh     : " << global__bvhSize << ENDL;
-		CONSOLE << "\t" << "depth of bvh        : " << global__bvhMaxDepth << ENDL;
+		CONSOLE_LOG << "Scene information" << ENDL;
+		CONSOLE_LOG << "\t" << "image size          : " << global__imageWidth << " x " << global__imageHeight << ENDL;
+		CONSOLE_LOG << "\t" << "number of triangles : " << global__triangulationSize << ENDL;
+		CONSOLE_LOG << "\t" << "number of lights    : " << global__lightsSize << ENDL;
+		CONSOLE_LOG << "\t" << "size of the bvh     : " << global__bvhSize << ENDL;
+		CONSOLE_LOG << "\t" << "depth of bvh        : " << global__bvhMaxDepth << ENDL;
 
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
 		
-		CONSOLE << "Path tracing information" << ENDL;
-		CONSOLE << "\t" << "Number of shot rays                    : " << numberOfShotRays << ENDL;
-		CONSOLE << "\t" << "Number of processed rays               : " << numberOfProcessedRays << ENDL;
-		CONSOLE << "\t" << "Average number of tested BBx per ray   : " << ((float) numberOfTestedBBx) / ((float) numberOfProcessedRays) << ENDL;
-		CONSOLE << "\t" << "Average number of tested Tri per ray   : " << ((float) numberOfTestedTri) / ((float) numberOfProcessedRays) << ENDL;
-		CONSOLE << "\t" << "Percentage of successful intersection : " << ((float) numberOfIntersectedTri * 100.) / ((float) numberOfTestedTri) << " % " << ENDL;
-		CONSOLE << "\t" << "Depth histogram in %" << ENDL;
+		CONSOLE_LOG << "Path tracing information" << ENDL;
+		CONSOLE_LOG << "\t" << "Number of shot rays                    : " << numberOfShotRays << ENDL;
+		CONSOLE_LOG << "\t" << "Number of processed rays               : " << numberOfProcessedRays << ENDL;
+		CONSOLE_LOG << "\t" << "Average number of tested BBx per ray   : " << ((float) numberOfTestedBBx) / ((float) numberOfProcessedRays) << ENDL;
+		CONSOLE_LOG << "\t" << "Average number of tested Tri per ray   : " << ((float) numberOfTestedTri) / ((float) numberOfProcessedRays) << ENDL;
+		CONSOLE_LOG << "\t" << "Percentage of successful intersection : " << ((float) numberOfIntersectedTri * 100.) / ((float) numberOfTestedTri) << " % " << ENDL;
+		CONSOLE_LOG << "\t" << "Depth histogram in %" << ENDL;
 		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
-			CONSOLE << "\t\t" << i << " : " << global__rayDepths[i] * 100.0 / numberOfShotRays << " %" << ENDL;
+			CONSOLE_LOG << "\t\t" << i << " : " << global__rayDepths[i] * 100.0 / numberOfShotRays << " %" << ENDL;
 
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
 
-		CONSOLE << "Time information" << ENDL;
-		CONSOLE << "\t" << "Loading time        : " << loadingTime       << " ms" << ENDL;
-		CONSOLE << "\t" << "BVH building time   : " << bvhBuildingTime   << " ms" << ENDL;
-		CONSOLE << "\t" << "OpenCL setting time : " << openclSettingTime << " ms" << ENDL;
-		CONSOLE << "\t" << "Path Tracing time   : " << pathTracingTime   << " ms" << ENDL;
-		CONSOLE << "\t" << "Display time        : " << displayTime       << " ms" << ENDL;
+		CONSOLE_LOG << "Time information" << ENDL;
+		CONSOLE_LOG << "\t" << "Loading time        : " << loadingTime       << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "BVH building time   : " << bvhBuildingTime   << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "OpenCL setting time : " << openclSettingTime << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "Path Tracing time   : " << pathTracingTime   << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "Display time        : " << displayTime       << " ms" << ENDL;
 
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
 
-		CONSOLE << "Time statistics" << ENDL;
-		CONSOLE << "\t" << "Average time per picture                  : " << pathTracingTime / numImageToRender      << " ms" << ENDL;
-		CONSOLE << "\t" << "Average time per 1000 full rays           : " << 1000. * pathTracingTime / numberOfShotRays      << " ms" << ENDL;
-		CONSOLE << "\t" << "Average time per 1000 (ray + shadow rays) : " << 1000. * pathTracingTime / numberOfProcessedRays << " ms" << ENDL;
+		CONSOLE_LOG << "Time statistics" << ENDL;
+		CONSOLE_LOG << "\t" << "Average time per picture                  : " << pathTracingTime / numImageToRender      << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "Average time per 1000 full rays           : " << 1000. * pathTracingTime / numberOfShotRays      << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "Average time per 1000 (ray + shadow rays) : " << 1000. * pathTracingTime / numberOfProcessedRays << " ms" << ENDL;
 
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
 
 	}
 
@@ -407,49 +403,23 @@ namespace PathTracerNS
 
 	void PathTracer_PrintSection(char const* section)
 	{
-		CONSOLE << ENDL << ENDL;
-		CONSOLE << "*** " << section << " ";
+		CONSOLE_LOG << ENDL << ENDL;
+		CONSOLE_LOG << "*** " << section << " ";
 		for(int i=0; i<69 - strlen(section); i++)
-			CONSOLE << "*";
-		CONSOLE << ENDL;
-		CONSOLE << ENDL;
+			CONSOLE_LOG << "*";
+		CONSOLE_LOG << ENDL;
+		CONSOLE_LOG << ENDL;
 	}
-
-
-	std::string BoundingBox_ToString( BoundingBox const *This)
-	{
-		if(This->isEmpty)
-			return "AABB : empty";
-		return "AABB : " + Vector_ToString(&This->pMin) + " --> " + Vector_ToString(&This->pMax);
-	}
-
-	std::string Triangle_ToString(Triangle const *This)
-	{
-		return "Triangle : [ " + Vector_ToString(&This->S1) + " , " + Vector_ToString(&This->S2) + " , " + Vector_ToString(&This->S3) + " ]  ----  " + BoundingBox_ToString(&This->AABB);
-	}
-
-
-	std::string Vector_ToString(Float4 const *This)
-	{
-		std::ostringstream oss;
-		oss << "["
-			<< (This->x >= 0 ? " " : "") << ((float)((int)( This->x*100 + ( This->x >= 0 ? 0.5 : -0.5 ) ) ) ) / 100 << (This->x == 0 ? "   " : "") << ", "
-			<< (This->y >= 0 ? " " : "") << ((float)((int)( This->y*100 + ( This->y >= 0 ? 0.5 : -0.5 ) ) ) ) / 100 << (This->y == 0 ? "   " : "") << ", "
-			<< (This->z >= 0 ? " " : "") << ((float)((int)( This->z*100 + ( This->z >= 0 ? 0.5 : -0.5 ) ) ) ) / 100 << (This->z == 0 ? "   " : "") << ", "
-			<< (This->w >= 0 ? " " : "") << ((float)((int)( This->w*100 + ( This->w >= 0 ? 0.5 : -0.5 ) ) ) ) / 100 << (This->w == 0 ? "   " : "") << "]";
-		return oss.str();
-	}
-
 
 	void Node_Print( Node const *This, uint n)
 	{
-		CONSOLE << " ";
+		LOG << " ";
 		for(uint i = 0; i < n; i++ )
-			CONSOLE << " | ";
-		CONSOLE << (This->isLeaf ? " F" : " N") << n << " : ";
-		CONSOLE << This->triangleStartIndex << " , " << This->nbTriangles << " CA : " << This->cutAxis << " ";
-		CONSOLE << (This->isLeaf ? (This->comments == NODE_BAD_SAH ? "Bad SAH" : (This->comments == NODE_LEAF_MAX_SIZE ? "Leaf max size" : (This->comments == NODE_LEAF_MIN_DIAG ? "Leaf min diag" : "Unknown"))) : "");
-		CONSOLE << ENDL;
+			LOG << " | ";
+		LOG << (This->isLeaf ? " F" : " N") << n << " : ";
+		LOG << This->triangleStartIndex << " , " << This->nbTriangles << " CA : " << This->cutAxis << " ";
+		LOG << (This->isLeaf ? (This->comments == NODE_BAD_SAH ? "Bad SAH" : (This->comments == NODE_LEAF_MAX_SIZE ? "Leaf max size" : (This->comments == NODE_LEAF_MIN_DIAG ? "Leaf min diag" : "Unknown"))) : "");
+		LOG << ENDL;
 
 		if(!This->isLeaf)
 		{
@@ -460,11 +430,10 @@ namespace PathTracerNS
 
 	void PathTracer_PrintBVH()
 	{
-		CONSOLE << "BVH : " << ENDL << ENDL;
+		LOG << "BVH : " << ENDL << ENDL;
 		Node_Print( global__bvh, 0 );
-		CONSOLE << ENDL;
+		LOG << ENDL;
 	}
-
 
 	void PathTracer_PrintBVHCharacteristics()
 	{
@@ -478,17 +447,32 @@ namespace PathTracerNS
 
 		BVH_GetCharacteristics(global__bvh, 0, 0, BVHMaxLeafSize, BVHMinLeafSize, BVHMaxDepth, BVHMinDepth, nNodes, nLeafs, BVHMaxLeafSizeComments);
 
-		CONSOLE << "\tCaracteristiques du BVH : " << ENDL;
-		CONSOLE << "\t\tBVHMaxLeafSize : "	<< BVHMaxLeafSize	<< " --> " << BVHMaxLeafSizeComments << ENDL;
-		CONSOLE << "\t\tBVHMinLeafSize : "	<< BVHMinLeafSize	<< ENDL;
-		CONSOLE << "\t\tBVHMaxDepth : "		<< BVHMaxDepth		<< "  dans le build : " << global__bvhMaxDepth << ENDL;
-		CONSOLE << "\t\tBVHMinDepth : "		<< BVHMinDepth		<< ENDL;
-		CONSOLE << "\t\tnNodes : "			<< nNodes			<< ENDL;
-		CONSOLE << "\t\tnLeafs : "			<< nLeafs			<< ENDL;
+		CONSOLE_LOG << "\tCaracteristiques du BVH : " << ENDL;
+		CONSOLE_LOG << "\t\tBVHMaxLeafSize : "	<< BVHMaxLeafSize	<< " --> " << BVHMaxLeafSizeComments << ENDL;
+		CONSOLE_LOG << "\t\tBVHMinLeafSize : "	<< BVHMinLeafSize	<< ENDL;
+		CONSOLE_LOG << "\t\tBVHMaxDepth : "		<< BVHMaxDepth		<< "  dans le build : " << global__bvhMaxDepth << ENDL;
+		CONSOLE_LOG << "\t\tBVHMinDepth : "		<< BVHMinDepth		<< ENDL;
+		CONSOLE_LOG << "\t\tnNodes : "			<< nNodes			<< ENDL;
+		CONSOLE_LOG << "\t\tnLeafs : "			<< nLeafs			<< ENDL;
 
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
 
 	}
 
+	void PathTracer_PrintTriangulation()
+	{
+		LOG << "TRIANGULATION : " << ENDL;
+		for(uint i=0; i<global__triangulationSize; i++)
+			Triangle_Print(&global__triangulation[i], i);
+		LOG << ENDL;
+	}
+
+	void Triangle_Print(Triangle const *This, uint id)
+	{
+		LOG << "\t" << "Triangle : " << id << ENDL;
+		LOG << "\t\t" << This->S1.toString() << ENDL;
+		LOG << "\t\t" << This->S2.toString() << ENDL;
+		LOG << "\t\t" << This->S3.toString() << ENDL;
+	}
 
 }

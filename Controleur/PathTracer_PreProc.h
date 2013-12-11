@@ -7,9 +7,8 @@
 //							SPECIFIC TO THE COMPUTER
 
 #define PATHTRACER_HOME "C:\\Users\\djerbeti\\"
-//#define PATHTRACER_HOME "C:\\Users\\Alexandre Djerbetian\\"
 
-#define PATHTRACER_FOLDER PATHTRACER_HOME"Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\"
+#define PATHTRACER_FOLDER		PATHTRACER_HOME"Documents\\Visual Studio 2012\\Projects\\OpenCL_PathTracer\\src\\"
 #define PATHTRACER_SCENE_FOLDER PATHTRACER_HOME"\\Pictures\\Maya\\"
 
 
@@ -38,13 +37,13 @@
 #include <maya/MIOStream.h>
 #include <maya/MGlobal.h>
 #include <fstream>
-#define COUT cout
+#define CONSOLE cout
 #define ENDL endl
 
 #else
 
 #include <iostream>
-#define COUT std::cout
+#define CONSOLE std::cout
 #define ENDL std::endl
 
 #endif
@@ -56,14 +55,14 @@ class mstream // To out the stream in both the console and the log file
 {
 public:
 	std::ofstream coss;
-	mstream(void) : coss(PATHTRACER_SCENE_FOLDER"PathTracer_log.txt") {};
 
-	void reset() {coss.close(); coss.open(PATHTRACER_SCENE_FOLDER"PathTracer_log.txt");};
+	void close() {coss.close();};
+	void open(char const* filePath) {coss.open(filePath);};
 
 	mstream& operator<< (std::ostream& (*pfun)(std::ostream&))
 	{
 		pfun(coss);
-		pfun(COUT);
+		pfun(CONSOLE);
 		return *this;
 	};
 
@@ -73,12 +72,13 @@ template <class T>
 mstream& operator<< (mstream& st, T val)
 {
 	st.coss << val;
-	COUT << val;
+	CONSOLE << val;
 	return st;
 };
 
 mstream extern console; // defined in PathTracer.cpp
-#define CONSOLE console
+#define CONSOLE_LOG console
+#define LOG console.coss
 
 
 

@@ -11,7 +11,7 @@ namespace PathTracerNS
 
 	void BVH_Create(uint triangulationSize, Triangle* triangulation, uint *global__bvhMaxDepth, uint *global__bvhSize, Node **global__bvh)
 	{
-		// 1 - Calcul de la Bounding Box de la scène entière
+		// 1 - Calcul de la Bounding Box de la scene entiere
 		BoundingBox fullTrianglesBoundingBox;
 		BoundingBox fullCentroidsBoundingBox;
 		BoundingBox_Reset(&fullTrianglesBoundingBox);
@@ -23,14 +23,13 @@ namespace PathTracerNS
 			BoundingBox_AddPoint(&fullCentroidsBoundingBox, &triangulation[i].AABB.centroid);
 		}
 
-
 		// 2 - Initialisation des variables du BVH
 		*global__bvhMaxDepth	= 0;
 		*global__bvhSize		= 0;
 		*global__bvh			= new Node[2*triangulationSize-1];
 
 
-		// 3 - Création de la racine du BVH
+		// 3 - Creation de la racine du BVH
 		BVH_CreateNode(*global__bvh, 0, triangulationSize, &fullTrianglesBoundingBox, &fullCentroidsBoundingBox, triangulation);
 
 		// 4 - Lancement de la fonction récursive de création de l'arbre à partir de la racine
@@ -110,7 +109,7 @@ namespace PathTracerNS
 	int BVH_BuildStructure(int currentIndex, uint *global__bvhSize, uint *global__bvhMaxDepth, Node *global__bvh, Triangle *triangulation)
 	{
 
-		//	Paramètres utilisés pour la  construction du BVH
+		//	Parametres utilises pour la  construction du BVH
 
 		static const float		const__KI					= 1;
 		static const float		const__KT					= 0.01f;
@@ -161,7 +160,7 @@ namespace PathTracerNS
 		static int rightToLeftNTriangles[3][const__K];
 		static float k1[3];
 
-		//3 - Reset du découpage en K région
+		//3 - Reset du decoupage en K region
 		for(int cutAxis=0; cutAxis<3; cutAxis++)
 		{
 			for(int i=0; i < const__K; i++)
@@ -189,7 +188,7 @@ namespace PathTracerNS
 			k1[cutAxis] = (float) ( const__K*(0.999f)/cutLength );
 
 
-			//4 - Répartition des triangles
+			//4 - Repartition des triangles
 			int triangleBin = 0;
 			for(int i=N->triangleStartIndex; i<=triangleEndIndex; i++)
 			{
@@ -312,13 +311,15 @@ namespace PathTracerNS
 		}
 
 		BoundingBox leftCentroidsAABB, rightCentroidsAABB;
+		BoundingBox_Reset(&leftCentroidsAABB);
+		BoundingBox_Reset(&rightCentroidsAABB);
 		for(int i=N->triangleStartIndex; i<leftSortIndex; i++)
 			BoundingBox_AddPoint( &leftCentroidsAABB, &triangulation[i].AABB.centroid);
 		for(int i=triangleEndIndex; i>=leftSortIndex; i--)
 			BoundingBox_AddPoint( &rightCentroidsAABB, &triangulation[i].AABB.centroid);
 
 
-		//10 - recursivité
+		//10 - recursivite
 		//enregistrements des données pour le fils droit (a causes des tableaus statiques
 		int triangleStartIndexSon2 = N->triangleStartIndex+leftToRightNTriangles[bestCutAxis][bestCutIndex];
 		int nTrianglesSon2 = rightToLeftNTriangles[bestCutAxis][bestCutIndex+1];

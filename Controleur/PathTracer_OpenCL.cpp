@@ -76,7 +76,7 @@ namespace PathTracerNS
 		while(true && imageId < numImagesToRender)
 		{
 			startTime = clock();
-			CONSOLE << "Computing sample number " << imageId << ENDL;
+			CONSOLE_LOG << "Computing sample number " << imageId << ENDL;
 
 			/////////////////////////////////////////////////////////////////////////////////
 			//////////////////// 1 -  MAIN KERNEL  //////////////////////////////////////////
@@ -349,10 +349,11 @@ namespace PathTracerNS
 		cl_platform_id platform_id = OpenCL_GetPlatform(platformName1);
 		if( platform_id == NULL )
 		{
+			CONSOLE << "WARNING : the program didn't find any " << platformName1 << " platform. Trying with " << platformName2 << ENDL;
 			platform_id = OpenCL_GetPlatform(platformName2);
 			if( platform_id == NULL )
 			{
-				printf("ERROR: Failed to find requested platforms. Stopping.\n");
+				CONSOLE << "ERROR : the program didn't find find the platform " << platformName2 << ". Aborting." << ENDL;
 				return false;
 			}
 		}
@@ -367,47 +368,52 @@ namespace PathTracerNS
 			return false;
 
 		// get the list of CPU devices associated with context
-		err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, 0, NULL, &cb);
-		clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, cb, devices, NULL);
+		err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, 0, NULL, &cb);		if(OpenCL_ErrorHandling(err)) return false;
+		err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, cb, devices, NULL); if(OpenCL_ErrorHandling(err)) return false;
 
-		opencl__queue = clCreateCommandQueue(opencl__context, devices[0], 0, NULL);
-		if (opencl__queue == (cl_command_queue)0)
-			return false;
+		opencl__queue = clCreateCommandQueue(opencl__context, devices[0], 0, &err); if(OpenCL_ErrorHandling(err)) return false;
 
 		char *sources = OpenCL_ReadSources(program_source);	//read program .cl source file
 		if(sources == NULL)
-			return false;
-
-		opencl__program = clCreateProgramWithSource(opencl__context, 1, (const char**)&sources, NULL, NULL);
-		if (opencl__program == (cl_program)0)
 		{
-			printf("ERROR: Failed to create Program with source...\n");
+			CONSOLE << "ERROR: Failed to read OpenCL sources. Aborting." << ENDL;
 			free(sources);
 			return false;
 		}
 
-		std::string buildOptionsString;
-		if(false)
+		opencl__program = clCreateProgramWithSource(opencl__context, 1, (const char**)&sources, NULL, &err);
+		if (opencl__program == (cl_program)0)
+		{
+			CONSOLE << "ERROR: Failed to create Program with sources because of the following error : " << ENDL;
+			OpenCL_ErrorHandling(err);
+			CONSOLE << "Aborting." << ENDL;
+			free(sources);
+			return false;
+		}
+
+		std::string buildOptionsString("-I \""PATHTRACER_FOLDER"Kernel\"");
+		if(false) // if we want to use the intel OpenCL debugger (which doesn't work...)
 		{
 			buildOptionsString += "-g -s \"";
 			buildOptionsString += program_source;
 			buildOptionsString += "\"";
 		}
 
-
 		err = clBuildProgram(opencl__program, 0, NULL, buildOptionsString.c_str(), NULL, NULL);
 		if (err != CL_SUCCESS)
 		{
-			printf("ERROR: Failed to build program...\n");
+			CONSOLE << "ERROR: Failed to build program. Aborting." << ENDL;
 			OpenCL_BuildFailLog(opencl__program, devices[0]);
 			free(sources);
 			return false;
 		}
 
-		opencl__Kernel_Main = clCreateKernel(opencl__program, "Kernel_Main", NULL);
+		opencl__Kernel_Main = clCreateKernel(opencl__program, "Kernel_Main", &err);
 		if (opencl__Kernel_Main == (cl_kernel)0)
 		{
-			printf("ERROR: Failed to create kernel...\n");
+			CONSOLE << "ERROR: Failed to create kernel for the following reason : " << ENDL;
+			OpenCL_ErrorHandling(err);
+			CONSOLE << "Aborting." << ENDL;
 			free(sources);
 			return false;
 		}
@@ -421,16 +427,20 @@ namespace PathTracerNS
 		err = clGetDeviceInfo(device_ID, CL_DEVICE_NAME, 128, device_name, NULL);
 		if (err!=CL_SUCCESS)
 		{
-			printf("ERROR: Failed to get device information (device name)...\n");
+			CONSOLE << "ERROR: Failed to get device information (device name) for the following reason : " << ENDL;
+			OpenCL_ErrorHandling(err);
+			CONSOLE << "Aborting." << ENDL;
 			return false;
 		}
 		err = clGetDeviceInfo(device_ID, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &num_cores, NULL);
 		if (err!=CL_SUCCESS)
 		{
-			printf("ERROR: Failed to get device information (max compute units)...\n");
+			CONSOLE << "ERROR: Failed to get device information (max compute units) for the following reason : " << ENDL;
+			OpenCL_ErrorHandling(err);
+			CONSOLE << "Aborting." << ENDL;
 			return false;
 		}
-		printf("Using device %s and using %d compute units.\n", device_name, num_cores);
+		CONSOLE << "Using device "<< device_name << " and using " << num_cores << " compute units." << ENDL;
 
 		return true; // success...
 	}
@@ -442,67 +452,64 @@ namespace PathTracerNS
 	{
 		if(errCode==0)
 			return false;
-		CONSOLE << ENDL;
-		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+		CONSOLE_LOG << ENDL;
+		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 
 		switch (errCode)
 		{
-		case  2 : CONSOLE << "GLOBAL ERROR : NO OPENCL PLATFORM " << ENDL; break;
-		case  1 : CONSOLE << "FILE ERROR : CANNOT OPEN FILE" << ENDL; break;
-
-		case -1 : CONSOLE << "OPENCL ERROR : CL_DEVICE_NOT_FOUND"; break;
-		case -2 : CONSOLE << "OPENCL ERROR : CL_DEVICE_NOT_AVAILABLE";	break;
-		case -3 : CONSOLE << "OPENCL ERROR : CL_COMPILER_NOT_AVAILABLE"; break;
-		case -4 : CONSOLE << "OPENCL ERROR : CL_MEM_OBJECT_ALLOCATION_FAILURE"; break;
-		case -5 : CONSOLE << "OPENCL ERROR : CL_OUT_OF_RESOURCES"; break;
-		case -6 : CONSOLE << "OPENCL ERROR : CL_OUT_OF_HOST_MEMORY"; break;
-		case -7 : CONSOLE << "OPENCL ERROR : CL_PROFILING_INFO_NOT_AVAILABLE"; break;
-		case -8 : CONSOLE << "OPENCL ERROR : CL_MEM_COPY_OVERLAP"; break;
-		case -9 : CONSOLE << "OPENCL ERROR : CL_IMAGE_FORMAT_MISMATCH"; break;
-		case -10: CONSOLE << "OPENCL ERROR : CL_IMAGE_FORMAT_NOT_SUPPORTED"; break;
-		case -11: CONSOLE << "OPENCL ERROR : CL_BUILD_PROGRAM_FAILURE"; break;
-		case -12: CONSOLE << "OPENCL ERROR : CL_MAP_FAILURE"; break;
-		case -13: CONSOLE << "OPENCL ERROR : CL_MISALIGNED_SUB_BUFFER_OFFSET"; break;
-		case -14: CONSOLE << "OPENCL ERROR : CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST"; break;
-		case -30: CONSOLE << "OPENCL ERROR : CL_INVALID_VALUE"; break;
-		case -31: CONSOLE << "OPENCL ERROR : CL_INVALID_DEVICE_TYPE"; break;
-		case -32: CONSOLE << "OPENCL ERROR : CL_INVALID_PLATFORM"; break;
-		case -33: CONSOLE << "OPENCL ERROR : CL_INVALID_DEVICE"; break;
-		case -34: CONSOLE << "OPENCL ERROR : CL_INVALID_CONTEXT"; break;
-		case -35: CONSOLE << "OPENCL ERROR : CL_INVALID_QUEUE_PROPERTIES"; break;
-		case -36: CONSOLE << "OPENCL ERROR : CL_INVALID_COMMAND_QUEUE"; break;
-		case -37: CONSOLE << "OPENCL ERROR : CL_INVALID_HOST_PTR"; break;
-		case -38: CONSOLE << "OPENCL ERROR : CL_INVALID_MEM_OBJECT"; break;
-		case -39: CONSOLE << "OPENCL ERROR : CL_INVALID_IMAGE_FORMAT_DESCRIPTOR"; break;
-		case -40: CONSOLE << "OPENCL ERROR : CL_INVALID_IMAGE_SIZE"; break;
-		case -41: CONSOLE << "OPENCL ERROR : CL_INVALID_SAMPLER"; break;
-		case -42: CONSOLE << "OPENCL ERROR : CL_INVALID_BINARY"; break;
-		case -43: CONSOLE << "OPENCL ERROR : CL_INVALID_BUILD_OPTIONS"; break;
-		case -44: CONSOLE << "OPENCL ERROR : CL_INVALID_PROGRAM"; break;
-		case -45: CONSOLE << "OPENCL ERROR : CL_INVALID_PROGRAM_EXECUTABLE"; break;
-		case -46: CONSOLE << "OPENCL ERROR : CL_INVALID_KERNEL_NAME"; break;
-		case -47: CONSOLE << "OPENCL ERROR : CL_INVALID_KERNEL_DEFINITION"; break;
-		case -48: CONSOLE << "OPENCL ERROR : CL_INVALID_KERNEL"; break;
-		case -49: CONSOLE << "OPENCL ERROR : CL_INVALID_ARG_INDEX"; break;
-		case -50: CONSOLE << "OPENCL ERROR : CL_INVALID_ARG_VALUE"; break;
-		case -51: CONSOLE << "OPENCL ERROR : CL_INVALID_ARG_SIZE"; break;
-		case -52: CONSOLE << "OPENCL ERROR : CL_INVALID_KERNEL_ARGS"; break;
-		case -53: CONSOLE << "OPENCL ERROR : CL_INVALID_WORK_DIMENSION"; break;
-		case -54: CONSOLE << "OPENCL ERROR : CL_INVALID_WORK_GROUP_SIZE"; break;
-		case -55: CONSOLE << "OPENCL ERROR : CL_INVALID_WORK_ITEM_SIZE"; break;
-		case -56: CONSOLE << "OPENCL ERROR : CL_INVALID_GLOBAL_OFFSET"; break;
-		case -57: CONSOLE << "OPENCL ERROR : CL_INVALID_EVENT_WAIT_LIST"; break;
-		case -58: CONSOLE << "OPENCL ERROR : CL_INVALID_EVENT"; break;
-		case -59: CONSOLE << "OPENCL ERROR : CL_INVALID_OPERATION"; break;
-		case -60: CONSOLE << "OPENCL ERROR : CL_INVALID_GL_OBJECT"; break;
-		case -61: CONSOLE << "OPENCL ERROR : CL_INVALID_BUFFER_SIZE"; break;
-		case -62: CONSOLE << "OPENCL ERROR : CL_INVALID_MIP_LEVEL"; break;
-		case -63: CONSOLE << "OPENCL ERROR : CL_INVALID_GLOBAL_WORK_SIZE"; break;
+		case -1 : CONSOLE_LOG << "OPENCL ERROR : CL_DEVICE_NOT_FOUND"; break;
+		case -2 : CONSOLE_LOG << "OPENCL ERROR : CL_DEVICE_NOT_AVAILABLE";	break;
+		case -3 : CONSOLE_LOG << "OPENCL ERROR : CL_COMPILER_NOT_AVAILABLE"; break;
+		case -4 : CONSOLE_LOG << "OPENCL ERROR : CL_MEM_OBJECT_ALLOCATION_FAILURE"; break;
+		case -5 : CONSOLE_LOG << "OPENCL ERROR : CL_OUT_OF_RESOURCES"; break;
+		case -6 : CONSOLE_LOG << "OPENCL ERROR : CL_OUT_OF_HOST_MEMORY"; break;
+		case -7 : CONSOLE_LOG << "OPENCL ERROR : CL_PROFILING_INFO_NOT_AVAILABLE"; break;
+		case -8 : CONSOLE_LOG << "OPENCL ERROR : CL_MEM_COPY_OVERLAP"; break;
+		case -9 : CONSOLE_LOG << "OPENCL ERROR : CL_IMAGE_FORMAT_MISMATCH"; break;
+		case -10: CONSOLE_LOG << "OPENCL ERROR : CL_IMAGE_FORMAT_NOT_SUPPORTED"; break;
+		case -11: CONSOLE_LOG << "OPENCL ERROR : CL_BUILD_PROGRAM_FAILURE"; break;
+		case -12: CONSOLE_LOG << "OPENCL ERROR : CL_MAP_FAILURE"; break;
+		case -13: CONSOLE_LOG << "OPENCL ERROR : CL_MISALIGNED_SUB_BUFFER_OFFSET"; break;
+		case -14: CONSOLE_LOG << "OPENCL ERROR : CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST"; break;
+		case -30: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_VALUE"; break;
+		case -31: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_DEVICE_TYPE"; break;
+		case -32: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_PLATFORM"; break;
+		case -33: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_DEVICE"; break;
+		case -34: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_CONTEXT"; break;
+		case -35: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_QUEUE_PROPERTIES"; break;
+		case -36: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_COMMAND_QUEUE"; break;
+		case -37: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_HOST_PTR"; break;
+		case -38: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_MEM_OBJECT"; break;
+		case -39: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_IMAGE_FORMAT_DESCRIPTOR"; break;
+		case -40: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_IMAGE_SIZE"; break;
+		case -41: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_SAMPLER"; break;
+		case -42: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_BINARY"; break;
+		case -43: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_BUILD_OPTIONS"; break;
+		case -44: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_PROGRAM"; break;
+		case -45: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_PROGRAM_EXECUTABLE"; break;
+		case -46: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL_NAME"; break;
+		case -47: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL_DEFINITION"; break;
+		case -48: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL"; break;
+		case -49: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_ARG_INDEX"; break;
+		case -50: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_ARG_VALUE"; break;
+		case -51: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_ARG_SIZE"; break;
+		case -52: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL_ARGS"; break;
+		case -53: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_WORK_DIMENSION"; break;
+		case -54: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_WORK_GROUP_SIZE"; break;
+		case -55: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_WORK_ITEM_SIZE"; break;
+		case -56: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_GLOBAL_OFFSET"; break;
+		case -57: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_EVENT_WAIT_LIST"; break;
+		case -58: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_EVENT"; break;
+		case -59: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_OPERATION"; break;
+		case -60: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_GL_OBJECT"; break;
+		case -61: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_BUFFER_SIZE"; break;
+		case -62: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_MIP_LEVEL"; break;
+		case -63: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_GLOBAL_WORK_SIZE"; break;
 		}
 
-		CONSOLE << ENDL;
-		CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE << ENDL;
+		CONSOLE_LOG << ENDL;
+		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+		CONSOLE_LOG << ENDL;
 
 
 		if(errCode == -11) // Build fail
@@ -511,10 +518,10 @@ namespace PathTracerNS
 			clGetProgramBuildInfo(opencl__program, opencl__device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 			char *log = (char *) malloc(log_size);
 			clGetProgramBuildInfo(opencl__program, opencl__device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-			CONSOLE << log << ENDL;
+			CONSOLE_LOG << log << ENDL;
 
-			CONSOLE << ENDL;
-			CONSOLE << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+			CONSOLE_LOG << ENDL;
+			CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 			return true;
 		}
 

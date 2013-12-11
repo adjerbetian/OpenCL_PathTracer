@@ -43,7 +43,7 @@ namespace PathTracerNS
 			BYTE* buffer = ConvertRGBAToBMPBuffer(imageColor, imageRay, pathTracerWidth, pathTracerHeight, &newBufferSize);
 			if(!SaveBMP(buffer, pathTracerWidth, pathTracerHeight, newBufferSize, filePath))
 			{
-				CONSOLE << "WARNING : unable to save rendered picture in the folder \"" << exportFolderPath << "\". Aborting saving." << ENDL;
+				CONSOLE_LOG << "WARNING : unable to save rendered picture in the folder \"" << exportFolderPath << "\". Aborting saving." << ENDL;
 				saveRenderedImages = false;
 			}
 			delete[] buffer;
@@ -65,8 +65,8 @@ namespace PathTracerNS
 			//
 			if (!MRenderView::doesRenderEditorExist())
 			{
-				CONSOLE << "Cannot renderViewInteractiveRender in batch render mode." << ENDL;
-				CONSOLE << "Run in interactive mode, so that the render editor exists." << ENDL;
+				CONSOLE_LOG << "Cannot renderViewInteractiveRender in batch render mode." << ENDL;
+				CONSOLE_LOG << "Run in interactive mode, so that the render editor exists." << ENDL;
 				return false;
 			};
 
@@ -74,7 +74,7 @@ namespace PathTracerNS
 
 			if (MRenderView::startRender( pathTracerWidth, pathTracerHeight, doNotClearBackground, true) != MS::kSuccess)
 			{
-				CONSOLE << "renderViewInteractiveRender: error occurred in startRender." << ENDL;
+				CONSOLE_LOG << "renderViewInteractiveRender: error occurred in startRender." << ENDL;
 				return false;
 			}
 
@@ -92,7 +92,7 @@ namespace PathTracerNS
 			if (MRenderView::updatePixels(0, pathTracerWidth-1, 0, pathTracerHeight-1, pixels) 
 				!= MS::kSuccess)
 			{
-				CONSOLE << "renderViewInteractiveRender: error occurred in updatePixels." << ENDL;
+				CONSOLE_LOG << "renderViewInteractiveRender: error occurred in updatePixels." << ENDL;
 				delete[] pixels;
 				return false;
 			}
@@ -102,7 +102,7 @@ namespace PathTracerNS
 			//
 			if (MRenderView::endRender() != MS::kSuccess)
 			{
-				CONSOLE << "renderViewInteractiveRender: error occurred in endRender.";
+				CONSOLE_LOG << "renderViewInteractiveRender: error occurred in endRender.";
 				return false;
 			}
 		}

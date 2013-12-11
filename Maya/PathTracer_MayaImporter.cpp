@@ -38,7 +38,7 @@ namespace PathTracerNS
 
 		if(*ptr__global__triangulationSize == 0)
 		{
-			CONSOLE << "Scene is empty. Stopping." << ENDL;
+			CONSOLE_LOG << "Scene is empty. Stopping." << ENDL;
 			return false;
 		}
 
@@ -69,7 +69,7 @@ namespace PathTracerNS
 
 		if(!GetCam(cameraName, camera))
 		{
-			CONSOLE << "WARNING : Camera \"" << cameraName << "\" was not found. Looking for persp camera. " << ENDL;
+			CONSOLE_LOG << "WARNING : Camera \"" << cameraName << "\" was not found. Looking for persp camera. " << ENDL;
 			GetCam("perspShape", camera);
 		}
 
@@ -296,7 +296,7 @@ namespace PathTracerNS
 						// Bitangents
 						Float4(), Float4(), Float4(),
 						//Materials
-						materialId, materialId);
+						materialId, materialId, triangleId);
 					triangleId++;
 
 
@@ -367,9 +367,9 @@ namespace PathTracerNS
 		MFnDependencyNode fn( fnMesh.parent(0) );
 
 		// Print debug info
-		//CONSOLE << fnMesh.name() << ENDL;
-		//CONSOLE << "\tnumMeshInstances " << NumInstances << ENDL;
-		//CONSOLE << "\t\tparent " << fn.name().asChar() << ENDL;
+		//CONSOLE_LOG << fnMesh.name() << ENDL;
+		//CONSOLE_LOG << "\tnumMeshInstances " << NumInstances << ENDL;
+		//CONSOLE_LOG << "\t\tparent " << fn.name().asChar() << ENDL;
 
 		// this will hold references to the shaders used on the meshes
 		MObjectArray Shaders;
@@ -382,14 +382,14 @@ namespace PathTracerNS
 
 		int shaderLength = Shaders.length();
 		if(Shaders.length() != 1)
-			CONSOLE << "WARNING : the mesh " << fnMesh.name() << " has more than one or no material. We will take only the first." << ENDL;
+			CONSOLE_LOG << "WARNING : the mesh " << fnMesh.name() << " has more than one or no material. We will take only the first." << ENDL;
 
 		MString shaderName = GetShaderName( Shaders[0] );
 
 		// If no material associated or unknown material, return standart material
 		if(shaderName == "none")
 		{
-			CONSOLE << "ERROR : MATERIAL \"none\" for " << fnMesh.name() << ENDL;
+			CONSOLE_LOG << "ERROR : MATERIAL \"none\" for " << fnMesh.name() << ENDL;
 			return 0;
 		}
 
@@ -398,7 +398,7 @@ namespace PathTracerNS
 			return MaterialNameId[shaderName.asChar()];
 
 		// If we get here, then the material has not been found
-		CONSOLE << "ERROR : MATERIAL NOT FOUND for " << fnMesh.name() << " -> material name : " << shaderName << ENDL;
+		CONSOLE_LOG << "ERROR : MATERIAL NOT FOUND for " << fnMesh.name() << " -> material name : " << shaderName << ENDL;
 		return 0;
 
 	}
@@ -560,11 +560,11 @@ namespace PathTracerNS
 			offset += tex->width * tex->height;
 
 			// write image attributes
-			//CONSOLE << "Texture : " << fn.name().asChar() << " from the file : " << filename.asChar() << ENDL;
-			//CONSOLE << "\tWidth  : " << tex->width << ENDL;
-			//CONSOLE << "\tHeight : " << tex->height << ENDL;
-			//CONSOLE << "\tOffset : " << tex->offset << ENDL;
-			//CONSOLE << "\tDepth  : " << d << ENDL;
+			//CONSOLE_LOG << "Texture : " << fn.name().asChar() << " from the file : " << filename.asChar() << ENDL;
+			//CONSOLE_LOG << "\tWidth  : " << tex->width << ENDL;
+			//CONSOLE_LOG << "\tHeight : " << tex->height << ENDL;
+			//CONSOLE_LOG << "\tOffset : " << tex->offset << ENDL;
+			//CONSOLE_LOG << "\tDepth  : " << d << ENDL;
 
 			// write either 24 or 32 bit data
 			if(d==4)
@@ -591,7 +591,7 @@ namespace PathTracerNS
 			}
 			else
 			{
-				CONSOLE << "WARNING : The texture " << fn.name().asChar() << " from the file " << filename << " has a depth different of 3 or 4. The texture will be ommited." << ENDL;
+				CONSOLE_LOG << "WARNING : The texture " << fn.name().asChar() << " from the file " << filename << " has a depth different of 3 or 4. The texture will be ommited." << ENDL;
 			}
 		}
 
@@ -723,7 +723,7 @@ namespace PathTracerNS
 
 		if(sky == NULL)
 		{
-			CONSOLE << "ERROR : cannot open cube map. Creating a black sky." << ENDL;
+			CONSOLE_LOG << "ERROR : cannot open cube map. Creating a black sky." << ENDL;
 			// we create a black cube map
 			fullWidth = 4;
 			fullHeight = 3;
@@ -933,10 +933,12 @@ namespace PathTracerNS
 		Float4 const& n1,	Float4 const& n2,	Float4 const& n3,
 		Float4 const& t1,	Float4 const& t2,	Float4 const& t3,
 		Float4 const& bt1,	Float4 const& bt2,	Float4 const& bt3,
-		uint positiveMatIndex, uint negativeMatIndex)
+		uint positiveMatIndex, uint negativeMatIndex, uint id)
 	{
+
 		This->materialWithPositiveNormalIndex = positiveMatIndex;
 		This->materialWithNegativeNormalIndex = negativeMatIndex;
+		This->id = id;
 
 		BoundingBox_Create( This->AABB, s1, s2, s3);
 

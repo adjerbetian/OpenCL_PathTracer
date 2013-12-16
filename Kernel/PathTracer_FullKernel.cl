@@ -527,7 +527,7 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const
 ///						TRIANGLE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
+bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance)
 {
 	PRINT_DEBUG_INFO_2("Triangle_Intersects - START \t\t\t", "Triangle id : %u", This->id, "r.numIntersectedTri : %u", r->numIntersectedTri);
 
@@ -589,13 +589,6 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 
 	*squaredDistance = newSquaredDistance;
 
-	if(intersectedMaterial	!= NULL) *intersectedMaterial = mat;
-	if(intersectionColor	!= NULL) *intersectionColor = materialColor;
-	//if(intersectionColor	!= NULL) *intersectionColor = RGBACOLOR(1,1,1,1)*dot(r->direction,This->N)*2./3. + 1./3.;
-	if(sBestTriangle		!= NULL) *sBestTriangle = s;
-	if(tBestTriangle		!= NULL) *tBestTriangle = t;
-	if(intersectionPoint	!= NULL) *intersectionPoint = q;
-
 	r->intersectedMaterialId = matIdx;
 	r->intersectionColor = materialColor;
 	//r->intersectionColor = RGBACOLOR(1,1,1,1)*dot(r->direction,This->N)*2./3. + 1./3.;
@@ -635,7 +628,7 @@ float4 Triangle_GetSmoothNormal(Triangle const *This, bool positiveNormal, float
  *	La traversée de l'arbre se fait par paquet avec le groupe entier
  */
 
-bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor)
+bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r)
 {
 	float squaredDistance = INFINITY;
 
@@ -656,10 +649,9 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersect
 			for(uint i=currentNode->triangleStartIndex; i < currentNode->triangleStartIndex+currentNode->nbTriangles; i++)
 			{
 				Triangle triangle = global__triangulation[i];
-				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
+				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance))
 				{
 					r->intersectedTriangleId = i;
-					*intersetedTriangle = triangle;
 					hasIntersection = true;
 				}
 			}
@@ -723,12 +715,6 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersect
 
 bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squaredDistance, RGBAColor *tint)
 {
-	float4 *intersectionPoint = NULL;
-	Material *intersectedMaterial = NULL;
-	RGBAColor *intersectionColor = NULL;
-	float *s = NULL;
-	float *t = NULL;
-
 	bool hasIntersection = false;	
 	int currentReadStackIdx = -1;
 	Node const __global *currentNode = &global__bvh[0];
@@ -746,7 +732,7 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squar
 			for(uint i=currentNode->triangleStartIndex; i < currentNode->triangleStartIndex+currentNode->nbTriangles; i++)
 			{
 				Triangle triangle = global__triangulation[i];
-				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
+				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance))
 				{
 					return true;
 				}
@@ -1265,15 +1251,15 @@ __kernel void Kernel_Main(
 	{
 		PRINT_DEBUG_INFO_2("KERNEL MAIN - ACTIVE LOOP \t\t\t", "r.reflectionId : %u" , r.reflectionId, "r.numIntersectedTri : %u", r.numIntersectedTri);
 
-		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
+		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r))
 		{
 
 			intersectionPoint   = r.intersectionPoint;
 			intersectionColor = r.intersectionColor;
 			s = r.s;
 			t = r.t;
-			Triangle intersectedTriangle = global__triangulation[r.intersectedTriangleId];
-			Material intersectedMaterial = global__materiaux[r.intersectedMaterialId];
+			intersectedTriangle = global__triangulation[r.intersectedTriangleId];
+			intersectedMaterial = global__materiaux[r.intersectedMaterialId];
 
 			PRINT_DEBUG_INFO_1("KERNEL MAIN - INTERSETCT BVH \t\t", "r.numIntersectedTri : %u", r.numIntersectedTri);
 

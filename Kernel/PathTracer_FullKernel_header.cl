@@ -486,7 +486,7 @@ RGBAColor	Sky_GetFaceColorValue	( Sky __global const *This , uchar4 __global con
 ///						Triangle
 ////////////////////////////////////////////////////////////////////////////////////////
 
-bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle);
+bool				Triangle_Intersects			(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance);
 RGBAColor			Triangle_GetColorValueAt	(__global Texture const *global__textures, __global Material const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, bool positiveNormal, float s, float t);
 float4				Triangle_GetSmoothNormal	(Triangle const	*This, bool positiveNormal, float s, float t);
 float4				Triangle_GetNormal			(Triangle const	*This, bool positiveNormal);
@@ -498,7 +498,7 @@ inline float4		Triangle_GetNormal			(Triangle const *This, bool positiveNormal) 
 ////////////////////////////////////////////////////////////////////////////////////////
 
 
-bool		BVH_IntersectRay					(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersectionPoint, float *s, float *t, Triangle *intersetedTriangle, Material *intersectedMaterial, RGBAColor *intersectionColor);
+bool		BVH_IntersectRay					(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r);
 bool		BVH_IntersectShadowRay				(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squaredDistance, RGBAColor *tint);
 
 ////////////////////////////////////////////////////////////////////////////////////////

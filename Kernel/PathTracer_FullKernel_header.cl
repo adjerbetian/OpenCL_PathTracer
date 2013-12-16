@@ -87,8 +87,8 @@ typedef struct
 	float4 origin;
 	float4 direction;
 	float4 inverse;
-	uint   intersectedBBx;
-	uint   intersectedTri;
+	uint   numIntersectedBBx;
+	uint   numIntersectedTri;
 	uint   reflectionId;
 	char   isInWater;
 } Ray3D;
@@ -274,8 +274,8 @@ inline void Ray3D_Create( Ray3D *This, float4 const *o, float4 const *d, bool _i
 {
 	This->origin = *o;
 	This->isInWater = _isInWater;
-	This->intersectedBBx = 0;
-	This->intersectedTri = 0;
+	This->numIntersectedBBx = 0;
+	This->numIntersectedTri = 0;
 	This->reflectionId = 0;
 	Ray3D_SetDirection(This, d);
 };

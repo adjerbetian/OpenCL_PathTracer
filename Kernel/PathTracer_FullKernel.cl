@@ -62,7 +62,7 @@ void PrefixSum_uint(uint __local volatile *values)
 
 bool BoundingBox_Intersects ( BoundingBox const *This, Ray3D *r, const float squaredDistance)
 {
-	r->intersectedBBx++;
+	r->numIntersectedBBx++;
 
 	if(This->isEmpty)
 		return false;
@@ -529,9 +529,9 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const
 
 bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance, float4 *intersectionPoint, Material *intersectedMaterial, RGBAColor *intersectionColor, float *sBestTriangle, float *tBestTriangle)
 {
-	PRINT_DEBUG_INFO_2("Triangle_Intersects - START \t\t\t", "Triangle id : %u", This->id, "r.intersectedTri : %u", r->intersectedTri);
+	PRINT_DEBUG_INFO_2("Triangle_Intersects - START \t\t\t", "Triangle id : %u", This->id, "r.numIntersectedTri : %u", r->numIntersectedTri);
 
-	r->intersectedTri++;
+	r->numIntersectedTri++;
 
 	// REMARQUE : Les triangles sont orientés avec la normale
 	//		--> Pas d'intersection si le rayon vient de derrière...
@@ -965,8 +965,8 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 
 				if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
 					L += Light_PowerToward(&light, p, N) * BRDF * tint * light.color;
-				cameraRay->intersectedBBx += lightRay.intersectedBBx;
-				cameraRay->intersectedTri += lightRay.intersectedTri;
+				cameraRay->numIntersectedBBx += lightRay.numIntersectedBBx;
+				cameraRay->numIntersectedTri += lightRay.numIntersectedTri;
 			}
 		}
 	}
@@ -1254,12 +1254,12 @@ __kernel void Kernel_Main(
 
 	while(activeRay && r.reflectionId < MAX_REFLECTION_NUMBER)
 	{
-		PRINT_DEBUG_INFO_2("KERNEL MAIN - ACTIVE LOOP \t\t\t", "r.reflectionId : %u" , r.reflectionId, "r.intersectedTri : %u", r.intersectedTri);
+		PRINT_DEBUG_INFO_2("KERNEL MAIN - ACTIVE LOOP \t\t\t", "r.reflectionId : %u" , r.reflectionId, "r.numIntersectedTri : %u", r.numIntersectedTri);
 
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
 
-			PRINT_DEBUG_INFO_1("KERNEL MAIN - INTERSETCT BVH \t\t", "r.intersectedTri : %u", r.intersectedTri);
+			PRINT_DEBUG_INFO_1("KERNEL MAIN - INTERSETCT BVH \t\t", "r.numIntersectedTri : %u", r.numIntersectedTri);
 
 			//if(r.isInWater)
 			//{
@@ -1326,15 +1326,15 @@ __kernel void Kernel_Main(
 	atomic_inc(&global__imageRayNb[globalImageOffset]);
 	atomic_inc(&global__rayDepths[r.reflectionId]);
 
-	if(r.intersectedBBx < MAX_INTERSETCION_NUMBER)
-		atomic_inc(&global__rayIntersectionBBx[r.intersectedBBx]);
+	if(r.numIntersectedBBx < MAX_INTERSETCION_NUMBER)
+		atomic_inc(&global__rayIntersectionBBx[r.numIntersectedBBx]);
 	else
-		ASSERT_AND_INFO("global__rayIntersectionBBx to large", r.intersectedBBx < MAX_INTERSETCION_NUMBER, "r.intersectedBBx = %u", r.intersectedBBx);
+		ASSERT_AND_INFO("global__rayIntersectionBBx to large", r.numIntersectedBBx < MAX_INTERSETCION_NUMBER, "r.numIntersectedBBx = %u", r.numIntersectedBBx);
 
-	if(r.intersectedTri < MAX_INTERSETCION_NUMBER)
-		atomic_inc(&global__rayIntersectionTri[r.intersectedTri]);
+	if(r.numIntersectedTri < MAX_INTERSETCION_NUMBER)
+		atomic_inc(&global__rayIntersectionTri[r.numIntersectedTri]);
 	else
-		ASSERT_AND_INFO("global__rayIntersectionTri to large", r.intersectedTri < MAX_INTERSETCION_NUMBER, "r.intersectedTri = %u", r.intersectedTri);
+		ASSERT_AND_INFO("global__rayIntersectionTri to large", r.numIntersectedTri < MAX_INTERSETCION_NUMBER, "r.numIntersectedTri = %u", r.numIntersectedTri);
 
 	global__imageColor[globalImageOffset] += radianceToCompute;
 }

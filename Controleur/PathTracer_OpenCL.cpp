@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <sstream>
 
+#include "shlobj.h"
+#include <string>
+
+
+
 namespace PathTracerNS
 {
 
@@ -235,12 +240,12 @@ namespace PathTracerNS
 		return true;
 	}
 
-	char *OpenCL_ReadSources(const char *fileName)
+	char* OpenCL_ReadSources(char const* fileName)
 	{
 		FILE *file = fopen(fileName, "rb");
 		if (!file)
 		{
-			printf("ERROR: Failed to open file '%s'\n", fileName);
+			CONSOLE << "ERROR: Failed to open file " << fileName << ENDL;
 			return NULL;
 		}
 

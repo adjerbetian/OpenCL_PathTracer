@@ -1,15 +1,30 @@
 #include "RayTracer.h"
 #include "../Controleur/PathTracer.h"
 #include "PathTracer_MayaImporter.h"
-#include <maya/MGlobal.h>
-#include <ctime>
 
+#include <maya/MGlobal.h>
+#include <maya/MArgParser.h>
+
+#include <ctime>
 #include <Windows.h>
 #include <Mmsystem.h>
 #pragma comment(lib, "winmm.lib")
 
-#include <direct.h>
 
+static const char* loadSky_flag =  "-sky";
+static const char* loadSky_long_flag = "-loadSky";
+
+static const char* save_flag = "-sv";
+static const char* save_long_flag = "-save";
+
+static const char* images_flag = "-i";
+static const char* images_long_flag = "-images";
+
+static const char* width_flag = "-w";
+static const char* width_long_flag = "-width";
+
+static const char* height_flag = "-h";
+static const char* height_long_flag = "-height";
 
 
 void* RayTracer::creator() 
@@ -17,40 +32,40 @@ void* RayTracer::creator()
 	return new RayTracer; 
 }
 
+MSyntax RayTracer::newSyntax() 
+{ 
+	MSyntax syntax; 
+	MStatus st;
+
+	st = syntax.addFlag( loadSky_flag	, loadSky_long_flag	); 
+	st = syntax.addFlag( save_flag		, save_long_flag	);
+	st = syntax.addFlag( images_flag	, images_long_flag	, MSyntax::kLong);
+	st = syntax.addFlag( width_flag		, width_long_flag	, MSyntax::kLong);
+	st = syntax.addFlag( height_flag	, height_long_flag	, MSyntax::kLong);
+
+	return syntax; 
+}
+
+
 void RayTracer::loadArgs(MArgList argList, uint& image_width, uint& image_height, uint& numImageToRender, bool& loadSky, bool& saveRenderedImages)
 {
-	int argListLength = argList.length();
-	for(int i=0; i<argListLength; i++)
-	{
-		MString s = argList.asString(i);
+	MArgParser parser(newSyntax(), argList);
 
-		if(s.asChar()[0] == '-')
-		{
-			switch(s.asChar()[1])
-			{
-			case 'w':
-				image_width = argList.asInt(i+1);
-				break;
-				
-			case 'h':
-				image_height = argList.asInt(i+1);
-				break;
+	if(parser.isFlagSet(loadSky_long_flag))
+		loadSky = true;
 
-			case 'i':
-				numImageToRender = argList.asInt(i+1);
-				break;
+	if(parser.isFlagSet(save_flag)) 
+		saveRenderedImages = true;
 
-			case 's':
-				loadSky = true;
-				break;
+	if(parser.isFlagSet(width_flag)) 
+		parser.getFlagArgument( width_flag, 0, image_width );
 
-			case 'r':
-				saveRenderedImages = true;
-				break;
+	if(parser.isFlagSet(height_flag)) 
+		parser.getFlagArgument( height_flag, 0, image_height );
 
-			}
-		}
-	}
+	if(parser.isFlagSet(images_flag)) 
+		parser.getFlagArgument( images_flag, 0, numImageToRender );
+
 }
 
 

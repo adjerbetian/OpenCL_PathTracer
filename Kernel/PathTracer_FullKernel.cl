@@ -576,7 +576,8 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 		return false;					// Le triangle est derriere nous (cas particulier à traiter si l'origine du rayon est dans la feuille du BVH)... Peut-être à enlever.
 
 
-	Material mat				= nd < 0  ? global__materiaux[This->materialWithPositiveNormalIndex] : global__materiaux[This->materialWithNegativeNormalIndex];
+	uint matIdx					= nd < 0  ? This->materialWithPositiveNormalIndex : This->materialWithNegativeNormalIndex;
+	Material mat				= global__materiaux[matIdx];
 	RGBAColor materialColor		= Triangle_GetColorValueAt(global__textures, global__materiaux, global__texturesData, This, nd < 0 ,s,t);
 
 	//Material mat;
@@ -594,6 +595,13 @@ bool Triangle_Intersects(Texture __global const *global__textures, Material __gl
 	if(sBestTriangle		!= NULL) *sBestTriangle = s;
 	if(tBestTriangle		!= NULL) *tBestTriangle = t;
 	if(intersectionPoint	!= NULL) *intersectionPoint = q;
+
+	r->intersectedMaterialId = matIdx;
+	r->intersectionColor = materialColor;
+	//r->intersectionColor = RGBACOLOR(1,1,1,1)*dot(r->direction,This->N)*2./3. + 1./3.;
+	r->s = s;
+	r->t = t;
+	r->intersectionPoint = q;
 
 	return true;
 }
@@ -650,6 +658,7 @@ bool BVH_IntersectRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float4 *intersect
 				Triangle triangle = global__triangulation[i];
 				if(Triangle_Intersects(global__textures, global__materiaux, global__texturesData, &triangle, r, &squaredDistance, intersectionPoint, intersectedMaterial, intersectionColor, s, t))
 				{
+					r->intersectedTriangleId = i;
 					*intersetedTriangle = triangle;
 					hasIntersection = true;
 				}
@@ -1258,6 +1267,13 @@ __kernel void Kernel_Main(
 
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r, &intersectionPoint, &s, &t, &intersectedTriangle, &intersectedMaterial, &intersectionColor))
 		{
+
+			intersectionPoint   = r.intersectionPoint;
+			intersectionColor = r.intersectionColor;
+			s = r.s;
+			t = r.t;
+			Triangle intersectedTriangle = global__triangulation[r.intersectedTriangleId];
+			Material intersectedMaterial = global__materiaux[r.intersectedMaterialId];
 
 			PRINT_DEBUG_INFO_1("KERNEL MAIN - INTERSETCT BVH \t\t", "r.numIntersectedTri : %u", r.numIntersectedTri);
 

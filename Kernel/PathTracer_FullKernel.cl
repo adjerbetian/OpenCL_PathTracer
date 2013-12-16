@@ -799,7 +799,7 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squar
 ///						SCENE
 ////////////////////////////////////////////////////////////////////////////////////////
 
-RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const * materialColor, float s, float t, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, float4 const *Ng,  float4 const *Ns)
+RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, float4 const *Ng,  float4 const *Ns)
 {
 	float4 N = r->direction;
 
@@ -809,7 +809,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 
 	if(mat->type == MAT_STANDART)
 	{
-		*transferFunction *= (*materialColor);
+		*transferFunction *= r->intersectionColor;
 		radianceToCompute = (*directIlluminationRadiance) * (*transferFunction);
 		outDirection = Material_CosineSampleHemisphere(seed, Ns);
 		N = *Ns;
@@ -826,7 +826,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 		}
 		else
 		{
-			*transferFunction *= (*materialColor) * (1 - mat->opacity);
+			*transferFunction *= r->intersectionColor * (1 - mat->opacity);
 			N = r->direction;
 		}
 	}
@@ -854,8 +854,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
 
 	Vector_PutInSameHemisphereAs(&outDirection, &N);
 	Ray3D_SetDirection(r, &outDirection);
-//	r->origin = *p + 0.01f * outDirection;
-	r->origin = *p + 0.01f * outDirection;
+	r->origin = r->intersectionPoint + 0.001f * outDirection;
 
 	return radianceToCompute;
 
@@ -917,7 +916,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, 
  *			- Pour des scène en exterieur, il est préférable de tout le temps tester le soleil
  */
 
-RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, Ray3D *cameraRay, Material const *mat, const float4 *N)
+RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *cameraRay, Material const *mat, const float4 *N)
 {
 	RGBAColor L		= RGBACOLOR(0,0,0,0);				//	Radiance à calculer
 	RGBAColor tint	= RGBACOLOR(1,1,1,1);				//	Teinte lors d'un shadow ray
@@ -926,82 +925,48 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, const f
 
 	const bool sampleLights = false;
 	// Lampes
-	if(sampleLights)
+	//if(sampleLights)
+	//{
+	//	if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
+	//	{
+	//		L = RGBACOLOR(0.5,0.5,0.5,1);
+
+	//		//Ray3D lightRay;
+	//		//float4 fullRay = light.position - (*p);
+	//		//Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
+	//		//
+	//		//if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, Vector_SquaredDistanceTo(&light.position, p), &tint))		//Lumière visible
+	//		//	L += light.color * tint * lightContribution;
+	//	}
+	//}
+	//else
+	//{
+
+	float BRDF;
+	if(global__lightsSize > 0)
 	{
-		if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
+		for(uint i = 0; i < global__lightsSize; i++)
 		{
-			L = RGBACOLOR(0.5,0.5,0.5,1);
+			light = global__lights[i];
+			Ray3D lightRay;
+			float4 fullRay =  light.type == LIGHT_DIRECTIONNAL ? -light.direction : light.position - cameraRay->intersectionPoint;
 
-			//Ray3D lightRay;
-			//float4 fullRay = light.position - (*p);
-			//Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
-			//
-			//if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, Vector_SquaredDistanceTo(&light.position, p), &tint))		//Lumière visible
-			//	L += light.color * tint * lightContribution;
-		}
-	}
-	else
-	{
-		Light light;
-		float BRDF;
-		if(global__lightsSize > 0)
-		{
-			for(uint i = 0; i < global__lightsSize; i++)
-			{
-				light = global__lights[i];
-				Ray3D lightRay;
-				float4 fullRay =  light.type == LIGHT_DIRECTIONNAL ? -light.direction : light.position - (*p);
+			Ray3D_Create(&lightRay, &cameraRay->intersectionPoint, &fullRay, cameraRay->isInWater);
 
-				Ray3D_Create(&lightRay, p, &fullRay, cameraRay->isInWater);
+			float lightDistance = light.type == LIGHT_DIRECTIONNAL ? INFINITY : length(fullRay);
+			float4 oppositeDirection = - lightRay.direction;
+			BRDF = Material_BRDF(mat, &oppositeDirection, N, &cameraRay->direction);
 
-				float lightDistance = light.type == LIGHT_DIRECTIONNAL ? INFINITY : length(fullRay);
-				float4 oppositeDirection = - lightRay.direction;
-				BRDF = Material_BRDF(mat, &oppositeDirection, N, &cameraRay->direction);
-
-				if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
-					L += Light_PowerToward(&light, p, N) * BRDF * tint * light.color;
-				cameraRay->numIntersectedBBx += lightRay.numIntersectedBBx;
-				cameraRay->numIntersectedTri += lightRay.numIntersectedTri;
-			}
+			if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
+				L += Light_PowerToward(&light, &cameraRay->intersectionPoint, N) * BRDF * tint * light.color;
+			cameraRay->numIntersectedBBx += lightRay.numIntersectedBBx;
+			cameraRay->numIntersectedTri += lightRay.numIntersectedTri;
 		}
 	}
 
 	ASSERT_AND_INFO("Scene_ComputeDirectIllumination incorrect radiance L", L.x >= 0 && L.y >= 0 && L.z >= 0, "L : %v4f", L);
 
 	return L;
-
-	////	Soleil
-
-	//tint = RGBACOLOR(1,1,1,1);
-	//Ray3D sunRay;
-	//float4 sunOpositeDirection = - global__sun->direction;
-	//Ray3D_Create(&sunRay, p, &sunOpositeDirection, cameraRay->isInWater);
-	//float G = dot(sunRay.direction, *N);
-	//float BRDF = Material_BRDF( mat, &sunRay, N, cameraRay);
-
-	//ASSERT( BRDF >= 0 );
-
-
-	//if(false)	// Si on veut smapler le soleil selon sa contribution potentielle, mettre ce test à true
-	//{
-	//	if( (random(seed) < (G * BRDF)) && !BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &sunRay, INFINITY, &tint))
-	//	{
-	//		RGBAColor LSun = global__sun->color * global__sun->power * tint;
-	//		L += LSun;
-	//	}
-	//}
-	//else	// Le soleil est sampler tout le temps
-	//{
-	//	if( (G * BRDF) > 0 && !BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &sunRay, INFINITY, &tint))
-	//	{
-	//		RGBAColor LSun = global__sun->color * global__sun->power * tint;
-	//		L += LSun * (G * BRDF);
-	//	}
-	//}
-
-	//ASSERT(L.x >= 0 && L.y >= 0 && L.z >= 0);
-
-	//return L;
 }
 
 /*	Calcule une contribution suplémentaire dans l'eau par in-scaterring
@@ -1274,8 +1239,8 @@ __kernel void Kernel_Main(
 			Ns = normalize(Ns);
 			ASSERT("Kernel_Main incorrect normals", dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
-			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &r.intersectionPoint, &r, &intersectedMaterial, &Ns);
-			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &r.intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &r.intersectionColor, r.s, r.t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
+			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &r, &intersectedMaterial, &Ns);
+			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &r, &intersectedTriangle, &intersectedMaterial, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			r.reflectionId++;
 		}
 		else // Sky

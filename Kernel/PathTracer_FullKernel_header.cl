@@ -91,6 +91,14 @@ typedef struct
 	uint   numIntersectedTri;
 	uint   reflectionId;
 	char   isInWater;
+
+	// Intersection info
+	float4 intersectionPoint;
+	RGBAColor intersectionColor;
+	uint   intersectedTriangleId;
+	uint   intersectedMaterialId;
+	float  s;
+	float  t;
 } Ray3D;
 
 typedef struct

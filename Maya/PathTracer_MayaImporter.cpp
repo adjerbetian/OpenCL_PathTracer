@@ -860,7 +860,7 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)
 	{
 		//Material type
-		This->type = MAT_STANDART;
+		This->type = MAT_VARNHISHED;
 
 		//Texture
 		This->textureId = GetTextureId(fn);
@@ -906,7 +906,7 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnBlinnShader const& fn)
 	{
 		//Material type
-		This->type = MAT_STANDART;
+		This->type = MAT_VARNHISHED;
 
 		//Texture
 		This->textureId = GetTextureId(fn);

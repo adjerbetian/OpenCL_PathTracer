@@ -802,9 +802,7 @@ bool BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, float squar
 RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangle const *triangle, Material const * mat, RGBAColor const *directIlluminationRadiance, RGBAColor* transferFunction, float4 const *Ng,  float4 const *Ns)
 {
 	float4 N = r->direction;
-
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
-
 	float4 outDirection = r->direction;
 
 	if(mat->type == MAT_STANDART)
@@ -852,52 +850,36 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangl
 		}
 	}
 
+	else if(mat->type == MAT_VARNHISHED)
+	{
+		//	Illumination directe
+		radianceToCompute += *directIlluminationRadiance * r->intersectionColor * (*transferFunction);
+
+		float4 refractedDirection;
+		float rFresnel1 = Material_FresnelVarnishReflectionFraction(mat, &r->direction, Ns, false, &refractedDirection);
+
+		//	Reflection
+		if(random(seed) < rFresnel1)
+		{
+			outDirection = Material_FresnelReflection(mat, &r->direction, Ns);
+		}
+
+		//	Refraction (ignoree) + rebond diffus + refraction
+		else
+		{
+			float rFresnel2;
+			float4 NsOposite = -*Ns;
+			outDirection = Material_CosineSampleHemisphere(seed, Ns);
+			rFresnel2 = Material_FresnelVarnishReflectionFraction(mat, &r->direction, &NsOposite, true, &outDirection);
+			*transferFunction *= r->intersectionColor * (1-rFresnel2);
+		}
+	}
+
 	Vector_PutInSameHemisphereAs(&outDirection, &N);
 	Ray3D_SetDirection(r, &outDirection);
 	r->origin = r->intersectionPoint + 0.001f * outDirection;
 
 	return radianceToCompute;
-
-
-
-	//if(mat.type == MAT_VARNHISHED)
-	//{
-
-	//	//	Illumination directe
-	//	*radianceToCompute += directIlluminationRadiance * materialColor * (*transferFunction);
-
-	//	float4 refractedDirection;
-	//	float rFresnel1 = Material_FresnelVarnishReflectionFraction(&mat, r, &Ns, false, &refractedDirection);
-
-	//	//	Reflection
-	//	if(random(seed) < rFresnel1)
-	//	{
-	//		*transferFunction *= 0.8f;
-
-	//		r->origin = *p;
-	//		outDirection = Material_FresnelReflection(&mat, &r->direction, &Ns);
-	//		Vector_PutInSameHemisphereAs(&outDirection, &Ng);
-	//		Ray3D_SetDirection(r, &outDirection);
-	//		return;
-	//	}
-
-	//	//	Refraction (ignorée) + rebond diffus + refraction
-	//	r->origin = *p;
-
-	//	float rFresnel2;
-	//	float4 NsOposite = -Ns;
-
-	//	outDirection = Material_CosineSampleHemisphere(seed, &Ns);
-	//	Ray3D_SetDirection(r, &outDirection);
-
-	//	rFresnel2 = Material_FresnelVarnishReflectionFraction(&mat, r, &NsOposite, true, &outDirection);
-	//	Vector_PutInSameHemisphereAs(&outDirection, &Ng);
-	//	Ray3D_SetDirection(r, &outDirection);
-
-	//	*transferFunction *= materialColor * (1-rFresnel2);
-
-	//	return;
-	//}
 
 	//if(mat.type == MAT_METAL)
 	//{

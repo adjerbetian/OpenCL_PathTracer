@@ -1239,9 +1239,6 @@ __kernel void Kernel_Main(
 	//	Variable utiles lors du parcours de l'arbre
 	RGBAColor radianceToCompute = RGBACOLOR(0,0,0,0);
 	RGBAColor transferFunction  = RGBACOLOR(1,1,1,1);
-	float4 intersectionPoint   = FLOAT4  (0,0,0,0);
-	RGBAColor intersectionColor = RGBACOLOR(0,0,0,0);
-	float s = 0.0f, t = 0.0f;
 	Triangle intersectedTriangle;
 	Material intersectedMaterial;
 
@@ -1253,11 +1250,6 @@ __kernel void Kernel_Main(
 
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r))
 		{
-
-			intersectionPoint   = r.intersectionPoint;
-			intersectionColor = r.intersectionColor;
-			s = r.s;
-			t = r.t;
 			intersectedTriangle = global__triangulation[r.intersectedTriangleId];
 			intersectedMaterial = global__materiaux[r.intersectedMaterialId];
 
@@ -1275,15 +1267,15 @@ __kernel void Kernel_Main(
 
 			float4 const Ng = Triangle_GetNormal(&intersectedTriangle, !areRayAndNormalInSameDirection);
 
-			float4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,s,t);
+			float4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,r.s,r.t);
 			float4 rOpositeDirection = - r.direction;
 			Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
 
 			Ns = normalize(Ns);
 			ASSERT("Kernel_Main incorrect normals", dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
 			
-			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedMaterial, &Ns);
-			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &intersectionColor, s, t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
+			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &r.intersectionPoint, &r, &intersectedMaterial, &Ns);
+			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &r.intersectionPoint, &r, &intersectedTriangle, &intersectedMaterial, &r.intersectionColor, r.s, r.t, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			r.reflectionId++;
 		}
 		else // Sky

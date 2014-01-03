@@ -97,16 +97,16 @@ namespace PathTracerNS
 			BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
 			bvhBuildingTime = clock()-start;
 
-			if(global__bvhMaxDepth < BVH_MAX_DEPTH)
+			if(global__bvhMaxDepth >= BVH_MAX_DEPTH)
 			{
-				std::ostringstream errorMessage("BVH is too deep : it has a size of ");
-				errorMessage << global__bvhMaxDepth << " and should be under " << BVH_MAX_DEPTH;
+				std::ostringstream errorMessage;
+				errorMessage << "BVH is too deep : it has a size of " << global__bvhMaxDepth << " and should be under " << BVH_MAX_DEPTH;
 				throw std::runtime_error(errorMessage.str());
 			}
-			if(global__lightsSize < MAX_LIGHT_SIZE)
+			if(global__lightsSize >= MAX_LIGHT_SIZE)
 			{
-				std::ostringstream errorMessage("The scene has too many lights : it has ");
-				errorMessage << global__lightsSize << " and should be under " << MAX_LIGHT_SIZE;
+				std::ostringstream errorMessage;
+				errorMessage << "The scene has too many lights : it has " << global__lightsSize << " and should be under " << MAX_LIGHT_SIZE;
 				throw std::runtime_error(errorMessage.str());
 			}
 
@@ -246,9 +246,10 @@ namespace PathTracerNS
 	{
 		// Les données OpenCL sont prévues pour une image de taille 1280 x 720
 
-		if(global__imageWidth > 0 && global__imageHeight > 0)
+		if(!(global__imageWidth > 0 && global__imageHeight > 0))
 		{
-			std::ostringstream errorStream("Bad inage dimension : width x height : ");
+			std::ostringstream errorStream;
+			errorStream << "Bad image dimension : width x height : ";
 			errorStream << global__imageWidth << " x " << global__imageHeight ;
 			throw std::runtime_error(errorStream.str());
 		}

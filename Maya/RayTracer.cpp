@@ -107,6 +107,7 @@ MStatus RayTracer::doIt(const MArgList& argList)
 	bool success = PathTracerNS::PathTracer_Main(image_width, image_height, numImageToRender, saveRenderedImages, loadSky, exportScene, sampler, rayMaxDepth);
 
 	CONSOLE_LOG.close();
-	PlaySound(L"C:\\Windows\\Media\\notify.wav", NULL, SND_ASYNC );
+	if(success)	PlaySound(L"C:\\Windows\\Media\\notify.wav", NULL, SND_ASYNC );
+	else		PlaySound(L"C:\\Windows\\Media\\chord.wav", NULL, SND_ASYNC );
 	return success ? MS::kSuccess : MS::kFailure;
 }

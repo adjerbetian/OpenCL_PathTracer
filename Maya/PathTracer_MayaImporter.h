@@ -43,7 +43,7 @@ namespace PathTracerNS
 		PathTracerMayaImporter():PathTracerImporter(){}
 
 
-		virtual bool Import						(uint image_width, uint image_height, bool loadSky);
+		virtual void Import						(uint image_width, uint image_height, bool loadSky);
 
 		void ImportMesh							();
 		void ImportMaterials					();

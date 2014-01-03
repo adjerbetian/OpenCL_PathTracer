@@ -21,7 +21,7 @@
 namespace PathTracerNS
 {
 
-	bool PathTracerMayaImporter::Import(uint image_width, uint image_height, bool loadSky)
+	void PathTracerMayaImporter::Import(uint image_width, uint image_height, bool loadSky)
 	{
 		*ptr__global__imageWidth = image_width;
 		*ptr__global__imageHeight = image_height;
@@ -37,12 +37,7 @@ namespace PathTracerNS
 		TextureNameId.clear();
 
 		if(*ptr__global__triangulationSize == 0)
-		{
-			CONSOLE_LOG << "Scene is empty. Stopping." << ENDL;
-			return false;
-		}
-
-		return true;
+			throw std::runtime_error("Scene is empty. Stopping.");
 	}
 
 	bool PathTracerMayaImporter::GetCam(const MString &cameraName, MDagPath &camera)
@@ -70,7 +65,8 @@ namespace PathTracerNS
 		if(!GetCam(cameraName, camera))
 		{
 			CONSOLE_LOG << "WARNING : Camera \"" << cameraName << "\" was not found. Looking for persp camera. " << ENDL;
-			GetCam("perspShape", camera);
+			if(!GetCam("perspShape", camera))
+				throw std::runtime_error("None of the standard cameras were found.");
 		}
 
 		MFnCamera		fnCamera(camera);

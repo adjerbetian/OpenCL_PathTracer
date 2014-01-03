@@ -20,7 +20,7 @@ namespace PathTracerNS
 
 		PathTracerDialog();
 
-		bool			PaintWindow(RGBAColor const * imageColor, uint const * imageRay);
+		bool			PaintWindow(RGBAColor const * imageColor, float const * imageRay);
 		void			PaintTexture(Uchar4 const * global__texturesData, Texture& global__textures);
 
 

@@ -11,7 +11,6 @@
 #define PATH_PI_INVERSE 0.31830988618f
 #define RUSSIAN_ROULETTE false
 #define MIN_REFLECTION_NUMBER 3
-#define MAX_REFLECTION_NUMBER 10
 #define MAX_INTERSETCION_NUMBER 5000
 #define MIN_CONTRIBUTION_VALUE 0.001f
 #define BVH_MAX_DEPTH 30
@@ -20,11 +19,12 @@
 // Debug log
 
 // if you want to have some OpenCL log info, uncomment this line
-//#define LOG_INFO
+#define LOG_INFO
 
 #ifdef LOG_INFO
 
-#define DEBUG_ITEM_CONDITION get_global_id(0) == 35 && get_global_id(1) == 71
+#define DEBUG_ITEM_CONDITION false
+//#define DEBUG_ITEM_CONDITION true get_global_id(0) < 0 && get_global_id(1) < 0
 #define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2) if(DEBUG_ITEM_CONDITION) printf( message " --> "infoString1" : \t "infoString2" \n", infoVal1, infoVal2 )
 #define PRINT_DEBUG_INFO_1(message, infoString1, infoVal1) PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, "", 0)
 #define PRINT_DEBUG_INFO_0(message) PRINT_DEBUG_INFO_1(message, "", 0)
@@ -87,6 +87,7 @@ typedef struct
 	float4 origin;
 	float4 direction;
 	float4 inverse;
+	float2 sample;
 	uint   numIntersectedBBx;
 	uint   numIntersectedTri;
 	uint   reflectionId;
@@ -247,10 +248,10 @@ inline float random	(int *seed)
 	return res;
 };
 
-inline int InitializeRandomSeed(uint x, uint y, uint width, uint height, uint iterationNum)
+inline int InitializeRandomSeed(uint width, uint height, uint iterationNum)
 {
 	int seed = 0;
-	seed = x + ( y * width ) + ( iterationNum * width * height );
+	seed = get_global_id(0) + ( get_global_id(1) * width ) + ( iterationNum * width * height );
 	seed *= 2011;	//	Nombre premier, pour plus répartir les nombres
 	seed *= seed;
 	if(seed == 0)
@@ -285,6 +286,7 @@ inline void Ray3D_Create( Ray3D *This, float4 const *o, float4 const *d, bool _i
 	This->numIntersectedBBx = 0;
 	This->numIntersectedTri = 0;
 	This->reflectionId = 0;
+	This->sample = (float2) (0,0);
 	Ray3D_SetDirection(This, d);
 };
 
@@ -528,7 +530,7 @@ __kernel void Kernel_Main(
 	uint     global__lightsSize,
 
 	volatile float4	__global *global__imageColor,
-	volatile uint	__global *global__imageRayNb,
+	volatile float	__global *global__imageRayNb,
 	volatile uint	__global *global__rayDepths,
 	volatile uint	__global *global__rayIntersectionBBx,
 	volatile uint	__global *global__rayIntersectionTri,

@@ -1111,6 +1111,41 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+///						SAMPLERS
+////////////////////////////////////////////////////////////////////////////////////////
+
+float2 sampler(Ray3D *r, int *seed, uint kernel__imageWidth, uint kernel__imageHeight, uint kernel__iterationNum)
+{
+	float2 sample;
+
+#if defined(SAMPLE_UNIFORM)
+	int sampleId = kernel__iterationNum % 9; // grid of 3x3
+	
+	sample = (float2) (get_global_id(0), get_global_id(1));
+
+	float2 offset = ((float2) (sampleId % 3, sampleId / 3));
+	offset += 0.5f;
+	offset /= 3.f;
+
+	sample += offset;
+
+	sample /= (float2) (kernel__imageWidth, kernel__imageHeight);
+	sample -= 0.5f;
+
+#elif defined(SAMPLE_RANDOM)
+	sample = (float2) (random(seed), random(seed));
+	sample -= 0.5f;
+
+#else // SAMPLE_JITTERED
+
+	sample.x = (get_global_id(0) + random(seed)) / ((float) kernel__imageWidth ) - 0.5f;
+	sample.y = (get_global_id(1) + random(seed)) / ((float) kernel__imageHeight) - 0.5f;
+#endif
+
+	return sample;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 ///						KERNEL
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1128,7 +1163,7 @@ __kernel void Kernel_Main(
 	uint     global__lightsSize,
 
 	volatile float4	__global *global__imageColor,
-	volatile uint	__global *global__imageRayNb,
+	volatile float	__global *global__imageRayNb,
 	volatile uint	__global *global__rayDepths,
 	volatile uint	__global *global__rayIntersectionBBx,
 	volatile uint	__global *global__rayIntersectionTri,
@@ -1148,26 +1183,17 @@ __kernel void Kernel_Main(
 	///////////////////////////////////////////////////////////////////////////////////////
 
 	Ray3D r;
-	int globalImageOffset;
-	int seedValue;
+	int seedValue = InitializeRandomSeed(kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
 	int *seed = &seedValue;
 
-	{
-		uint xPixel = get_global_id(0);
-		uint yPixel = get_global_id(1);
+	float2 sample = sampler(&r, seed, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
+	float4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * sample.x ) + ( kernel__cameraUp * sample.y );
+	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
+	r.sample = sample;
 
-		globalImageOffset = yPixel * kernel__imageWidth + xPixel;
+	ASSERT_AND_INFO("SAMPLER - invalid pixel", r.sample.x >= -0.5 && r.sample.y >= -0.5 && r.sample.x <= 0.5 && r.sample.y <= 0.5, "sample : %v2f", r.sample);
 
-		*seed = InitializeRandomSeed(xPixel, yPixel, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
-
-		float xScreen = (xPixel + random(seed) - 0.5) / (float) kernel__imageWidth  - 0.5;
-		float yScreen = (yPixel + random(seed) - 0.5) / (float) kernel__imageHeight - 0.5;
-
-		float4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * xScreen ) + ( kernel__cameraUp * yScreen );
-		Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
-	}
-
-	PRINT_DEBUG_INFO_2("KERNEL MAIN - START \t\t\t\t", "seedValue : %i" , *seed, "globalImageOffset : %i", globalImageOffset );
+	PRINT_DEBUG_INFO_1("KERNEL MAIN - START \t\t\t\t", "seedValue : %i" , *seed);
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION DES VARIABLES DE PARCOURS
@@ -1263,19 +1289,28 @@ __kernel void Kernel_Main(
 
 	PRINT_DEBUG_INFO_1("KERNEL MAIN - END \t\t\t\t", "radianceToCompute : %v4f", radianceToCompute);
 
-	// Si le rayon est termine
-	atomic_inc(&global__imageRayNb[globalImageOffset]);
-	atomic_inc(&global__rayDepths[r.reflectionId]);
+	{ // Statistics
+		atomic_inc(&global__rayDepths[r.reflectionId]);
 
-	if(r.numIntersectedBBx < MAX_INTERSETCION_NUMBER)
-		atomic_inc(&global__rayIntersectionBBx[r.numIntersectedBBx]);
-	else
-		ASSERT_AND_INFO("global__rayIntersectionBBx to large", r.numIntersectedBBx < MAX_INTERSETCION_NUMBER, "r.numIntersectedBBx = %u", r.numIntersectedBBx);
+		if(r.numIntersectedBBx < MAX_INTERSETCION_NUMBER)
+			atomic_inc(&global__rayIntersectionBBx[r.numIntersectedBBx]);
+		else
+			ASSERT_AND_INFO("global__rayIntersectionBBx to large", r.numIntersectedBBx < MAX_INTERSETCION_NUMBER, "r.numIntersectedBBx = %u", r.numIntersectedBBx);
 
-	if(r.numIntersectedTri < MAX_INTERSETCION_NUMBER)
-		atomic_inc(&global__rayIntersectionTri[r.numIntersectedTri]);
-	else
-		ASSERT_AND_INFO("global__rayIntersectionTri to large", r.numIntersectedTri < MAX_INTERSETCION_NUMBER, "r.numIntersectedTri = %u", r.numIntersectedTri);
+		if(r.numIntersectedTri < MAX_INTERSETCION_NUMBER)
+			atomic_inc(&global__rayIntersectionTri[r.numIntersectedTri]);
+		else
+			ASSERT_AND_INFO("global__rayIntersectionTri to large", r.numIntersectedTri < MAX_INTERSETCION_NUMBER, "r.numIntersectedTri = %u", r.numIntersectedTri);
+	}
 
-	global__imageColor[globalImageOffset] += radianceToCompute;
+	int2 pixel = (int2) ( (int) ((r.sample.x+0.5) * kernel__imageWidth), ( (int) ((r.sample.y+0.5) * kernel__imageHeight) ) );
+	pixel = min(pixel, (int2) (kernel__imageWidth-1, kernel__imageHeight-1) );
+
+	int globalImageOffset = pixel.y * kernel__imageWidth + pixel.x;
+	ASSERT_AND_INFO("KERNEL MAIN - global offset to large", globalImageOffset < kernel__imageWidth*kernel__imageHeight, "r.pixel : %v2i", r.sample);
+	//printf( "KERNEL MAIN - pixel --> %v2i --> %v2i \n", (int2) (get_global_id(0), get_global_id(1)), pixel );
+
+	global__imageRayNb[globalImageOffset] += 1;
+	global__imageColor[globalImageOffset] += radianceToCompute; // should be atomic... neglected
+
 }

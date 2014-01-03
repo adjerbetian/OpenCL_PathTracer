@@ -857,29 +857,6 @@ namespace PathTracerNS
 		This->simpleColor = RGBAColor(0,0,0,0);
 	}
 
-	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)
-	{
-		//Material type
-		This->type = MAT_VARNHISHED;
-
-		//Texture
-		This->textureId = GetTextureId(fn);
-		This->isSimpleColor = This->textureId < 0;
-
-		//Alpha map
-		This->hasAlphaMap = false;
-
-		//Transparency
-		RGBAColor transparencyColor = GetMaterialColor(fn,"transparency");
-		This->opacity = transparencyColor.w;
-
-		//Color
-		This->simpleColor = GetMaterialColor(fn,"color");
-		if(This->simpleColor.x < 0.01 && This->simpleColor.y < 0.01 && This->simpleColor.z < 0.01)
-			This->simpleColor = RGBAColor(1,1,1,0)*0.8f;
-
-	}
-
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnLambertShader const& fn)
 	{
 		//Material type
@@ -903,10 +880,35 @@ namespace PathTracerNS
 
 	}
 
+	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)
+	{
+		//Material type
+		//This->type = MAT_VARNHISHED;
+		This->type = MAT_STANDART;
+
+		//Texture
+		This->textureId = GetTextureId(fn);
+		This->isSimpleColor = This->textureId < 0;
+
+		//Alpha map
+		This->hasAlphaMap = false;
+
+		//Transparency
+		RGBAColor transparencyColor = GetMaterialColor(fn,"transparency");
+		This->opacity = transparencyColor.w;
+
+		//Color
+		This->simpleColor = GetMaterialColor(fn,"color");
+		if(This->simpleColor.x < 0.01 && This->simpleColor.y < 0.01 && This->simpleColor.z < 0.01)
+			This->simpleColor = RGBAColor(1,1,1,0)*0.8f;
+
+	}
+
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnBlinnShader const& fn)
 	{
 		//Material type
-		This->type = MAT_VARNHISHED;
+		//This->type = MAT_VARNHISHED;
+		This->type = MAT_STANDART;
 
 		//Texture
 		This->textureId = GetTextureId(fn);

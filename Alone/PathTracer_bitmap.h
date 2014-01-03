@@ -13,7 +13,7 @@ namespace PathTracerNS
 	BYTE* ConvertBMPToRGBBuffer ( BYTE* Buffer, int width, int height );
 	bool SaveBMP ( BYTE* buffer, int width, int height, long paddedsize, LPCWSTR bmpfile );
 	BYTE* ConvertRGBToBMPBuffer ( BYTE* Buffer, int width, int height, long* newsize );
-	BYTE* ConvertRGBAToBMPBuffer ( RGBAColor const * imageColor, uint const * imageRay, int width, int height, long* newsize );
+	BYTE* ConvertRGBAToBMPBuffer ( RGBAColor const * imageColor, float const * imageRay, int width, int height, long* newsize );
 }
 
 #endif

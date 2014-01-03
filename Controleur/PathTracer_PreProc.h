@@ -15,7 +15,6 @@
 /***********************************************************************************/
 //							GLOBAL CONSTANTS
 
-#define MAX_REFLECTION_NUMBER 10
 #define MAX_INTERSETCION_NUMBER 5000 // for statistics - for both bbx and tri
 #define BVH_MAX_DEPTH 30
 #define MAX_LIGHT_SIZE 30

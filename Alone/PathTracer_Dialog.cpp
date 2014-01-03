@@ -21,7 +21,7 @@ namespace PathTracerNS
 		imageIndex(1)
 	{}
 
-	bool PathTracerDialog::PaintWindow(RGBAColor const * imageColor, uint const * imageRay)
+	bool PathTracerDialog::PaintWindow(RGBAColor const * imageColor, float const * imageRay)
 	{
 		if(saveRenderedImages)
 		{

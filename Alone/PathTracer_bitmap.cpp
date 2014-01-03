@@ -234,7 +234,7 @@ namespace PathTracerNS
 	}
 
 
-	BYTE* ConvertRGBAToBMPBuffer ( RGBAColor const * imageColor, uint const * imageRay, int width, int height, long* newsize )
+	BYTE* ConvertRGBAToBMPBuffer ( RGBAColor const * imageColor, float const * imageRay, int width, int height, long* newsize )
 	{
 		if ( ( NULL == imageColor ) || ( width == 0 ) || ( height == 0 ) )
 			return NULL;
@@ -256,7 +256,7 @@ namespace PathTracerNS
 		{
 			for ( int x = 0; x < width; x++ )
 			{
-				int nRays = imageRay == NULL ? 1 : max(imageRay[pos], 1);
+				float sumFilterCoeff = imageRay == NULL ? 1 : imageRay[pos];
 
 				int r,g,b;
 
@@ -268,9 +268,9 @@ namespace PathTracerNS
 				}
 				else
 				{
-					r = (int) min(imageColor[pos].x * 255.f / nRays, 255.f);
-					g = (int) min(imageColor[pos].y * 255.f / nRays, 255.f);
-					b = (int) min(imageColor[pos].z * 255.f / nRays, 255.f);
+					r = (int) min(imageColor[pos].x * 255.f / sumFilterCoeff, 255.f);
+					g = (int) min(imageColor[pos].y * 255.f / sumFilterCoeff, 255.f);
+					b = (int) min(imageColor[pos].z * 255.f / sumFilterCoeff, 255.f);
 				}
 
 				newbuf[newpos + 0] = b;		// swap r and b

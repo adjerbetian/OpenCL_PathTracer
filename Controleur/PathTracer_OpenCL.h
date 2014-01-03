@@ -15,26 +15,27 @@ namespace PathTracerNS
 {
 
 	bool OpenCL_RunKernel(
-		uint		global__imageWidth,
-		uint		global__imageHeight,
-		uint		global__imageSize,
+		uint		 global__imageWidth,
+		uint		 global__imageHeight,
+		uint		 global__imageSize,
+		uint		 global__rayMaxDepth,
 		RGBAColor	*global__imageColor,
-		uint		*global__imageRayNb,
+		float		*global__imageRayNb,
 		uint		*global__rayDepths,
 		uint		*global__rayIntersectedBBx,
 		uint		*global__rayIntersectedTri,
 		bool		(*UpdateWindowFunc)(void),
-		uint		numImagesToRender,
-		double*		pathTracingTime,
-		double*		displayTime
+		uint		 numImagesToRender,
+		double*		 pathTracingTime,
+		double*		 displayTime
 		);
 
 
 	bool	OpenCL_InitializeMemory		(
-		Float4		const	global__cameraDirection		,
-		Float4		const	global__cameraRight			,
-		Float4		const	global__cameraUp			,
-		Float4		const	global__cameraPosition		,
+		Float4		const&	global__cameraDirection		,
+		Float4		const&	global__cameraRight			,
+		Float4		const&	global__cameraUp			,
+		Float4		const&	global__cameraPosition		,
 
 		Node		const	*global__bvh				,
 		Triangle	const	*global__triangulation		,
@@ -52,8 +53,9 @@ namespace PathTracerNS
 		uint		const	 global__imageWidth			,
 		uint		const	 global__imageHeight		,
 		uint		const	 global__imageSize			,
+		uint		const	 global__rayMaxDepth		,
 		RGBAColor			*global__imageColor			,
-		uint				*global__imageRayNb			,
+		float				*global__imageRayNb			,
 		uint				*global__rayDepths			,
 		uint				*global__rayIntersectedBBx	,
 		uint				*global__rayIntersectedTri	,
@@ -65,7 +67,7 @@ namespace PathTracerNS
 	char*			OpenCL_ReadSources			(const char *fileName);
 	cl_platform_id	OpenCL_GetIntelOCLPlatform	();
 	void			OpenCL_BuildFailLog( cl_program program, cl_device_id device_id );
-	bool			OpenCL_SetupContext			();
+	bool			OpenCL_SetupContext			(Sampler sampler, uint const global__rayMaxDepth);
 	bool			OpenCL_ErrorHandling		(cl_int errCode);
 }
 

@@ -46,13 +46,14 @@ namespace PathTracerNS
 	Sky					 global__sky;	// Ciel
 
 
-	//	Données images, qui viennent du rendu
+	//	Donnees images, qui viennent du rendu
 
 	uint				 global__imageWidth				= 0;		// Largeur de l'image de rendu
 	uint				 global__imageHeight			= 0;		// Hauteur de l'image de rendu
 	uint				 global__imageSize				= 0;		// Largeur * Hauteur
+	uint				 global__rayMaxDepth			= 10;		// Profondeur max des rayons
 	RGBAColor			*global__imageColor				= NULL;		// Somme des couleurs rendues
-	uint				*global__imageRayNb				= NULL;		// Nombre de rayons ayant contribue aux pixels
+	float				*global__imageRayNb				= NULL;		// Nombre de rayons ayant contribue aux pixels
 	uint				*global__rayDepths				= NULL;		// Number of ray for each depth
 	uint				*global__rayIntersectedBBx		= NULL;		// Number of ray for each number of BBx interstection
 	uint				*global__rayIntersectedTri		= NULL;		// Number of ray for each number of Tri interstection
@@ -68,7 +69,7 @@ namespace PathTracerNS
 	}
 
 
-	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene)
+	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayMaxDepth)
 	{
 		CONSOLE_LOG << ENDL;
 		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
@@ -87,7 +88,7 @@ namespace PathTracerNS
 		bool noError = true;
 
 		PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
-		PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky);
+		PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth);
 		loadingTime = clock()-start;
 
 		PathTracer_PrintSection("BUILDING BVH"); start = clock();
@@ -97,20 +98,20 @@ namespace PathTracerNS
 		ASSERT(global__bvhMaxDepth < BVH_MAX_DEPTH); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 		ASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
 
-
-
 		if(exportScene)
 		{
 			PathTracer_PrintSection("EXPORTING SCENE");
 			PathTracer_Export();
 		}
 
-		
-		
 		PathTracer_PrintSection("SETTING OPENCL CONTEXT"); start = clock();
-		noError &= OpenCL_SetupContext();
+		noError &= OpenCL_SetupContext(sampler, global__rayMaxDepth);
 
-		if(!noError) return false;
+		if(!noError)
+		{
+			PathTracer_Clear();
+			return false;
+		}
 
 		noError &= OpenCL_InitializeMemory	(
 			global__cameraDirection		,
@@ -134,6 +135,7 @@ namespace PathTracerNS
 			global__imageWidth			,
 			global__imageHeight			,
 			global__imageSize			,
+			global__rayMaxDepth			,
 			global__imageColor			,
 			global__imageRayNb			,
 			global__rayDepths			,
@@ -144,7 +146,11 @@ namespace PathTracerNS
 			&global__sky
 			);
 
-		if(!noError) return false;
+		if(!noError)
+		{
+			PathTracer_Clear();
+			return false;
+		}
 		openclSettingTime = clock()-start;
 
 		
@@ -154,6 +160,7 @@ namespace PathTracerNS
 			global__imageWidth			,
 			global__imageHeight			,
 			global__imageSize			,
+			global__rayMaxDepth			,
 			global__imageColor			,
 			global__imageRayNb			,
 			global__rayDepths			,
@@ -165,7 +172,11 @@ namespace PathTracerNS
 			&displayTime
 			);
 
-		if(!noError) return false;
+		if(!noError)
+		{
+			PathTracer_Clear();
+			return false;
+		}
 		pathTracingTime	 = clock()-start;
 
 		
@@ -180,7 +191,7 @@ namespace PathTracerNS
 	/*	Gestion des différents initialiseurs
 	*/
 
-	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky)
+	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth)
 	{
 		global__importer->Initialize(
 			&global__cameraDirection,
@@ -204,6 +215,7 @@ namespace PathTracerNS
 			);
 
 		global__importer->Import(image_width, image_height, loadSky);
+		global__rayMaxDepth = rayMaxDepth;
 
 		PathTracer_InitializeImage();
 		PathTracer_InitializeWindow(saveRenderedImages);
@@ -232,16 +244,16 @@ namespace PathTracerNS
 		ASSERT(global__imageWidth > 0 && global__imageHeight > 0);
 
 		global__imageColor			= new RGBAColor[global__imageWidth*global__imageHeight];
-		global__imageRayNb			= new uint[global__imageWidth*global__imageHeight];
-		global__rayDepths			= new uint[MAX_REFLECTION_NUMBER+1];
+		global__imageRayNb			= new float[global__imageWidth*global__imageHeight];
+		global__rayDepths			= new uint[global__rayMaxDepth+1];
 		global__rayIntersectedBBx	= new uint[MAX_INTERSETCION_NUMBER];
 		global__rayIntersectedTri	= new uint[MAX_INTERSETCION_NUMBER];
 
-		for(int x=0; x<MAX_REFLECTION_NUMBER+1; x++)
+		for(uint x=0; x<global__rayMaxDepth+1; x++)
 		{
 			global__rayDepths[x] = 0;
 		}
-		for(int x=0; x<MAX_INTERSETCION_NUMBER; x++)
+		for(uint x=0; x<MAX_INTERSETCION_NUMBER; x++)
 		{
 			global__rayIntersectedBBx[x] = 0;
 			global__rayIntersectedTri[x] = 0;
@@ -250,7 +262,7 @@ namespace PathTracerNS
 		for(uint x=0; x<global__imageSize; x++)
 		{
 			global__imageColor[x] = RGBAColor(0,0,0,0);
-			global__imageRayNb   [x] = 0;
+			global__imageRayNb[x] = 0;
 		}
 	}
 
@@ -333,14 +345,14 @@ namespace PathTracerNS
 		unsigned long int numberOfTestedTri = 0;
 		unsigned long int numberOfIntersectedTri = 0;
 		
-		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
+		for(uint i=0; i<global__rayMaxDepth; i++)
 		{
 			numberOfShotRays += global__rayDepths[i];
 			numberOfProcessedRays += (1 + global__lightsSize) * (i+1) * global__rayDepths[i];
 			numberOfIntersectedTri += (1 + global__lightsSize) * i * global__rayDepths[i];
 		}
 
-		for(int i=0; i<MAX_INTERSETCION_NUMBER; i++)
+		for(uint i=0; i<MAX_INTERSETCION_NUMBER; i++)
 		{
 			numberOfTestedBBx += i * global__rayIntersectedBBx[i];
 			numberOfTestedTri += i * global__rayIntersectedTri[i];
@@ -363,7 +375,7 @@ namespace PathTracerNS
 		CONSOLE_LOG << "\t" << "Average number of tested Tri per ray   : " << ((float) numberOfTestedTri) / ((float) numberOfProcessedRays) << ENDL;
 		CONSOLE_LOG << "\t" << "Percentage of successful intersection : " << ((float) numberOfIntersectedTri * 100.) / ((float) numberOfTestedTri) << " % " << ENDL;
 		CONSOLE_LOG << "\t" << "Depth histogram in %" << ENDL;
-		for(int i=0; i<MAX_REFLECTION_NUMBER; i++)
+		for(uint i=0; i<global__rayMaxDepth; i++)
 			CONSOLE_LOG << "\t\t" << i << " : " << global__rayDepths[i] * 100.0 / numberOfShotRays << " %" << ENDL;
 
 		CONSOLE_LOG << ENDL;

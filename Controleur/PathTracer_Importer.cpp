@@ -53,7 +53,7 @@ namespace PathTracerNS
 	{
 		ptr__global__cameraDirection	= global__cameraDirection;
 		ptr__global__cameraRight		= global__cameraRight;
-		ptr__global__cameraUp		= global__cameraUp;
+		ptr__global__cameraUp			= global__cameraUp;
 		ptr__global__cameraPosition		= global__cameraPosition;
 
 		ptr__global__triangulation		= global__triangulation;

@@ -25,6 +25,8 @@
 //							SOME UTILITARIES
 
 #include <assert.h>
+#include <fstream>
+#include <exception>
 #define ASSERT(X) assert(X)
 
 
@@ -35,7 +37,6 @@
 
 #include <maya/MIOStream.h>
 #include <maya/MGlobal.h>
-#include <fstream>
 #define CONSOLE cout
 #define ENDL endl
 

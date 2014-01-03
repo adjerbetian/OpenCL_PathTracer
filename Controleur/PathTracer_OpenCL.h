@@ -14,7 +14,7 @@
 namespace PathTracerNS
 {
 
-	bool OpenCL_RunKernel(
+	void OpenCL_RunKernel(
 		uint		 global__imageWidth,
 		uint		 global__imageHeight,
 		uint		 global__imageSize,
@@ -31,7 +31,7 @@ namespace PathTracerNS
 		);
 
 
-	bool	OpenCL_InitializeMemory		(
+	void	OpenCL_InitializeMemory		(
 		Float4		const&	global__cameraDirection		,
 		Float4		const&	global__cameraRight			,
 		Float4		const&	global__cameraUp			,
@@ -67,8 +67,8 @@ namespace PathTracerNS
 	char*			OpenCL_ReadSources			(const char *fileName);
 	cl_platform_id	OpenCL_GetIntelOCLPlatform	();
 	void			OpenCL_BuildFailLog( cl_program program, cl_device_id device_id );
-	bool			OpenCL_SetupContext			(Sampler sampler, uint const global__rayMaxDepth);
-	bool			OpenCL_ErrorHandling		(cl_int errCode);
+	void			OpenCL_SetupContext			(Sampler sampler, uint const global__rayMaxDepth);
+	void			OpenCL_ErrorHandling		(cl_int errCode);
 }
 
 #endif

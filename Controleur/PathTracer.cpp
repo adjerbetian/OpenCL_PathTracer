@@ -71,120 +71,125 @@ namespace PathTracerNS
 
 	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayMaxDepth)
 	{
-		CONSOLE_LOG << ENDL;
-		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE_LOG << "                             PATH TRACER" << ENDL;
-		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE_LOG << ENDL;
-
-		clock_t start;
-
-		double loadingTime;
-		double bvhBuildingTime;
-		double openclSettingTime;
-		double pathTracingTime;
-		double displayTime;
-
-		bool noError = true;
-
-		PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
-		PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth);
-		loadingTime = clock()-start;
-
-		PathTracer_PrintSection("BUILDING BVH"); start = clock();
-		BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
-		bvhBuildingTime = clock()-start;
-
-		ASSERT(global__bvhMaxDepth < BVH_MAX_DEPTH); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
-		ASSERT(global__lightsSize < MAX_LIGHT_SIZE); // Le programme n'est pas guaranti de fonctionner si cette affirmatiion est fausse.
-
-		if(exportScene)
+		try
 		{
-			PathTracer_PrintSection("EXPORTING SCENE");
-			PathTracer_Export();
-		}
+			CONSOLE_LOG << ENDL;
+			CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+			CONSOLE_LOG << "                             PATH TRACER" << ENDL;
+			CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+			CONSOLE_LOG << ENDL;
 
-		PathTracer_PrintSection("SETTING OPENCL CONTEXT"); start = clock();
-		noError &= OpenCL_SetupContext(sampler, global__rayMaxDepth);
+			clock_t start;
 
-		if(!noError)
-		{
+			double loadingTime;
+			double bvhBuildingTime;
+			double openclSettingTime;
+			double pathTracingTime;
+			double displayTime;
+
+			bool noError = true;
+
+			PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
+			PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth);
+			loadingTime = clock()-start;
+
+			PathTracer_PrintSection("BUILDING BVH"); start = clock();
+			BVH_Create(global__triangulationSize, global__triangulation, &global__bvhMaxDepth, &global__bvhSize, &global__bvh);
+			bvhBuildingTime = clock()-start;
+
+			if(global__bvhMaxDepth < BVH_MAX_DEPTH)
+			{
+				std::ostringstream errorMessage("BVH is too deep : it has a size of ");
+				errorMessage << global__bvhMaxDepth << " and should be under " << BVH_MAX_DEPTH;
+				throw std::runtime_error(errorMessage.str());
+			}
+			if(global__lightsSize < MAX_LIGHT_SIZE)
+			{
+				std::ostringstream errorMessage("The scene has too many lights : it has ");
+				errorMessage << global__lightsSize << " and should be under " << MAX_LIGHT_SIZE;
+				throw std::runtime_error(errorMessage.str());
+			}
+
+			if(exportScene)
+			{
+				PathTracer_PrintSection("EXPORTING SCENE");
+				PathTracer_Export();
+			}
+
+			PathTracer_PrintSection("SETTING OPENCL CONTEXT"); start = clock();
+			OpenCL_SetupContext(sampler, global__rayMaxDepth);
+
+			OpenCL_InitializeMemory	(
+				global__cameraDirection		,
+				global__cameraRight			,
+				global__cameraUp			,
+				global__cameraPosition		,
+
+				global__bvh					,
+				global__triangulation		,
+				global__lights				,
+				global__materiaux			,
+				global__textures			,
+				global__texturesData		,
+				global__bvhSize				,
+				global__triangulationSize	,
+				global__lightsSize			,
+				global__materiauxSize		,
+				global__texturesSize		,
+				global__texturesDataSize	,
+
+				global__imageWidth			,
+				global__imageHeight			,
+				global__imageSize			,
+				global__rayMaxDepth			,
+				global__imageColor			,
+				global__imageRayNb			,
+				global__rayDepths			,
+				global__rayIntersectedBBx	,
+				global__rayIntersectedTri	,
+				global__bvhMaxDepth			,
+
+				&global__sky
+				);
+
+			openclSettingTime = clock()-start;
+
+
+			PathTracer_PrintSection("PATH TRACING");
+			OpenCL_RunKernel(
+				global__imageWidth			,
+				global__imageHeight			,
+				global__imageSize			,
+				global__rayMaxDepth			,
+				global__imageColor			,
+				global__imageRayNb			,
+				global__rayDepths			,
+				global__rayIntersectedBBx	,
+				global__rayIntersectedTri	,
+				&PathTracer_UpdateWindow	,
+				numImagesToRender			,
+				&pathTracingTime			,
+				&displayTime
+				);
+
+			pathTracingTime	 = clock()-start;
+
+			PathTracer_PrintSection("STATISTICS");
+			PathTracer_ComputeStatistics(numImagesToRender, loadingTime, bvhBuildingTime, openclSettingTime, pathTracingTime, displayTime);
+
 			PathTracer_Clear();
+
+		}
+		catch(std::exception const& e)
+		{
+			CONSOLE_LOG << "ERROR : " << e.what() << ENDL;
+			try	{ PathTracer_Clear();} catch(std::exception const& e2)
+			{
+				CONSOLE_LOG << "ERROR 2 : " << e2.what() << ENDL;
+			}
 			return false;
 		}
 
-		noError &= OpenCL_InitializeMemory	(
-			global__cameraDirection		,
-			global__cameraRight			,
-			global__cameraUp			,
-			global__cameraPosition		,
-
-			global__bvh					,
-			global__triangulation		,
-			global__lights				,
-			global__materiaux			,
-			global__textures			,
-			global__texturesData		,
-			global__bvhSize				,
-			global__triangulationSize	,
-			global__lightsSize			,
-			global__materiauxSize		,
-			global__texturesSize		,
-			global__texturesDataSize	,
-
-			global__imageWidth			,
-			global__imageHeight			,
-			global__imageSize			,
-			global__rayMaxDepth			,
-			global__imageColor			,
-			global__imageRayNb			,
-			global__rayDepths			,
-			global__rayIntersectedBBx	,
-			global__rayIntersectedTri	,
-			global__bvhMaxDepth			,
-
-			&global__sky
-			);
-
-		if(!noError)
-		{
-			PathTracer_Clear();
-			return false;
-		}
-		openclSettingTime = clock()-start;
-
-		
-		
-		PathTracer_PrintSection("PATH TRACING");
-		noError &= OpenCL_RunKernel(
-			global__imageWidth			,
-			global__imageHeight			,
-			global__imageSize			,
-			global__rayMaxDepth			,
-			global__imageColor			,
-			global__imageRayNb			,
-			global__rayDepths			,
-			global__rayIntersectedBBx	,
-			global__rayIntersectedTri	,
-			&PathTracer_UpdateWindow	,
-			numImagesToRender			,
-			&pathTracingTime			,
-			&displayTime
-			);
-
-		if(!noError)
-		{
-			PathTracer_Clear();
-			return false;
-		}
-		pathTracingTime	 = clock()-start;
-
-		
-		
-		PathTracer_PrintSection("STATISTICS");
-		PathTracer_ComputeStatistics(numImagesToRender, loadingTime, bvhBuildingTime, openclSettingTime, pathTracingTime, displayTime);
-
-		PathTracer_Clear();
 		return true;
 	}
 
@@ -241,7 +246,12 @@ namespace PathTracerNS
 	{
 		// Les données OpenCL sont prévues pour une image de taille 1280 x 720
 
-		ASSERT(global__imageWidth > 0 && global__imageHeight > 0);
+		if(global__imageWidth > 0 && global__imageHeight > 0)
+		{
+			std::ostringstream errorStream("Bad inage dimension : width x height : ");
+			errorStream << global__imageWidth << " x " << global__imageHeight ;
+			throw std::runtime_error(errorStream.str());
+		}
 
 		global__imageColor			= new RGBAColor[global__imageWidth*global__imageHeight];
 		global__imageRayNb			= new float[global__imageWidth*global__imageHeight];
@@ -271,7 +281,7 @@ namespace PathTracerNS
 
 	void PathTracer_InitializeWindow(bool saveRenderedImages)
 	{
-		// On crée la fenêtre
+		// On cree la fenêtre
 
 		global__window = new PathTracerDialog();
 		global__window->SetWidth(global__imageWidth);

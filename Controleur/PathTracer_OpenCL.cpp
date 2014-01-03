@@ -52,7 +52,7 @@ namespace PathTracerNS
 	*		3 - Libération de la mémoire sur le device et des variables OpenCL
 	*/
 
-	bool OpenCL_RunKernel(
+	void OpenCL_RunKernel(
 		uint		global__imageWidth,
 		uint		global__imageHeight,
 		uint		global__imageSize,
@@ -89,16 +89,16 @@ namespace PathTracerNS
 			/////////////////////////////////////////////////////////////////////////////////
 
 			errCode = clSetKernelArg(opencl__Kernel_Main, 0, sizeof(cl_uint), (void*) &imageId);
-			if(OpenCL_ErrorHandling(errCode)) return false;
+			OpenCL_ErrorHandling(errCode);
 
 			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 2, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
-			if(OpenCL_ErrorHandling(errCode)) return false;
+			OpenCL_ErrorHandling(errCode);
 
 			/////////////////////////////////////////////////////////////////////////////////
 			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
 			/////////////////////////////////////////////////////////////////////////////////
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor   ,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize			, (void *) global__imageColor   , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb   ,	CL_TRUE, 0, sizeof(float)		* global__imageSize			, (void *) global__imageRayNb   , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor   ,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize			, (void *) global__imageColor   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb   ,	CL_TRUE, 0, sizeof(float)		* global__imageSize			, (void *) global__imageRayNb   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
 			clFinish(opencl__queue);
 
 			*pathTracingTime += clock() - startTime;
@@ -111,9 +111,9 @@ namespace PathTracerNS
 		}
 
 		// Retrieving statistic information
-		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayDepths			,	CL_TRUE, 0, sizeof(uint)  * (global__rayMaxDepth+1) , (void *) global__rayDepths			, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedBBx	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER	, (void *) global__rayIntersectedBBx  , 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedTri	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER , (void *) global__rayIntersectedTri	, 0, NULL , NULL); if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayDepths			,	CL_TRUE, 0, sizeof(uint)  * (global__rayMaxDepth+1) , (void *) global__rayDepths			, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedBBx	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER	, (void *) global__rayIntersectedBBx	, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedTri	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER , (void *) global__rayIntersectedTri	, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
 		clFinish(opencl__queue);
 
 
@@ -121,27 +121,25 @@ namespace PathTracerNS
 		///////////  5 -   LIBERATION DES DONNEES MEMOIRE OPENCL  ///////////////////////
 		/////////////////////////////////////////////////////////////////////////////////
 
-		errCode = clReleaseMemObject(kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__imageRayNb);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__rayDepths);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__rayIntersectedBBx);if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__rayIntersectedTri);if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__bvh);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__triangulation);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseMemObject(kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clReleaseMemObject(kernel__imageColor);			OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__imageRayNb);			OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__rayDepths);			OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__rayIntersectedBBx);	OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__rayIntersectedTri);	OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__bvh);					OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__triangulation);		OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__lights);				OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__materiaux);			OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__textures);				OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__texturesData);			OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__sky);					OpenCL_ErrorHandling(errCode);
 
-		errCode = clFlush				(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clFinish				(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseKernel		(opencl__Kernel_Main ); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseProgram		(opencl__program	 ); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseCommandQueue	(opencl__queue		 ); if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clReleaseContext		(opencl__context	 ); if(OpenCL_ErrorHandling(errCode)) return false;
-
-		return true;
+		errCode = clFlush				(opencl__queue		 );		OpenCL_ErrorHandling(errCode);
+		errCode = clFinish				(opencl__queue		 );		OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseKernel		(opencl__Kernel_Main );		OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseProgram		(opencl__program	 );		OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseCommandQueue	(opencl__queue		 );		OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseContext		(opencl__context	 );		OpenCL_ErrorHandling(errCode);
 	}
 
 
@@ -151,7 +149,7 @@ namespace PathTracerNS
 	*		2 - Assignation des arguments des noyaux
 	*/
 
-	bool OpenCL_InitializeMemory(
+	void OpenCL_InitializeMemory(
 		Float4		const&	global__cameraDirection		,
 		Float4		const&	global__cameraRight			,
 		Float4		const&	global__cameraUp			,
@@ -198,18 +196,18 @@ namespace PathTracerNS
 		//(void *) global__rayIntersectedBBx	
 		//(void *) global__rayIntersectedTri	
 
-		kernel__imageColor			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)    * global__imageSize						   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__imageRayNb			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_float)     * global__imageSize						   , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__rayDepths			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * (global__rayMaxDepth+1)				       , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__rayIntersectedBBx	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * MAX_INTERSETCION_NUMBER				       , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__rayIntersectedTri	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * MAX_INTERSETCION_NUMBER				       , NULL								, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__bvh					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	  * global__bvhSize				,1), (void *) global__bvh				, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__triangulation		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * global__triangulationSize	,1), (void *) global__triangulation		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__lights				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	  * global__lightsSize			,1), (void *) global__lights			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__materiaux			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * global__materiauxSize		,1), (void *) global__materiaux			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__texturesData		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	  * global__texturesDataSize	,1), (void *) global__texturesData		, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__textures			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * global__texturesSize			,1), (void *) global__textures			, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
-		kernel__sky					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) global__sky				, &errCode); if(OpenCL_ErrorHandling(errCode)) return false;
+		kernel__imageColor			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)    * global__imageSize						   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__imageRayNb			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_float)     * global__imageSize						   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__rayDepths			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * (global__rayMaxDepth+1)				       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__rayIntersectedBBx	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * MAX_INTERSETCION_NUMBER				       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__rayIntersectedTri	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)      * MAX_INTERSETCION_NUMBER				       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__bvh					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	  * global__bvhSize				,1), (void *) global__bvh				, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__triangulation		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * global__triangulationSize	,1), (void *) global__triangulation		, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__lights				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	  * global__lightsSize			,1), (void *) global__lights			, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__materiaux			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * global__materiauxSize		,1), (void *) global__materiaux			, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__texturesData		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	  * global__texturesDataSize	,1), (void *) global__texturesData		, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__textures			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * global__texturesSize			,1), (void *) global__textures			, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__sky					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) global__sky				, &errCode); OpenCL_ErrorHandling(errCode);
 
 
 		/////////////////////////////////////////////////////////////////////////////////
@@ -218,28 +216,26 @@ namespace PathTracerNS
 
 		// ARGUMENTS POUR global__kernelSortedMain
 		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageWidth);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageHeight);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraPosition);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraDirection);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraRight);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraUp);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__lightsSize);		if(OpenCL_ErrorHandling(errCode)) return false;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageWidth);		OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__imageHeight);		OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraPosition);	OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraDirection);	OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraRight);		OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraUp);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_uint),		(void*) &global__lightsSize);		OpenCL_ErrorHandling(errCode);
 
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),			(void*) &kernel__imageColor);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),			(void*) &kernel__imageRayNb);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayDepths),			(void*) &kernel__rayDepths);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedBBx),	(void*) &kernel__rayIntersectedBBx);if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedTri),	(void*) &kernel__rayIntersectedTri);if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__bvh),					(void*) &kernel__bvh);				if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__triangulation),		(void*) &kernel__triangulation);	if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__lights),				(void*) &kernel__lights);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__materiaux),			(void*) &kernel__materiaux);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures),			(void*) &kernel__textures);			if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__texturesData),		(void*) &kernel__texturesData);		if(OpenCL_ErrorHandling(errCode)) return false;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),					(void*) &kernel__sky);				if(OpenCL_ErrorHandling(errCode)) return false;
-
-		return true;
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),			(void*) &kernel__imageColor);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),			(void*) &kernel__imageRayNb);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayDepths),			(void*) &kernel__rayDepths);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedBBx),	(void*) &kernel__rayIntersectedBBx);	OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedTri),	(void*) &kernel__rayIntersectedTri);	OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__bvh),					(void*) &kernel__bvh);					OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__triangulation),		(void*) &kernel__triangulation);		OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__lights),				(void*) &kernel__lights);				OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__materiaux),			(void*) &kernel__materiaux);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__textures),			(void*) &kernel__textures);				OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__texturesData),		(void*) &kernel__texturesData);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__sky),					(void*) &kernel__sky);					OpenCL_ErrorHandling(errCode);
 	}
 
 	char* OpenCL_ReadSources(char const* fileName)
@@ -334,7 +330,7 @@ namespace PathTracerNS
 		}
 	}
 
-	bool OpenCL_SetupContext(Sampler const sampler, uint const global__rayMaxDepth)
+	void OpenCL_SetupContext(Sampler const sampler, uint const global__rayMaxDepth)
 	{
 		const char* program_source = PATHTRACER_FOLDER"Kernel\\PathTracer_FullKernel.cl";
 
@@ -346,185 +342,158 @@ namespace PathTracerNS
 		cl_device_id device_ID;
 		char device_name[128] = {0};
 		const bool runOnGPU = false;
+		char *sources = NULL;
 
-		//if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
-		//else		 printf("Trying to run on a CPU \n");
+		std::string const platformName1 = "Intel(R) OpenCL";
+		std::string const platformName2 = "AMD Accelerated Parallel Processing";
 
-		char const* platformName1 = "Intel(R) OpenCL";
-		char const* platformName2 = "AMD Accelerated Parallel Processing";
 
-		cl_platform_id platform_id = OpenCL_GetPlatform(platformName1);
-		if( platform_id == NULL )
+		try
 		{
-			CONSOLE << "WARNING : the program didn't find any " << platformName1 << " platform. Trying with " << platformName2 << ENDL;
-			platform_id = OpenCL_GetPlatform(platformName2);
+
+			//if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
+			//else		 printf("Trying to run on a CPU \n");
+
+			cl_platform_id platform_id = OpenCL_GetPlatform(platformName1.c_str());
 			if( platform_id == NULL )
 			{
-				CONSOLE << "ERROR : the program didn't find find the platform " << platformName2 << ". Aborting." << ENDL;
-				return false;
+				CONSOLE_LOG << "WARNING : the program didn't find any " << platformName1 << " platform. Trying with " << platformName2 << ENDL;
+				platform_id = OpenCL_GetPlatform(platformName2.c_str());
+				if( platform_id == NULL )
+					throw std::runtime_error("ERROR : the program didn't find find the platform "+platformName2+". Aborting.");
 			}
+
+			cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, NULL };
+
+			// create the OpenCL context on a CPU/PG 
+			if(runOnGPU) opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);
+			else		 opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_CPU, NULL, NULL, NULL);
+
+			if (opencl__context == (cl_context)0)
+				throw std::runtime_error("Wrong context.");
+
+			// get the list of CPU devices associated with context
+			err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, 0, NULL, &cb);		OpenCL_ErrorHandling(err);
+			err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, cb, devices, NULL); OpenCL_ErrorHandling(err);
+
+			opencl__queue = clCreateCommandQueue(opencl__context, devices[0], 0, &err);		OpenCL_ErrorHandling(err);
+
+			sources = OpenCL_ReadSources(program_source);	//read program .cl source file
+			if(sources == NULL)
+				throw std::runtime_error("Failed to read OpenCL sources.");
+
+			opencl__program = clCreateProgramWithSource(opencl__context, 1, (const char**)&sources, NULL, &err); OpenCL_ErrorHandling(err);
+			if (opencl__program == (cl_program)0)
+				throw std::runtime_error("Failed to create Program with sources");
+
+			std::ostringstream buildOptionsStream;
+			buildOptionsStream << "-I \""PATHTRACER_FOLDER"Kernel\"";
+			switch (sampler)
+			{
+			case JITTERED:	 buildOptionsStream << " -D SAMPLE_JITTERED";	 break;
+			case RANDOM:	 buildOptionsStream << " -D SAMPLE_RANDOM";		 break;
+			case UNIFORM:	 buildOptionsStream << " -D SAMPLE_UNIFORM";		 break;
+			default: break;
+			}
+			buildOptionsStream << " -D MAX_REFLECTION_NUMBER=" << global__rayMaxDepth;
+
+			if(false) // if we want to use the intel OpenCL debugger (which doesn't work...)
+				buildOptionsStream << "-g -s \"" << program_source << "\"";
+
+			std::string buildOptionsString = buildOptionsStream.str();
+
+			err = clBuildProgram(opencl__program, 0, NULL, buildOptionsString.c_str(), NULL, NULL);
+			if (err != CL_SUCCESS)
+			{
+				OpenCL_BuildFailLog(opencl__program, devices[0]);
+				throw std::runtime_error("Failed to build program.");
+			}
+
+			opencl__Kernel_Main = clCreateKernel(opencl__program, "Kernel_Main", &err); OpenCL_ErrorHandling(err);
+			if (opencl__Kernel_Main == (cl_kernel)0)
+				throw std::runtime_error("Failed to create kernel");
+
+			device_ID = devices[0];
+
+			err = clGetDeviceInfo(device_ID, CL_DEVICE_NAME				, 128			 , device_name	, NULL); OpenCL_ErrorHandling(err);
+			err = clGetDeviceInfo(device_ID, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &num_cores	, NULL); OpenCL_ErrorHandling(err);
+
+			CONSOLE << "Using device "<< device_name << " and using " << num_cores << " compute units." << ENDL;
+
 		}
-
-		cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, NULL };
-
-		// create the OpenCL context on a CPU/PG 
-		if(runOnGPU) opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_GPU, NULL, NULL, NULL);
-		else		 opencl__context = clCreateContextFromType(context_properties, CL_DEVICE_TYPE_CPU, NULL, NULL, NULL);
-
-		if (opencl__context == (cl_context)0)
-			return false;
-
-		// get the list of CPU devices associated with context
-		err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, 0, NULL, &cb);		if(OpenCL_ErrorHandling(err)) return false;
-		err = clGetContextInfo(opencl__context, CL_CONTEXT_DEVICES, cb, devices, NULL); if(OpenCL_ErrorHandling(err)) return false;
-
-		opencl__queue = clCreateCommandQueue(opencl__context, devices[0], 0, &err); if(OpenCL_ErrorHandling(err)) return false;
-
-		char *sources = OpenCL_ReadSources(program_source);	//read program .cl source file
-		if(sources == NULL)
+		catch(std::exception const& e)
 		{
-			CONSOLE << "ERROR: Failed to read OpenCL sources. Aborting." << ENDL;
 			free(sources);
-			return false;
+			throw e;
 		}
-
-		opencl__program = clCreateProgramWithSource(opencl__context, 1, (const char**)&sources, NULL, &err);
-		if (opencl__program == (cl_program)0)
-		{
-			CONSOLE << "ERROR: Failed to create Program with sources because of the following error : " << ENDL;
-			OpenCL_ErrorHandling(err);
-			CONSOLE << "Aborting." << ENDL;
-			free(sources);
-			return false;
-		}
-
-		std::ostringstream buildOptionsStream;
-		buildOptionsStream << "-I \""PATHTRACER_FOLDER"Kernel\"";
-		switch (sampler)
-		{
-		case JITTERED:	 buildOptionsStream << " -D SAMPLE_JITTERED";	 break;
-		case RANDOM:	 buildOptionsStream << " -D SAMPLE_RANDOM";		 break;
-		case UNIFORM:	 buildOptionsStream << " -D SAMPLE_UNIFORM";		 break;
-		default: break;
-		}
-		buildOptionsStream << " -D MAX_REFLECTION_NUMBER=" << global__rayMaxDepth;
-
-		if(false) // if we want to use the intel OpenCL debugger (which doesn't work...)
-			buildOptionsStream << "-g -s \"" << program_source << "\"";
-
-		std::string buildOptionsString = buildOptionsStream.str();
-
-		err = clBuildProgram(opencl__program, 0, NULL, buildOptionsString.c_str(), NULL, NULL);
-		if (err != CL_SUCCESS)
-		{
-			CONSOLE << "ERROR: Failed to build program. Aborting." << ENDL;
-			OpenCL_BuildFailLog(opencl__program, devices[0]);
-			free(sources);
-			return false;
-		}
-
-		opencl__Kernel_Main = clCreateKernel(opencl__program, "Kernel_Main", &err);
-		if (opencl__Kernel_Main == (cl_kernel)0)
-		{
-			CONSOLE << "ERROR: Failed to create kernel for the following reason : " << ENDL;
-			OpenCL_ErrorHandling(err);
-			CONSOLE << "Aborting." << ENDL;
-			free(sources);
-			return false;
-		}
-		free(sources);
-
-		// retrieve platform information
-
-		// use first device ID
-		device_ID = devices[0];
-
-		err = clGetDeviceInfo(device_ID, CL_DEVICE_NAME, 128, device_name, NULL);
-		if (err!=CL_SUCCESS)
-		{
-			CONSOLE << "ERROR: Failed to get device information (device name) for the following reason : " << ENDL;
-			OpenCL_ErrorHandling(err);
-			CONSOLE << "Aborting." << ENDL;
-			return false;
-		}
-		err = clGetDeviceInfo(device_ID, CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &num_cores, NULL);
-		if (err!=CL_SUCCESS)
-		{
-			CONSOLE << "ERROR: Failed to get device information (max compute units) for the following reason : " << ENDL;
-			OpenCL_ErrorHandling(err);
-			CONSOLE << "Aborting." << ENDL;
-			return false;
-		}
-		CONSOLE << "Using device "<< device_name << " and using " << num_cores << " compute units." << ENDL;
-
-		return true; // success...
 	}
 
 	/*	Fonction qui permet de déléguer la gestion des erreurs OpenCL comme par exemple les erreurs de compilations
 	*/
 
-	bool OpenCL_ErrorHandling(cl_int errCode)
+	void OpenCL_ErrorHandling(cl_int errCode)
 	{
 		if(errCode==0)
-			return false;
-		CONSOLE_LOG << ENDL;
-		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+			return;
+		std::ostringstream errorMessage;
+		errorMessage << ENDL;
+		errorMessage << "//////////////////////////////////////////////////////////////////////////" << ENDL;
 
 		switch (errCode)
 		{
-		case -1 : CONSOLE_LOG << "OPENCL ERROR : CL_DEVICE_NOT_FOUND"; break;
-		case -2 : CONSOLE_LOG << "OPENCL ERROR : CL_DEVICE_NOT_AVAILABLE";	break;
-		case -3 : CONSOLE_LOG << "OPENCL ERROR : CL_COMPILER_NOT_AVAILABLE"; break;
-		case -4 : CONSOLE_LOG << "OPENCL ERROR : CL_MEM_OBJECT_ALLOCATION_FAILURE"; break;
-		case -5 : CONSOLE_LOG << "OPENCL ERROR : CL_OUT_OF_RESOURCES"; break;
-		case -6 : CONSOLE_LOG << "OPENCL ERROR : CL_OUT_OF_HOST_MEMORY"; break;
-		case -7 : CONSOLE_LOG << "OPENCL ERROR : CL_PROFILING_INFO_NOT_AVAILABLE"; break;
-		case -8 : CONSOLE_LOG << "OPENCL ERROR : CL_MEM_COPY_OVERLAP"; break;
-		case -9 : CONSOLE_LOG << "OPENCL ERROR : CL_IMAGE_FORMAT_MISMATCH"; break;
-		case -10: CONSOLE_LOG << "OPENCL ERROR : CL_IMAGE_FORMAT_NOT_SUPPORTED"; break;
-		case -11: CONSOLE_LOG << "OPENCL ERROR : CL_BUILD_PROGRAM_FAILURE"; break;
-		case -12: CONSOLE_LOG << "OPENCL ERROR : CL_MAP_FAILURE"; break;
-		case -13: CONSOLE_LOG << "OPENCL ERROR : CL_MISALIGNED_SUB_BUFFER_OFFSET"; break;
-		case -14: CONSOLE_LOG << "OPENCL ERROR : CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST"; break;
-		case -30: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_VALUE"; break;
-		case -31: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_DEVICE_TYPE"; break;
-		case -32: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_PLATFORM"; break;
-		case -33: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_DEVICE"; break;
-		case -34: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_CONTEXT"; break;
-		case -35: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_QUEUE_PROPERTIES"; break;
-		case -36: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_COMMAND_QUEUE"; break;
-		case -37: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_HOST_PTR"; break;
-		case -38: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_MEM_OBJECT"; break;
-		case -39: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_IMAGE_FORMAT_DESCRIPTOR"; break;
-		case -40: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_IMAGE_SIZE"; break;
-		case -41: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_SAMPLER"; break;
-		case -42: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_BINARY"; break;
-		case -43: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_BUILD_OPTIONS"; break;
-		case -44: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_PROGRAM"; break;
-		case -45: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_PROGRAM_EXECUTABLE"; break;
-		case -46: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL_NAME"; break;
-		case -47: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL_DEFINITION"; break;
-		case -48: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL"; break;
-		case -49: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_ARG_INDEX"; break;
-		case -50: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_ARG_VALUE"; break;
-		case -51: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_ARG_SIZE"; break;
-		case -52: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_KERNEL_ARGS"; break;
-		case -53: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_WORK_DIMENSION"; break;
-		case -54: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_WORK_GROUP_SIZE"; break;
-		case -55: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_WORK_ITEM_SIZE"; break;
-		case -56: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_GLOBAL_OFFSET"; break;
-		case -57: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_EVENT_WAIT_LIST"; break;
-		case -58: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_EVENT"; break;
-		case -59: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_OPERATION"; break;
-		case -60: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_GL_OBJECT"; break;
-		case -61: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_BUFFER_SIZE"; break;
-		case -62: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_MIP_LEVEL"; break;
-		case -63: CONSOLE_LOG << "OPENCL ERROR : CL_INVALID_GLOBAL_WORK_SIZE"; break;
+		case -1 : errorMessage << "OPENCL ERROR : CL_DEVICE_NOT_FOUND"; break;
+		case -2 : errorMessage << "OPENCL ERROR : CL_DEVICE_NOT_AVAILABLE";	break;
+		case -3 : errorMessage << "OPENCL ERROR : CL_COMPILER_NOT_AVAILABLE"; break;
+		case -4 : errorMessage << "OPENCL ERROR : CL_MEM_OBJECT_ALLOCATION_FAILURE"; break;
+		case -5 : errorMessage << "OPENCL ERROR : CL_OUT_OF_RESOURCES"; break;
+		case -6 : errorMessage << "OPENCL ERROR : CL_OUT_OF_HOST_MEMORY"; break;
+		case -7 : errorMessage << "OPENCL ERROR : CL_PROFILING_INFO_NOT_AVAILABLE"; break;
+		case -8 : errorMessage << "OPENCL ERROR : CL_MEM_COPY_OVERLAP"; break;
+		case -9 : errorMessage << "OPENCL ERROR : CL_IMAGE_FORMAT_MISMATCH"; break;
+		case -10: errorMessage << "OPENCL ERROR : CL_IMAGE_FORMAT_NOT_SUPPORTED"; break;
+		case -11: errorMessage << "OPENCL ERROR : CL_BUILD_PROGRAM_FAILURE"; break;
+		case -12: errorMessage << "OPENCL ERROR : CL_MAP_FAILURE"; break;
+		case -13: errorMessage << "OPENCL ERROR : CL_MISALIGNED_SUB_BUFFER_OFFSET"; break;
+		case -14: errorMessage << "OPENCL ERROR : CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST"; break;
+		case -30: errorMessage << "OPENCL ERROR : CL_INVALID_VALUE"; break;
+		case -31: errorMessage << "OPENCL ERROR : CL_INVALID_DEVICE_TYPE"; break;
+		case -32: errorMessage << "OPENCL ERROR : CL_INVALID_PLATFORM"; break;
+		case -33: errorMessage << "OPENCL ERROR : CL_INVALID_DEVICE"; break;
+		case -34: errorMessage << "OPENCL ERROR : CL_INVALID_CONTEXT"; break;
+		case -35: errorMessage << "OPENCL ERROR : CL_INVALID_QUEUE_PROPERTIES"; break;
+		case -36: errorMessage << "OPENCL ERROR : CL_INVALID_COMMAND_QUEUE"; break;
+		case -37: errorMessage << "OPENCL ERROR : CL_INVALID_HOST_PTR"; break;
+		case -38: errorMessage << "OPENCL ERROR : CL_INVALID_MEM_OBJECT"; break;
+		case -39: errorMessage << "OPENCL ERROR : CL_INVALID_IMAGE_FORMAT_DESCRIPTOR"; break;
+		case -40: errorMessage << "OPENCL ERROR : CL_INVALID_IMAGE_SIZE"; break;
+		case -41: errorMessage << "OPENCL ERROR : CL_INVALID_SAMPLER"; break;
+		case -42: errorMessage << "OPENCL ERROR : CL_INVALID_BINARY"; break;
+		case -43: errorMessage << "OPENCL ERROR : CL_INVALID_BUILD_OPTIONS"; break;
+		case -44: errorMessage << "OPENCL ERROR : CL_INVALID_PROGRAM"; break;
+		case -45: errorMessage << "OPENCL ERROR : CL_INVALID_PROGRAM_EXECUTABLE"; break;
+		case -46: errorMessage << "OPENCL ERROR : CL_INVALID_KERNEL_NAME"; break;
+		case -47: errorMessage << "OPENCL ERROR : CL_INVALID_KERNEL_DEFINITION"; break;
+		case -48: errorMessage << "OPENCL ERROR : CL_INVALID_KERNEL"; break;
+		case -49: errorMessage << "OPENCL ERROR : CL_INVALID_ARG_INDEX"; break;
+		case -50: errorMessage << "OPENCL ERROR : CL_INVALID_ARG_VALUE"; break;
+		case -51: errorMessage << "OPENCL ERROR : CL_INVALID_ARG_SIZE"; break;
+		case -52: errorMessage << "OPENCL ERROR : CL_INVALID_KERNEL_ARGS"; break;
+		case -53: errorMessage << "OPENCL ERROR : CL_INVALID_WORK_DIMENSION"; break;
+		case -54: errorMessage << "OPENCL ERROR : CL_INVALID_WORK_GROUP_SIZE"; break;
+		case -55: errorMessage << "OPENCL ERROR : CL_INVALID_WORK_ITEM_SIZE"; break;
+		case -56: errorMessage << "OPENCL ERROR : CL_INVALID_GLOBAL_OFFSET"; break;
+		case -57: errorMessage << "OPENCL ERROR : CL_INVALID_EVENT_WAIT_LIST"; break;
+		case -58: errorMessage << "OPENCL ERROR : CL_INVALID_EVENT"; break;
+		case -59: errorMessage << "OPENCL ERROR : CL_INVALID_OPERATION"; break;
+		case -60: errorMessage << "OPENCL ERROR : CL_INVALID_GL_OBJECT"; break;
+		case -61: errorMessage << "OPENCL ERROR : CL_INVALID_BUFFER_SIZE"; break;
+		case -62: errorMessage << "OPENCL ERROR : CL_INVALID_MIP_LEVEL"; break;
+		case -63: errorMessage << "OPENCL ERROR : CL_INVALID_GLOBAL_WORK_SIZE"; break;
 		}
 
-		CONSOLE_LOG << ENDL;
-		CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-		CONSOLE_LOG << ENDL;
+		errorMessage << ENDL;
+		errorMessage << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+		errorMessage << ENDL;
 
 
 		if(errCode == -11) // Build fail
@@ -533,14 +502,14 @@ namespace PathTracerNS
 			clGetProgramBuildInfo(opencl__program, opencl__device, CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
 			char *log = (char *) malloc(log_size);
 			clGetProgramBuildInfo(opencl__program, opencl__device, CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-			CONSOLE_LOG << log << ENDL;
+			errorMessage << log << ENDL;
 
-			CONSOLE_LOG << ENDL;
-			CONSOLE_LOG << "//////////////////////////////////////////////////////////////////////////" << ENDL;
-			return true;
+			errorMessage << ENDL;
+			errorMessage << "//////////////////////////////////////////////////////////////////////////" << ENDL;
+
 		}
 
-		return true;
+		throw(std::runtime_error(errorMessage.str()));
 	}
 
 

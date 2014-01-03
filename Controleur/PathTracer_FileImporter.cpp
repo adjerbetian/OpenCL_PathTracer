@@ -65,7 +65,7 @@ namespace PathTracerNS
 
 
 
-	bool PathTracerFileImporter::Import(uint image_width, uint image_height, bool loadSky)
+	void PathTracerFileImporter::Import(uint image_width, uint image_height, bool loadSky)
 	{
 		FILE* fichierSizes = NULL,
 			* fichierPtr   = NULL,
@@ -77,11 +77,14 @@ namespace PathTracerNS
 
 		if(fichierSizes == NULL || fichierPtr == NULL || fichierTex == NULL)
 		{
-			CONSOLE_LOG << "Fail to read the files to import : " << ENDL;
-			if(fichierSizes == NULL) CONSOLE_LOG << "\t" << fileSizesPath.c_str() << ENDL;
-			if(fichierPtr   == NULL) CONSOLE_LOG << "\t" << filePointersPath.c_str() << ENDL;
-			if(fichierTex   == NULL) CONSOLE_LOG << "\t" << fileTextureDataPath.c_str() << ENDL;
-			return false;
+			std::ostringstream errorMessage;
+			errorMessage << "Fail to read the files to import : " << ENDL;
+
+			if(fichierSizes == NULL) errorMessage << "\t" << fileSizesPath.c_str()		 << ENDL;
+			if(fichierPtr   == NULL) errorMessage << "\t" << filePointersPath.c_str()	 << ENDL;
+			if(fichierTex   == NULL) errorMessage << "\t" << fileTextureDataPath.c_str() << ENDL;
+
+			throw std::runtime_error(errorMessage.str());
 		}
 
 		size_t nRead = 0;
@@ -141,8 +144,6 @@ namespace PathTracerNS
 			*ptr__global__texturesDataSize = 1;
 			*ptr__global__texturesData[0] = Uchar4(0,0,0,0);
 		}
-
-		return true;
 	}
 
 }

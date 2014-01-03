@@ -1,4 +1,4 @@
-#ifndef PATHTRACER_UTILS
+﻿#ifndef PATHTRACER_UTILS
 #define PATHTRACER_UTILS
 
 #include "PathTracer_PreProc.h"
@@ -170,7 +170,7 @@ namespace PathTracerNS
 	inline void RGBAColor_SetToBlack(RGBAColor *This)								{ *This = RGBAColor(0.f,0.f,0.f,0.f);};
 	inline bool RGBAColor_IsTransparent(RGBAColor *This)							{ return (*This).w > 0.5f;};
 
-	//n = coefficient de normalisation pour le cas ou plusieurs rayons ont contribu�
+	//n = coefficient de normalisation pour le cas ou plusieurs rayons ont contribuי
 	inline int RGBAColor_GetR(RGBAColor const *This, int n)							{ if(n==0) return 0; double c = (*This).x/n; if(c>1) return 255; return (int) (255*c); };
 	inline int RGBAColor_GetG(RGBAColor const *This, int n)							{ if(n==0) return 0; double c = (*This).y/n; if(c>1) return 255; return (int) (255*c); };
 	inline int RGBAColor_GetB(RGBAColor const *This, int n)							{ if(n==0) return 0; double c = (*This).z/n; if(c>1) return 255; return (int) (255*c); };

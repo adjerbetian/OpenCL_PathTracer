@@ -39,7 +39,7 @@ namespace PathTracerNS
 			Sky*		 global__sky
 			);
 
-		virtual bool Import(uint image_width, uint image_height, bool loadSky) = 0;
+		virtual void Import(uint image_width, uint image_height, bool loadSky) = 0;
 
 
 

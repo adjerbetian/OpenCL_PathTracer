@@ -909,7 +909,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *
 	// Lampes
 	//if(sampleLights)
 	//{
-	//	if(global__lightsSize > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
+	//	if(LIGHTS_SIZE > 0 && Scene_PickLight(KERNEL_GLOBAL_VAR, p, cameraRay, mat, N, &light, &lightContribution))
 	//	{
 	//		L = RGBACOLOR(0.5,0.5,0.5,1);
 
@@ -925,9 +925,9 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *
 	//{
 
 	float BRDF;
-	if(global__lightsSize > 0)
+	if(LIGHTS_SIZE > 0)
 	{
-		for(uint i = 0; i < global__lightsSize; i++)
+		for(uint i = 0; i < LIGHTS_SIZE; i++)
 		{
 			light = global__lights[i];
 			Ray3D lightRay;
@@ -1020,7 +1020,7 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 	//	Ray3D lightOpositeRay;
 	//	Light light;
 
-	//	for(uint il=0; il<global__lightsSize; il++)
+	//	for(uint il=0; il<LIGHTS_SIZE; il++)
 	//	{
 	//		light = global__lights[il];
 	//		tint = RGBACOLOR(1,1,1,1);
@@ -1051,9 +1051,9 @@ RGBAColor Scene_ComputeScatteringIllumination(KERNEL_GLOBAL_VAR_DECLARATION, con
 bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D *cameraRay, Material const *mat, const float4 *N, Light *lightToChoose, float *lightContribution)
 {
 	
-	float lightContributions[MAX_LIGHT_SIZE+1];
-	float distribution[MAX_LIGHT_SIZE+1];
-	for(uint i=0; i < MAX_LIGHT_SIZE; i++)
+	float lightContributions[LIGHTS_SIZE+1];
+	float distribution[LIGHTS_SIZE+1];
+	for(uint i=0; i <= LIGHTS_SIZE; i++)
 	{
 		lightContributions[i] = 0.0f;
 		distribution[i] = 0.0f;
@@ -1066,7 +1066,7 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 	distribution[0] = 0;
 	float G;
 	float BRDF;
-	for(uint i = 0; i < global__lightsSize; i++)
+	for(uint i = 0; i < LIGHTS_SIZE; i++)
 	{
 		light = global__lights[i];
 
@@ -1084,16 +1084,16 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 		distribution[i+1] = distribution[i] + lightContributions[i];
 	}
 
-	if( distribution[global__lightsSize] <= 0.0f ) // Pas d'éclairage directe
+	if( distribution[LIGHTS_SIZE] <= 0.0f ) // Pas d'éclairage directe
 		return false;
 
 	// Tirage au sort
-	float x = random(seed) * distribution[global__lightsSize];
+	float x = random(seed) * distribution[LIGHTS_SIZE];
 
 	// Recherche de la lampe tirée par dichotomie
-	int lightIndex = global__lightsSize/2;
-	uint step = (uint) (global__lightsSize/4);
-	while( (lightIndex >= 0 && lightIndex < MAX_LIGHT_SIZE+1) && (distribution[lightIndex] > x || distribution[(lightIndex)+1] <= x )) 
+	int lightIndex = LIGHTS_SIZE/2;
+	uint step = (uint) (LIGHTS_SIZE/4);
+	while( (lightIndex >= 0 && lightIndex < LIGHTS_SIZE+1) && (distribution[lightIndex] > x || distribution[(lightIndex)+1] <= x )) 
 	{
 		if(distribution[lightIndex] > x)
 			lightIndex -= step;
@@ -1114,7 +1114,7 @@ bool Scene_PickLight(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, const Ray3D
 ///						SAMPLERS
 ////////////////////////////////////////////////////////////////////////////////////////
 
-float2 sampler(Ray3D *r, int *seed, uint kernel__imageWidth, uint kernel__imageHeight, uint kernel__iterationNum)
+float2 sampler(Ray3D *r, int *seed, uint kernel__iterationNum)
 {
 	float2 sample;
 
@@ -1129,7 +1129,7 @@ float2 sampler(Ray3D *r, int *seed, uint kernel__imageWidth, uint kernel__imageH
 
 	sample += offset;
 
-	sample /= (float2) (kernel__imageWidth, kernel__imageHeight);
+	sample /= (float2) (IMAGE_WIDTH, IMAGE_HEIGHT);
 	sample -= 0.5f;
 
 #elif defined(SAMPLE_RANDOM)
@@ -1138,8 +1138,8 @@ float2 sampler(Ray3D *r, int *seed, uint kernel__imageWidth, uint kernel__imageH
 
 #else // SAMPLE_JITTERED
 
-	sample.x = (get_global_id(0) + random(seed)) / ((float) kernel__imageWidth ) - 0.5f;
-	sample.y = (get_global_id(1) + random(seed)) / ((float) kernel__imageHeight) - 0.5f;
+	sample.x = (get_global_id(0) + random(seed)) / ((float) IMAGE_WIDTH ) - 0.5f;
+	sample.y = (get_global_id(1) + random(seed)) / ((float) IMAGE_HEIGHT) - 0.5f;
 #endif
 
 	return sample;
@@ -1152,15 +1152,11 @@ float2 sampler(Ray3D *r, int *seed, uint kernel__imageWidth, uint kernel__imageH
 
 __kernel void Kernel_Main(
 	uint     kernel__iterationNum,
-	uint     kernel__imageWidth,
-	uint     kernel__imageHeight,
 
 	float4  kernel__cameraPosition,
 	float4  kernel__cameraDirection,
 	float4  kernel__cameraRight,
 	float4  kernel__cameraUp,
-
-	uint     global__lightsSize,
 
 	volatile float4	__global *global__imageColor,
 	volatile float	__global *global__imageRayNb,
@@ -1183,10 +1179,10 @@ __kernel void Kernel_Main(
 	///////////////////////////////////////////////////////////////////////////////////////
 
 	Ray3D r;
-	int seedValue = InitializeRandomSeed(kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
+	int seedValue = InitializeRandomSeed(kernel__iterationNum);
 	int *seed = &seedValue;
 
-	float2 sample = sampler(&r, seed, kernel__imageWidth, kernel__imageHeight, kernel__iterationNum);
+	float2 sample = sampler(&r, seed, kernel__iterationNum);
 	float4 shotDirection = kernel__cameraDirection + ( kernel__cameraRight * sample.x ) + ( kernel__cameraUp * sample.y );
 	Ray3D_Create( &r, &kernel__cameraPosition, &shotDirection, false);
 	r.sample = sample;
@@ -1303,11 +1299,11 @@ __kernel void Kernel_Main(
 			ASSERT_AND_INFO("global__rayIntersectionTri to large", r.numIntersectedTri < MAX_INTERSETCION_NUMBER, "r.numIntersectedTri = %u", r.numIntersectedTri);
 	}
 
-	int2 pixel = (int2) ( (int) ((r.sample.x+0.5) * kernel__imageWidth), ( (int) ((r.sample.y+0.5) * kernel__imageHeight) ) );
-	pixel = min(pixel, (int2) (kernel__imageWidth-1, kernel__imageHeight-1) );
+	int2 pixel = (int2) ( (int) ((r.sample.x+0.5) * IMAGE_WIDTH), ( (int) ((r.sample.y+0.5) * IMAGE_HEIGHT) ) );
+	pixel = min(pixel, (int2) (IMAGE_WIDTH-1, IMAGE_HEIGHT-1) );
 
-	int globalImageOffset = pixel.y * kernel__imageWidth + pixel.x;
-	ASSERT_AND_INFO("KERNEL MAIN - global offset to large", globalImageOffset < kernel__imageWidth*kernel__imageHeight, "r.pixel : %v2i", r.sample);
+	int globalImageOffset = pixel.y * IMAGE_WIDTH + pixel.x;
+	ASSERT_AND_INFO("KERNEL MAIN - global offset to large", globalImageOffset < IMAGE_WIDTH*IMAGE_HEIGHT, "r.pixel : %v2i", r.sample);
 	//printf( "KERNEL MAIN - pixel --> %v2i --> %v2i \n", (int2) (get_global_id(0), get_global_id(1)), pixel );
 
 	global__imageRayNb[globalImageOffset] += 1;

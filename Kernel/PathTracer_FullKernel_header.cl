@@ -14,7 +14,6 @@
 #define MAX_INTERSETCION_NUMBER 5000
 #define MIN_CONTRIBUTION_VALUE 0.001f
 #define BVH_MAX_DEPTH 30
-#define MAX_LIGHT_SIZE 30
 
 // Debug log
 
@@ -59,7 +58,6 @@ typedef float4 RGBAColor;
 	global__materiaux			,\
 	global__textures			,\
 	global__texturesData		,\
-	global__lightsSize			,\
 	global__sky					
 
 
@@ -72,7 +70,6 @@ typedef float4 RGBAColor;
 	Material	__global	const	*global__materiaux			,\
 	Texture		__global	const	*global__textures			,\
 	uchar4		__global	const	*global__texturesData		,\
-	uint							 global__lightsSize			,\
 	Sky			__global const		*global__sky				
 
 
@@ -248,10 +245,10 @@ inline float random	(int *seed)
 	return res;
 };
 
-inline int InitializeRandomSeed(uint width, uint height, uint iterationNum)
+inline int InitializeRandomSeed(uint iterationNum)
 {
 	int seed = 0;
-	seed = get_global_id(0) + ( get_global_id(1) * width ) + ( iterationNum * width * height );
+	seed = get_global_id(0) + ( get_global_id(1) * IMAGE_WIDTH ) + ( iterationNum * IMAGE_WIDTH * IMAGE_HEIGHT );
 	seed *= 2011;	//	Nombre premier, pour plus répartir les nombres
 	seed *= seed;
 	if(seed == 0)
@@ -519,15 +516,11 @@ bool		Scene_PickLight						(KERNEL_GLOBAL_VAR_DECLARATION, const float4 *p, cons
 
 __kernel void Kernel_Main(
 	uint     kernel__iterationNum,
-	uint     kernel__imageWidth,
-	uint     kernel__imageHeight,
 
 	float4  kernel__cameraPosition,
 	float4  kernel__cameraDirection,
 	float4  kernel__cameraRight,
 	float4  kernel__cameraUp,
-
-	uint     global__lightsSize,
 
 	volatile float4	__global *global__imageColor,
 	volatile float	__global *global__imageRayNb,

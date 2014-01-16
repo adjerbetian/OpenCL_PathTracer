@@ -64,10 +64,17 @@ namespace PathTracerNS
 		Sky			const	*global__sky				
 		);
 
+	void	OpenCL_SetupContext(
+		Sampler sampler,
+		uint	global__rayMaxDepth,
+		uint	global__imageWidth,
+		uint	global__imageHeight,
+		uint	global__lightsSize
+		);
+
 	char*			OpenCL_ReadSources			(const char *fileName);
 	cl_platform_id	OpenCL_GetIntelOCLPlatform	();
-	void			OpenCL_BuildFailLog( cl_program program, cl_device_id device_id );
-	void			OpenCL_SetupContext			(Sampler sampler, uint const global__rayMaxDepth);
+	void			OpenCL_BuildFailLog			(cl_program program, cl_device_id device_id );
 	void			OpenCL_ErrorHandling		(cl_int errCode);
 }
 

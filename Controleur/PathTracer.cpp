@@ -117,7 +117,7 @@ namespace PathTracerNS
 			}
 
 			PathTracer_PrintSection("SETTING OPENCL CONTEXT"); start = clock();
-			OpenCL_SetupContext(sampler, global__rayMaxDepth);
+			OpenCL_SetupContext(sampler, global__rayMaxDepth, global__imageWidth, global__imageHeight, global__lightsSize);
 
 			OpenCL_InitializeMemory	(
 				global__cameraDirection		,

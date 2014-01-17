@@ -9,7 +9,7 @@ namespace PathTracerNS
 	 *		- Appel de la fonction récursive de création de l'arbre
 	 */
 
-	void BVH_Create(uint triangulationSize, Triangle* triangulation, uint *global__bvhMaxDepth, uint *global__bvhSize, Node **global__bvh)
+	void BVH_Create(GlobalVars& globalVars)
 	{
 		// 1 - Calcul de la Bounding Box de la scene entiere
 		BoundingBox fullTrianglesBoundingBox;
@@ -17,23 +17,23 @@ namespace PathTracerNS
 		BoundingBox_Reset(&fullTrianglesBoundingBox);
 		BoundingBox_Reset(&fullCentroidsBoundingBox);
 
-		for(uint i=0; i < triangulationSize; i++)
+		for(uint i=0; i < globalVars.triangulationSize; i++)
 		{
-			BoundingBox_UniteWith(&fullTrianglesBoundingBox, &triangulation[i].AABB);
-			BoundingBox_AddPoint(&fullCentroidsBoundingBox, &triangulation[i].AABB.centroid);
+			BoundingBox_UniteWith(&fullTrianglesBoundingBox, &globalVars.triangulation[i].AABB);
+			BoundingBox_AddPoint(&fullCentroidsBoundingBox, &globalVars.triangulation[i].AABB.centroid);
 		}
 
 		// 2 - Initialisation des variables du BVH
-		*global__bvhMaxDepth	= 0;
-		*global__bvhSize		= 0;
-		*global__bvh			= new Node[2*triangulationSize-1];
+		globalVars.bvhMaxDepth	= 0;
+		globalVars.bvhSize		= 0;
+		globalVars.bvh			= new Node[2*globalVars.triangulationSize-1];
 
 
 		// 3 - Creation de la racine du BVH
-		BVH_CreateNode(*global__bvh, 0, triangulationSize, &fullTrianglesBoundingBox, &fullCentroidsBoundingBox, triangulation);
+		BVH_CreateNode(globalVars.bvh, 0, globalVars.triangulationSize, &fullTrianglesBoundingBox, &fullCentroidsBoundingBox, globalVars.triangulation);
 
 		// 4 - Lancement de la fonction récursive de création de l'arbre à partir de la racine
-		BVH_BuildStructure(0, global__bvhSize, global__bvhMaxDepth, *global__bvh, triangulation);
+		BVH_BuildStructure(globalVars, 0);
 	}
 
 	/*	Fonction qui simule un constructeur sur This déjà aloué
@@ -106,7 +106,7 @@ namespace PathTracerNS
 	 *		10 - relancer le calcul récursif
 	 */
 
-	int BVH_BuildStructure(int currentIndex, uint *global__bvhSize, uint *global__bvhMaxDepth, Node *global__bvh, Triangle *triangulation)
+	int BVH_BuildStructure(GlobalVars& globalVars, int currentIndex)
 	{
 
 		//	Parametres utilises pour la  construction du BVH
@@ -122,20 +122,20 @@ namespace PathTracerNS
 		//Initialisation à la racine
 		if( currentIndex == 0 )
 		{
-			*global__bvhSize = 1;
-			*global__bvhMaxDepth = 0;
+			globalVars.bvhSize = 1;
+			globalVars.bvhMaxDepth = 0;
 			currentDepth = 0;
 		}
 
-		Node *N = &global__bvh[currentIndex];
+		Node *N = &globalVars.bvh[currentIndex];
 
 		//0 - Terminaison
 		if( N->nbTriangles <= const__leafMaxSize )
 		{
 			N->isLeaf = true;
 			N->comments = NODE_LEAF_MAX_SIZE;
-			if(currentDepth > *global__bvhMaxDepth)
-				*global__bvhMaxDepth = currentDepth;
+			if(currentDepth > globalVars.bvhMaxDepth)
+				globalVars.bvhMaxDepth = currentDepth;
 			return currentIndex+1;
 		}
 
@@ -143,8 +143,8 @@ namespace PathTracerNS
 		{
 			N->isLeaf = true;
 			N->comments = NODE_LEAF_MIN_DIAG;
-			if(currentDepth > *global__bvhMaxDepth)
-				*global__bvhMaxDepth = currentDepth;
+			if(currentDepth > globalVars.bvhMaxDepth)
+				globalVars.bvhMaxDepth = currentDepth;
 			return currentIndex+1;
 		}
 
@@ -192,14 +192,14 @@ namespace PathTracerNS
 			int triangleBin = 0;
 			for(int i=N->triangleStartIndex; i<=triangleEndIndex; i++)
 			{
-				if(cutAxis == 0)		triangleBin = (int) (k1[cutAxis]*(triangulation[i].AABB.centroid.x - N->centroidsAABB.pMin.x));
-				else if(cutAxis == 1)	triangleBin = (int) (k1[cutAxis]*(triangulation[i].AABB.centroid.y - N->centroidsAABB.pMin.y));
-				else					triangleBin = (int) (k1[cutAxis]*(triangulation[i].AABB.centroid.z - N->centroidsAABB.pMin.z));
+				if(cutAxis == 0)		triangleBin = (int) (k1[cutAxis]*(globalVars.triangulation[i].AABB.centroid.x - N->centroidsAABB.pMin.x));
+				else if(cutAxis == 1)	triangleBin = (int) (k1[cutAxis]*(globalVars.triangulation[i].AABB.centroid.y - N->centroidsAABB.pMin.y));
+				else					triangleBin = (int) (k1[cutAxis]*(globalVars.triangulation[i].AABB.centroid.z - N->centroidsAABB.pMin.z));
 
 				ASSERT( triangleBin < const__K );
 
 				elementaryNTriangles[cutAxis][triangleBin]++;
-				BoundingBox_UniteWith( &elementaryBoundingBoxes[cutAxis][triangleBin], &triangulation[i].AABB );
+				BoundingBox_UniteWith( &elementaryBoundingBoxes[cutAxis][triangleBin], &globalVars.triangulation[i].AABB );
 			}
 
 
@@ -261,8 +261,8 @@ namespace PathTracerNS
 		{
 			N->isLeaf = true;
 			N->comments = NODE_BAD_SAH;
-			if(currentDepth > *global__bvhMaxDepth)
-				*global__bvhMaxDepth = currentDepth;
+			if(currentDepth > globalVars.bvhMaxDepth)
+				globalVars.bvhMaxDepth = currentDepth;
 			return currentIndex+1;
 		}
 
@@ -277,36 +277,36 @@ namespace PathTracerNS
 		{
 			while(leftSortIndex < rightSortIndex)
 			{
-				while( (k1[bestCutAxis]*(triangulation[leftSortIndex ].AABB.centroid.x - N->centroidsAABB.pMin.x)) <  bestCutIndex+1 && leftSortIndex < rightSortIndex)
+				while( (k1[bestCutAxis]*(globalVars.triangulation[leftSortIndex ].AABB.centroid.x - N->centroidsAABB.pMin.x)) <  bestCutIndex+1 && leftSortIndex < rightSortIndex)
 					leftSortIndex++;
-				while( (k1[bestCutAxis]*(triangulation[rightSortIndex].AABB.centroid.x - N->centroidsAABB.pMin.x)) >= bestCutIndex+1 && leftSortIndex < rightSortIndex)
+				while( (k1[bestCutAxis]*(globalVars.triangulation[rightSortIndex].AABB.centroid.x - N->centroidsAABB.pMin.x)) >= bestCutIndex+1 && leftSortIndex < rightSortIndex)
 					rightSortIndex--;
 				if(leftSortIndex < rightSortIndex)
-					std::swap(triangulation[leftSortIndex], triangulation[rightSortIndex]);
+					std::swap(globalVars.triangulation[leftSortIndex], globalVars.triangulation[rightSortIndex]);
 			}
 		}
 		else if(bestCutAxis == 1)
 		{
 			while(leftSortIndex < rightSortIndex)
 			{
-				while( (k1[bestCutAxis]*(triangulation[leftSortIndex ].AABB.centroid.y - N->centroidsAABB.pMin.y)) <  bestCutIndex+1 && leftSortIndex < rightSortIndex)
+				while( (k1[bestCutAxis]*(globalVars.triangulation[leftSortIndex ].AABB.centroid.y - N->centroidsAABB.pMin.y)) <  bestCutIndex+1 && leftSortIndex < rightSortIndex)
 					leftSortIndex++;
-				while( (k1[bestCutAxis]*(triangulation[rightSortIndex].AABB.centroid.y - N->centroidsAABB.pMin.y)) >= bestCutIndex+1 && leftSortIndex < rightSortIndex)
+				while( (k1[bestCutAxis]*(globalVars.triangulation[rightSortIndex].AABB.centroid.y - N->centroidsAABB.pMin.y)) >= bestCutIndex+1 && leftSortIndex < rightSortIndex)
 					rightSortIndex--;
 				if(leftSortIndex < rightSortIndex)
-					std::swap(triangulation[leftSortIndex], triangulation[rightSortIndex]);
+					std::swap(globalVars.triangulation[leftSortIndex], globalVars.triangulation[rightSortIndex]);
 			}
 		}
 		else
 		{
 			while(leftSortIndex < rightSortIndex)
 			{
-				while( (k1[bestCutAxis]*(triangulation[leftSortIndex ].AABB.centroid.z - N->centroidsAABB.pMin.z)) <  bestCutIndex+1 && leftSortIndex < rightSortIndex)
+				while( (k1[bestCutAxis]*(globalVars.triangulation[leftSortIndex ].AABB.centroid.z - N->centroidsAABB.pMin.z)) <  bestCutIndex+1 && leftSortIndex < rightSortIndex)
 					leftSortIndex++;
-				while( (k1[bestCutAxis]*(triangulation[rightSortIndex].AABB.centroid.z - N->centroidsAABB.pMin.z)) >= bestCutIndex+1 && leftSortIndex < rightSortIndex)
+				while( (k1[bestCutAxis]*(globalVars.triangulation[rightSortIndex].AABB.centroid.z - N->centroidsAABB.pMin.z)) >= bestCutIndex+1 && leftSortIndex < rightSortIndex)
 					rightSortIndex--;
 				if(leftSortIndex < rightSortIndex)
-					std::swap(triangulation[leftSortIndex], triangulation[rightSortIndex]);
+					std::swap(globalVars.triangulation[leftSortIndex], globalVars.triangulation[rightSortIndex]);
 			}
 		}
 
@@ -314,9 +314,9 @@ namespace PathTracerNS
 		BoundingBox_Reset(&leftCentroidsAABB);
 		BoundingBox_Reset(&rightCentroidsAABB);
 		for(int i=N->triangleStartIndex; i<leftSortIndex; i++)
-			BoundingBox_AddPoint( &leftCentroidsAABB, &triangulation[i].AABB.centroid);
+			BoundingBox_AddPoint( &leftCentroidsAABB, &globalVars.triangulation[i].AABB.centroid);
 		for(int i=triangleEndIndex; i>=leftSortIndex; i--)
-			BoundingBox_AddPoint( &rightCentroidsAABB, &triangulation[i].AABB.centroid);
+			BoundingBox_AddPoint( &rightCentroidsAABB, &globalVars.triangulation[i].AABB.centroid);
 
 
 		//10 - recursivite
@@ -326,31 +326,31 @@ namespace PathTracerNS
 		BoundingBox trianglesAABBSon2 = rightToLeftBoundingBoxes[bestCutAxis][bestCutIndex+1];
 
 		currentDepth++;
-		*global__bvhSize += 2;
+		globalVars.bvhSize += 2;
 
 		//Fils gauche
 
 		N->son1Id = currentIndex+1;
 		BVH_CreateNode(
-			&global__bvh[N->son1Id],
+			&globalVars.bvh[N->son1Id],
 			N->triangleStartIndex,
 			leftToRightNTriangles[bestCutAxis][bestCutIndex],
 			&leftToRightBoundingBoxes[bestCutAxis][bestCutIndex],
 			&leftCentroidsAABB,
-			triangulation);
+			globalVars.triangulation);
 
-		N->son2Id = BVH_BuildStructure(N->son1Id, global__bvhSize, global__bvhMaxDepth, global__bvh, triangulation);
+		N->son2Id = BVH_BuildStructure(globalVars, N->son1Id);
 
 		//Fils droit
 		BVH_CreateNode(
-			&global__bvh[N->son2Id],
+			&globalVars.bvh[N->son2Id],
 			triangleStartIndexSon2,
 			nTrianglesSon2,
 			&trianglesAABBSon2,
 			&rightCentroidsAABB,
-			triangulation);
+			globalVars.triangulation);
 
-		int nextIndex = BVH_BuildStructure(N->son2Id, global__bvhSize, global__bvhMaxDepth, global__bvh, triangulation);
+		int nextIndex = BVH_BuildStructure(globalVars, N->son2Id);
 		currentDepth--;
 		return nextIndex;
 	}

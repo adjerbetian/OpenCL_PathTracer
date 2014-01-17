@@ -30,48 +30,29 @@ namespace PathTracerNS
 	{};
 
 
-	void PathTracerImporter::Initialize(
-		Float4*		 global__cameraDirection,
-		Float4*		 global__cameraRight,
-		Float4*		 global__cameraUp,
-		Float4*		 global__cameraPosition,
-		Triangle*	*global__triangulation,
-		Light*		*global__lights,
-		Material*	*global__materiaux,
-		Texture*	*global__textures,
-		Uchar4*		*global__texturesData,
-		uint*		 global__triangulationSize,
-		uint*		 global__lightsSize,
-		uint*		 global__materiauxSize,
-		uint*		 global__texturesSize,
-		uint*		 global__texturesDataSize,
-		uint*		 global__imageWidth,
-		uint*		 global__imageHeight,
-		uint*		 global__imageSize,
-		Sky*		 global__sky
-		)
+	void PathTracerImporter::Initialize(GlobalVars& globalVars)
 	{
-		ptr__global__cameraDirection	= global__cameraDirection;
-		ptr__global__cameraRight		= global__cameraRight;
-		ptr__global__cameraUp			= global__cameraUp;
-		ptr__global__cameraPosition		= global__cameraPosition;
+		ptr__global__cameraDirection	= &globalVars.cameraDirection;
+		ptr__global__cameraRight		= &globalVars.cameraRight;
+		ptr__global__cameraUp			= &globalVars.cameraUp;
+		ptr__global__cameraPosition		= &globalVars.cameraPosition;
 
-		ptr__global__triangulation		= global__triangulation;
-		ptr__global__lights				= global__lights;
-		ptr__global__materiaux			= global__materiaux;
-		ptr__global__textures			= global__textures;
-		ptr__global__texturesData		= global__texturesData;
-		ptr__global__triangulationSize	= global__triangulationSize;
-		ptr__global__lightsSize			= global__lightsSize;
-		ptr__global__materiauxSize		= global__materiauxSize;
-		ptr__global__texturesSize		= global__texturesSize;
-		ptr__global__texturesDataSize	= global__texturesDataSize;
+		ptr__global__triangulation		= &globalVars.triangulation;
+		ptr__global__lights				= &globalVars.lights;
+		ptr__global__materiaux			= &globalVars.materiaux;
+		ptr__global__textures			= &globalVars.textures;
+		ptr__global__texturesData		= &globalVars.texturesData;
+		ptr__global__triangulationSize	= &globalVars.triangulationSize;
+		ptr__global__lightsSize			= &globalVars.lightsSize;
+		ptr__global__materiauxSize		= &globalVars.materiauxSize;
+		ptr__global__texturesSize		= &globalVars.texturesSize;
+		ptr__global__texturesDataSize	= &globalVars.texturesDataSize;
 
-		ptr__global__imageWidth			= global__imageWidth;
-		ptr__global__imageHeight		= global__imageHeight;
-		ptr__global__imageSize			= global__imageSize;
+		ptr__global__imageWidth			= &globalVars.imageWidth;
+		ptr__global__imageHeight		= &globalVars.imageHeight;
+		ptr__global__imageSize			= &globalVars.imageSize;
 
-		ptr__global__sky				= global__sky;
+		ptr__global__sky				= &globalVars.sky;
 	}
 
 

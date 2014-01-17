@@ -18,26 +18,7 @@ namespace PathTracerNS
 
 		PathTracerImporter();
 
-		void Initialize (
-			Float4*		 global__cameraDirection,
-			Float4*		 global__cameraRight,
-			Float4*		 global__cameraUp,
-			Float4*		 global__cameraPosition,
-			Triangle*	*global__triangulation,
-			Light*		*global__lights,
-			Material*	*global__materiaux,
-			Texture*	*global__textures,
-			Uchar4*		*global__texturesData,
-			uint*		 global__triangulationSize,
-			uint*		 global__lightsSize,
-			uint*		 global__materiauxSize,
-			uint*		 global__texturesSize,
-			uint*		 global__texturesDataSize,
-			uint*		 global__imageWidth,
-			uint*		 global__imageHeight,
-			uint*		 global__imageSize,
-			Sky*		 global__sky
-			);
+		void Initialize (GlobalVars& globalVars);
 
 		virtual void Import(uint image_width, uint image_height, bool loadSky) = 0;
 

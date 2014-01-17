@@ -52,16 +52,7 @@ namespace PathTracerNS
 	*		3 - Libération de la mémoire sur le device et des variables OpenCL
 	*/
 
-	void OpenCL_RunKernel(
-		uint		global__imageWidth,
-		uint		global__imageHeight,
-		uint		global__imageSize,
-		uint		global__rayMaxDepth,
-		RGBAColor	*global__imageColor,
-		float		*global__imageRayNb,
-		uint		*global__rayDepths,
-		uint		*global__rayIntersectedBBx,
-		uint		*global__rayIntersectedTri,
+	void OpenCL_RunKernel(GlobalVars& globalVars,
 		bool		(*UpdateWindowFunc)(void),
 		uint		numImagesToRender,
 		double*		pathTracingTime,
@@ -74,7 +65,7 @@ namespace PathTracerNS
 		*displayTime = 0;
 		clock_t startTime;
 
-		const size_t constGlobalWorkSize[2] = { global__imageWidth , global__imageHeight };
+		const size_t constGlobalWorkSize[2] = { globalVars.imageWidth , globalVars.imageHeight };
 		const size_t constLocalWorkSize[2]  = { 1, 1 };
 
 		cl_uint imageId = 0;
@@ -97,8 +88,8 @@ namespace PathTracerNS
 			/////////////////////////////////////////////////////////////////////////////////
 			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
 			/////////////////////////////////////////////////////////////////////////////////
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor   ,	CL_TRUE, 0, sizeof(RGBAColor)	* global__imageSize			, (void *) global__imageColor   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
-			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb   ,	CL_TRUE, 0, sizeof(float)		* global__imageSize			, (void *) global__imageRayNb   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor   ,	CL_TRUE, 0, sizeof(RGBAColor)	* globalVars.imageSize			, (void *) globalVars.imageColor   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb   ,	CL_TRUE, 0, sizeof(float)		* globalVars.imageSize			, (void *) globalVars.imageRayNb   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
 			clFinish(opencl__queue);
 
 			*pathTracingTime += clock() - startTime;
@@ -111,9 +102,9 @@ namespace PathTracerNS
 		}
 
 		// Retrieving statistic information
-		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayDepths			,	CL_TRUE, 0, sizeof(uint)  * (global__rayMaxDepth+1) , (void *) global__rayDepths			, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
-		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedBBx	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER	, (void *) global__rayIntersectedBBx	, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
-		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedTri	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER , (void *) global__rayIntersectedTri	, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayDepths			,	CL_TRUE, 0, sizeof(uint)  * (globalVars.rayMaxDepth+1) , (void *) globalVars.rayDepths			, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedBBx	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER	, (void *) globalVars.rayIntersectedBBx	, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
+		errCode = clEnqueueReadBuffer(opencl__queue, kernel__rayIntersectedTri	,	CL_TRUE, 0, sizeof(uint)  * MAX_INTERSETCION_NUMBER , (void *) globalVars.rayIntersectedTri	, 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
 		clFinish(opencl__queue);
 
 
@@ -149,38 +140,7 @@ namespace PathTracerNS
 	*		2 - Assignation des arguments des noyaux
 	*/
 
-	void OpenCL_InitializeMemory(
-		Float4		const&	global__cameraDirection		,
-		Float4		const&	global__cameraRight			,
-		Float4		const&	global__cameraUp			,
-		Float4		const&	global__cameraPosition		,
-
-		Node		const	*global__bvh				,
-		Triangle	const	*global__triangulation		,
-		Light		const	*global__lights				,
-		Material	const	*global__materiaux			,
-		Texture		const	*global__textures			,
-		Uchar4		const	*global__texturesData		,
-		uint		const	 global__bvhSize			,
-		uint		const	 global__triangulationSize	,
-		uint		const	 global__lightsSize			,
-		uint		const	 global__materiauxSize		,
-		uint		const	 global__texturesSize		,
-		uint		const	 global__texturesDataSize	,
-
-		uint		const	 global__imageWidth			,
-		uint		const	 global__imageHeight		,
-		uint		const	 global__imageSize			,
-		uint		const	 global__rayMaxDepth		,
-		RGBAColor			*global__imageColor			,
-		float				*global__imageRayNb			,
-		uint				*global__rayDepths			,
-		uint				*global__rayIntersectedBBx	,
-		uint				*global__rayIntersectedTri	,
-		uint		const	 global__bvhMaxDepth		,
-
-		Sky			const	*global__sky
-		)
+	void OpenCL_InitializeMemory(GlobalVars& globalVars)
 	{
 
 		/////////////////////////////////////////////////////////////////////////////////
@@ -190,30 +150,30 @@ namespace PathTracerNS
 		cl_int errCode = 0;
 		cl_uint i = 0;
 
-		kernel__imageColor			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)				 * global__imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__imageRayNb			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_float)				 * global__imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__rayDepths			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * (global__rayMaxDepth+1)	       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__imageColor			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)				 * globalVars.imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__imageRayNb			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_float)				 * globalVars.imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__rayDepths			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * (globalVars.rayMaxDepth+1)	   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
 		kernel__rayIntersectedBBx	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * MAX_INTERSETCION_NUMBER	       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
 		kernel__rayIntersectedTri	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * MAX_INTERSETCION_NUMBER	       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__bvh					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	 * global__bvhSize				,1), (void *) global__bvh				, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__triangulation		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * global__triangulationSize	,1), (void *) global__triangulation		, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__lights				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	 * global__lightsSize			,1), (void *) global__lights			, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__materiaux			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * global__materiauxSize		,1), (void *) global__materiaux			, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__texturesData		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	 * global__texturesDataSize		,1), (void *) global__texturesData		, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__textures			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * global__texturesSize			,1), (void *) global__textures			, &errCode); OpenCL_ErrorHandling(errCode);
-		kernel__sky					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) global__sky				, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__bvh					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Node)	 * globalVars.bvhSize			,1), (void *) globalVars.bvh			, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__triangulation		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Triangle) * globalVars.triangulationSize	,1), (void *) globalVars.triangulation	, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__lights				= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Light)	 * globalVars.lightsSize		,1), (void *) globalVars.lights			, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__materiaux			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Material) * globalVars.materiauxSize		,1), (void *) globalVars.materiaux		, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__texturesData		= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Uchar4)	 * globalVars.texturesDataSize	,1), (void *) globalVars.texturesData	, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__textures			= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , std::max<uint>(sizeof(Texture)  * globalVars.texturesSize		,1), (void *) globalVars.textures		, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__sky					= clCreateBuffer(opencl__context, CL_MEM_READ_ONLY  | CL_MEM_COPY_HOST_PTR , sizeof(Sky)													   , (void *) &globalVars.sky			, &errCode); OpenCL_ErrorHandling(errCode);
 
 
 		/////////////////////////////////////////////////////////////////////////////////
 		///////////  1 - ARGUEMENTS POUR LES NOYAUX  ////////////////////////////////////
 		/////////////////////////////////////////////////////////////////////////////////
 
-		// ARGUMENTS POUR global__kernelSortedMain
+		// ARGUMENTS POUR globalVars.kernelSortedMain
 		i = 1;
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraPosition);	OpenCL_ErrorHandling(errCode);
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraDirection);	OpenCL_ErrorHandling(errCode);
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraRight);		OpenCL_ErrorHandling(errCode);
-		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &global__cameraUp);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &globalVars.cameraPosition);	OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &globalVars.cameraDirection);	OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &globalVars.cameraRight);		OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(cl_float4),	(void*) &globalVars.cameraUp);			OpenCL_ErrorHandling(errCode);
 
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),			(void*) &kernel__imageColor);			OpenCL_ErrorHandling(errCode);
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),			(void*) &kernel__imageRayNb);			OpenCL_ErrorHandling(errCode);
@@ -321,12 +281,7 @@ namespace PathTracerNS
 		}
 	}
 
-	void OpenCL_SetupContext(
-		Sampler const sampler,
-		uint global__rayMaxDepth,
-		uint global__imageWidth,
-		uint global__imageHeight,
-		uint global__lightsSize)
+	void OpenCL_SetupContext(GlobalVars& globalVars, Sampler const sampler)
 	{
 		const char* program_source = PATHTRACER_FOLDER"Kernel\\PathTracer_FullKernel.cl";
 
@@ -391,10 +346,10 @@ namespace PathTracerNS
 			case UNIFORM:	 buildOptionsStream << " -D SAMPLE_UNIFORM";		 break;
 			default: break;
 			}
-			buildOptionsStream << " -D MAX_REFLECTION_NUMBER=" << global__rayMaxDepth;
-			buildOptionsStream << " -D IMAGE_WIDTH=" << global__imageWidth;
-			buildOptionsStream << " -D IMAGE_HEIGHT=" << global__imageHeight;
-			buildOptionsStream << " -D LIGHTS_SIZE=" << global__lightsSize;
+			buildOptionsStream << " -D MAX_REFLECTION_NUMBER=" << globalVars.rayMaxDepth;
+			buildOptionsStream << " -D IMAGE_WIDTH=" << globalVars.imageWidth;
+			buildOptionsStream << " -D IMAGE_HEIGHT=" << globalVars.imageHeight;
+			buildOptionsStream << " -D LIGHTS_SIZE=" << globalVars.lightsSize;
 
 			if(false) // if we want to use the intel OpenCL debugger (which doesn't work...)
 				buildOptionsStream << "-g -s \"" << program_source << "\"";

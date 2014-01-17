@@ -1173,7 +1173,6 @@ __kernel void Kernel_Main(
 	void	__global	const	*global__void__sky
 	)
 {
-	
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION
 	///////////////////////////////////////////////////////////////////////////////////////
@@ -1307,6 +1306,7 @@ __kernel void Kernel_Main(
 	//printf( "KERNEL MAIN - pixel --> %v2i --> %v2i \n", (int2) (get_global_id(0), get_global_id(1)), pixel );
 
 	global__imageRayNb[globalImageOffset] += 1;
+	global__imageColor[globalImageOffset] += radianceToCompute; // should be atomic... neglected
 	global__imageColor[globalImageOffset] += radianceToCompute; // should be atomic... neglected
 
 }

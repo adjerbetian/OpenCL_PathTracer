@@ -144,45 +144,45 @@ namespace PathTracerNS
 
 	typedef struct
 	{
-		PathTracerDialog	*global__window;		// Pointeur vers une fenêtre qui permet d'affichage du rendu
-		PathTracerImporter	*global__importer;		// Pointeur vers une instance derivant de PathTracerImporter
+		PathTracerDialog	*window;		// Pointeur vers une fenêtre qui permet d'affichage du rendu
+		PathTracerImporter	*importer;		// Pointeur vers une instance derivant de PathTracerImporter
 
 		//	Donnees de la scene :
 
-		Float4				 global__cameraDirection;		// Vecteur de direction principal de la caméra (passant par le milieu de l'image)
-		Float4				 global__cameraRight;			// Vector orthogonal à la direction, canoniquement parrallèle au sol, qui indique la largeur de l'image
-		Float4				 global__cameraUp;				// Vector orthogonal à la direction, canoniquement parrallèle à la vertical, qui indique la hauteur de l'image
-		Float4				 global__cameraPosition;		// Position 3D du point de focal
+		Float4				 cameraDirection;		// Vecteur de direction principal de la caméra (passant par le milieu de l'image)
+		Float4				 cameraRight;			// Vector orthogonal à la direction, canoniquement parrallèle au sol, qui indique la largeur de l'image
+		Float4				 cameraUp;				// Vector orthogonal à la direction, canoniquement parrallèle à la vertical, qui indique la hauteur de l'image
+		Float4				 cameraPosition;		// Position 3D du point de focal
 
-		Node				*global__bvh;					// tableau de Noeuds représentant le BVH. global__bvh[0] est la racine de l'arbre
-		Triangle			*global__triangulation;			// tableau de Triangles, NON DUPLIQUES, représentant la géométrie de la scène
-		Light				*global__lights;				// tableau de Light, à l'exclusion du soleil et du ciel
-		Material			*global__materiaux;				// tableau de tous les Matériaux de la scène
-		Texture				*global__textures;				// tableau de Textures de la scène à l'exclusion des textures du ciel. Attention, Texture est une classe qui ne comprends ques les données principales des textures, et pas les textures même
-		Uchar4				*global__texturesData;			// tableau de toutes les textures images de la scène, y compris celles du ciel. Les textures sont stockées de manière continues : pixel_texture1(0,0) ... pixel_texture1(w1,h1) , pixel_texture2(0,0) ... pixel_texture2(w2,h2) , ...
+		Node				*bvh;					// tableau de Noeuds représentant le BVH. bvh[0] est la racine de l'arbre
+		Triangle			*triangulation;			// tableau de Triangles, NON DUPLIQUES, représentant la géométrie de la scène
+		Light				*lights;				// tableau de Light, à l'exclusion du soleil et du ciel
+		Material			*materiaux;				// tableau de tous les Matériaux de la scène
+		Texture				*textures;				// tableau de Textures de la scène à l'exclusion des textures du ciel. Attention, Texture est une classe qui ne comprends ques les données principales des textures, et pas les textures même
+		Uchar4				*texturesData;			// tableau de toutes les textures images de la scène, y compris celles du ciel. Les textures sont stockées de manière continues : pixel_texture1(0,0) ... pixel_texture1(w1,h1) , pixel_texture2(0,0) ... pixel_texture2(w2,h2) , ...
 
-		uint				 global__bvhSize;				// Nombre de noeuds du BVH
-		uint				 global__triangulationSize;		// Nombre de triangles de la scène
-		uint				 global__lightsSize;			// Nombre de lumières de la scène, à l'exclusion du soleil et du ciel
-		uint				 global__materiauxSize;			// Nombre de matériaux de la scène
-		uint				 global__texturesSize;			// Nombre de textures de la scène
-		uint				 global__texturesDataSize;		// Somme des tailles de toutes les textures : ( largeur1 * hauteur1 ) + ( largeur2 * hauteur2 ) + ...
-		uint				 global__bvhMaxDepth;			// Profondeur de la plus grande branche du BVH
+		uint				 bvhSize;				// Nombre de noeuds du BVH
+		uint				 triangulationSize;		// Nombre de triangles de la scène
+		uint				 lightsSize;			// Nombre de lumières de la scène, à l'exclusion du soleil et du ciel
+		uint				 materiauxSize;			// Nombre de matériaux de la scène
+		uint				 texturesSize;			// Nombre de textures de la scène
+		uint				 texturesDataSize;		// Somme des tailles de toutes les textures : ( largeur1 * hauteur1 ) + ( largeur2 * hauteur2 ) + ...
+		uint				 bvhMaxDepth;			// Profondeur de la plus grande branche du BVH
 
-		Sky					 global__sky;	// Ciel
+		Sky					 sky;	// Ciel
 
 
 		//	Donnees images, qui viennent du rendu
 
-		uint				 global__imageWidth;			// Largeur de l'image de rendu
-		uint				 global__imageHeight;			// Hauteur de l'image de rendu
-		uint				 global__imageSize;				// Largeur * Hauteur
-		uint				 global__rayMaxDepth;			// Profondeur max des rayons
-		RGBAColor			*global__imageColor;			// Somme des couleurs rendues
-		float				*global__imageRayNb;			// Nombre de rayons ayant contribue aux pixels
-		uint				*global__rayDepths;				// Number of ray for each depth
-		uint				*global__rayIntersectedBBx;		// Number of ray for each number of BBx interstection
-		uint				*global__rayIntersectedTri;		// Number of ray for each number of Tri interstection
+		uint				 imageWidth;			// Largeur de l'image de rendu
+		uint				 imageHeight;			// Hauteur de l'image de rendu
+		uint				 imageSize;				// Largeur * Hauteur
+		uint				 rayMaxDepth;			// Profondeur max des rayons
+		RGBAColor			*imageColor;			// Somme des couleurs rendues
+		float				*imageRayNb;			// Nombre de rayons ayant contribue aux pixels
+		uint				*rayDepths;				// Number of ray for each depth
+		uint				*rayIntersectedBBx;		// Number of ray for each number of BBx interstection
+		uint				*rayIntersectedTri;		// Number of ray for each number of Tri interstection
 	} GlobalVars;
 
 

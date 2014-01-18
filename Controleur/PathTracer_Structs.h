@@ -168,6 +168,8 @@ namespace PathTracerNS
 		uint				 texturesSize;			// Nombre de textures de la scène
 		uint				 texturesDataSize;		// Somme des tailles de toutes les textures : ( largeur1 * hauteur1 ) + ( largeur2 * hauteur2 ) + ...
 		uint				 bvhMaxDepth;			// Profondeur de la plus grande branche du BVH
+		Sampler				 sampler;				// Sampler choisi
+		bool				 printLogInfos;			// Whether to 
 
 		Sky					 sky;	// Ciel
 

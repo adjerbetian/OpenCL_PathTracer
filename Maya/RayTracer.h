@@ -24,7 +24,7 @@ public:
 
 	virtual MStatus doIt(const MArgList& argList);
 	static void* creator();
-	static void loadArgs(MArgList argList, uint& image_width, uint& image_height, uint& numImageToRender, bool& loadSky, bool& saveRenderedImages, PathTracerNS::Sampler& sampler, uint& rayMaxDepth);
+	static void loadArgs(MArgList argList, uint& image_width, uint& image_height, uint& numImageToRender, bool& loadSky, bool& saveRenderedImages, PathTracerNS::Sampler& sampler, uint& rayMaxDepth, bool& printLogInfos);
 	static MSyntax newSyntax();
 
 };

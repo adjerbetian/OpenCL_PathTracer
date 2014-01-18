@@ -22,7 +22,7 @@ namespace PathTracerNS
 	}
 
 
-	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayMaxDepth)
+	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayMaxDepth, bool printLogInfos)
 	{
 		try
 		{
@@ -38,12 +38,13 @@ namespace PathTracerNS
 			double bvhBuildingTime;
 			double openclSettingTime;
 			double pathTracingTime;
+			double memoryTime;
 			double displayTime;
 
 			bool noError = true;
 
 			PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
-			PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth);
+			PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth, printLogInfos);
 			loadingTime = clock()-start;
 
 			PathTracer_PrintSection("BUILDING BVH"); start = clock();
@@ -83,13 +84,14 @@ namespace PathTracerNS
 				&PathTracer_UpdateWindow	,
 				numImagesToRender			,
 				&pathTracingTime			,
+				&memoryTime					,
 				&displayTime
 				);
 
 			pathTracingTime	 = clock()-start;
 
 			PathTracer_PrintSection("STATISTICS");
-			PathTracer_ComputeStatistics(numImagesToRender, loadingTime, bvhBuildingTime, openclSettingTime, pathTracingTime, displayTime);
+			PathTracer_ComputeStatistics(numImagesToRender, loadingTime, bvhBuildingTime, openclSettingTime, pathTracingTime, memoryTime, displayTime);
 
 			PathTracer_Clear();
 
@@ -110,8 +112,9 @@ namespace PathTracerNS
 	/*	Gestion des différents initialiseurs
 	*/
 
-	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth)
+	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth, bool printLogInfos)
 	{
+		globalVars.printLogInfos = printLogInfos;
 		globalVars.importer->Initialize(globalVars);
 
 		globalVars.importer->Import(image_width, image_height, loadSky);
@@ -223,7 +226,7 @@ namespace PathTracerNS
 		delete[] globalVars.texturesData;
 	}
 
-	void PathTracer_ComputeStatistics(uint numImageToRender, double loadingTime, double bvhBuildingTime, double openclSettingTime, double pathTracingTime, double displayTime)
+	void PathTracer_ComputeStatistics(uint numImageToRender, double loadingTime, double bvhBuildingTime, double openclSettingTime, double pathTracingTime, double memoryTime, double displayTime )
 	{
 		unsigned long int numberOfShotRays = 0;
 		unsigned long int numberOfProcessedRays = 0;
@@ -271,6 +274,7 @@ namespace PathTracerNS
 		CONSOLE_LOG << "\t" << "BVH building time   : " << bvhBuildingTime   << " ms" << ENDL;
 		CONSOLE_LOG << "\t" << "OpenCL setting time : " << openclSettingTime << " ms" << ENDL;
 		CONSOLE_LOG << "\t" << "Path Tracing time   : " << pathTracingTime   << " ms" << ENDL;
+		CONSOLE_LOG << "\t" << "Memory time         : " << memoryTime        << " ms" << ENDL;
 		CONSOLE_LOG << "\t" << "Display time        : " << displayTime       << " ms" << ENDL;
 
 		CONSOLE_LOG << ENDL;

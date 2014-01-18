@@ -29,6 +29,7 @@ namespace PathTracerNS
 
 	cl_mem				 kernel__imageColor				= NULL;
 	cl_mem				 kernel__imageRayNb				= NULL;
+	cl_mem				 kernel__imageV					= NULL;
 	cl_mem				 kernel__rayDepths				= NULL;
 	cl_mem				 kernel__rayIntersectedBBx		= NULL;
 	cl_mem				 kernel__rayIntersectedTri		= NULL;
@@ -56,12 +57,14 @@ namespace PathTracerNS
 		bool		(*UpdateWindowFunc)(void),
 		uint		numImagesToRender,
 		double*		pathTracingTime,
+		double*		memoryTime,
 		double*		displayTime
 		)
 	{
 		cl_int errCode = 0;
 
 		*pathTracingTime = 0;
+		*memoryTime = 0;
 		*displayTime = 0;
 		clock_t startTime;
 
@@ -82,19 +85,21 @@ namespace PathTracerNS
 			errCode = clSetKernelArg(opencl__Kernel_Main, 0, sizeof(cl_uint), (void*) &imageId);
 			OpenCL_ErrorHandling(errCode);
 
-			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 2, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL);
-			OpenCL_ErrorHandling(errCode);
+			errCode = clEnqueueNDRangeKernel(opencl__queue, opencl__Kernel_Main, 2, NULL, constGlobalWorkSize, constLocalWorkSize, 0, NULL, NULL); OpenCL_ErrorHandling(errCode);
+			clFinish(opencl__queue);
+			*pathTracingTime += clock() - startTime;
 
 			/////////////////////////////////////////////////////////////////////////////////
 			////////////// 3 - RECUPERERATION DES DONNEES  //////////////////////////////////
 			/////////////////////////////////////////////////////////////////////////////////
+			startTime = clock();
+
 			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageColor   ,	CL_TRUE, 0, sizeof(RGBAColor)	* globalVars.imageSize			, (void *) globalVars.imageColor   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
 			errCode = clEnqueueReadBuffer(opencl__queue, kernel__imageRayNb   ,	CL_TRUE, 0, sizeof(float)		* globalVars.imageSize			, (void *) globalVars.imageRayNb   , 0, NULL , NULL); OpenCL_ErrorHandling(errCode);
 			clFinish(opencl__queue);
-
-			*pathTracingTime += clock() - startTime;
-
+			*memoryTime += clock() - startTime;
 			startTime = clock();
+
 			(*UpdateWindowFunc)();
 			*displayTime += clock() - startTime;
 
@@ -114,6 +119,7 @@ namespace PathTracerNS
 
 		errCode = clReleaseMemObject(kernel__imageColor);			OpenCL_ErrorHandling(errCode);
 		errCode = clReleaseMemObject(kernel__imageRayNb);			OpenCL_ErrorHandling(errCode);
+		errCode = clReleaseMemObject(kernel__imageV);				OpenCL_ErrorHandling(errCode);
 		errCode = clReleaseMemObject(kernel__rayDepths);			OpenCL_ErrorHandling(errCode);
 		errCode = clReleaseMemObject(kernel__rayIntersectedBBx);	OpenCL_ErrorHandling(errCode);
 		errCode = clReleaseMemObject(kernel__rayIntersectedTri);	OpenCL_ErrorHandling(errCode);
@@ -152,6 +158,7 @@ namespace PathTracerNS
 
 		kernel__imageColor			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)				 * globalVars.imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
 		kernel__imageRayNb			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_float)				 * globalVars.imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
+		kernel__imageV				= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(RGBAColor)				 * globalVars.imageSize			   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
 		kernel__rayDepths			= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * (globalVars.rayMaxDepth+1)	   , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
 		kernel__rayIntersectedBBx	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * MAX_INTERSETCION_NUMBER	       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
 		kernel__rayIntersectedTri	= clCreateBuffer(opencl__context, CL_MEM_READ_WRITE						   , sizeof(cl_uint)				 * MAX_INTERSETCION_NUMBER	       , NULL								, &errCode); OpenCL_ErrorHandling(errCode);
@@ -177,6 +184,7 @@ namespace PathTracerNS
 
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageColor),			(void*) &kernel__imageColor);			OpenCL_ErrorHandling(errCode);
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageRayNb),			(void*) &kernel__imageRayNb);			OpenCL_ErrorHandling(errCode);
+		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__imageV),				(void*) &kernel__imageV);				OpenCL_ErrorHandling(errCode);
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayDepths),			(void*) &kernel__rayDepths);			OpenCL_ErrorHandling(errCode);
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedBBx),	(void*) &kernel__rayIntersectedBBx);	OpenCL_ErrorHandling(errCode);
 		errCode = clSetKernelArg(opencl__Kernel_Main, i++, sizeof(kernel__rayIntersectedTri),	(void*) &kernel__rayIntersectedTri);	OpenCL_ErrorHandling(errCode);
@@ -281,6 +289,30 @@ namespace PathTracerNS
 		}
 	}
 
+	std::string OpenCL_BuildOptions(GlobalVars& globalVars, Sampler sampler)
+	{
+		std::ostringstream buildOptionsStream;
+		buildOptionsStream << "-I \""PATHTRACER_FOLDER"Kernel\\\"";
+
+		switch (sampler)
+		{
+		case JITTERED:	 buildOptionsStream << " -D SAMPLE_JITTERED";	 break;
+		case RANDOM:	 buildOptionsStream << " -D SAMPLE_RANDOM";		 break;
+		case UNIFORM:	 buildOptionsStream << " -D SAMPLE_UNIFORM";		 break;
+		default: break;
+		}
+
+		buildOptionsStream << " -D MAX_REFLECTION_NUMBER=" << globalVars.rayMaxDepth;
+		buildOptionsStream << " -D IMAGE_WIDTH=" << globalVars.imageWidth;
+		buildOptionsStream << " -D IMAGE_HEIGHT=" << globalVars.imageHeight;
+		buildOptionsStream << " -D LIGHTS_SIZE=" << globalVars.lightsSize;
+
+		if(globalVars.printLogInfos)
+			buildOptionsStream << " -D LOG_INFO";
+
+		return buildOptionsStream.str();
+	}
+
 	void OpenCL_SetupContext(GlobalVars& globalVars, Sampler const sampler)
 	{
 		const char* program_source = PATHTRACER_FOLDER"Kernel\\PathTracer_FullKernel.cl";
@@ -295,8 +327,12 @@ namespace PathTracerNS
 		const bool runOnGPU = false;
 		char *sources = NULL;
 
-		std::string const platformName1 = "Intel(R) OpenCL";
-		std::string const platformName2 = "AMD Accelerated Parallel Processing";
+		std::string const platformsName[] = {
+			"Intel(R) OpenCL",
+			"NVIDIA CUDA",
+			"AMD Accelerated Parallel Processing",
+			""
+		};
 
 
 		try
@@ -305,13 +341,13 @@ namespace PathTracerNS
 			//if(runOnGPU) printf("Trying to run on a Processor Graphics \n");
 			//else		 printf("Trying to run on a CPU \n");
 
-			cl_platform_id platform_id = OpenCL_GetPlatform(platformName1.c_str());
+			cl_platform_id platform_id = OpenCL_GetPlatform(platformsName[0].c_str());
 			if( platform_id == NULL )
 			{
-				CONSOLE_LOG << "WARNING : the program didn't find any " << platformName1 << " platform. Trying with " << platformName2 << ENDL;
-				platform_id = OpenCL_GetPlatform(platformName2.c_str());
+				CONSOLE_LOG << "WARNING : the program didn't find any " << platformsName[0] << " platform. Trying with " << platformsName[1] << ENDL;
+				platform_id = OpenCL_GetPlatform(platformsName[1].c_str());
 				if( platform_id == NULL )
-					throw std::runtime_error("ERROR : the program didn't find find the platform "+platformName2+". Aborting.");
+					throw std::runtime_error("ERROR : the program didn't find find the platform "+platformsName[1]+". Aborting.");
 			}
 
 			cl_context_properties context_properties[3] = {CL_CONTEXT_PLATFORM, (cl_context_properties)platform_id, NULL };
@@ -337,24 +373,7 @@ namespace PathTracerNS
 			if (opencl__program == (cl_program)0)
 				throw std::runtime_error("Failed to create Program with sources");
 
-			std::ostringstream buildOptionsStream;
-			buildOptionsStream << "-I \""PATHTRACER_FOLDER"Kernel\"";
-			switch (sampler)
-			{
-			case JITTERED:	 buildOptionsStream << " -D SAMPLE_JITTERED";	 break;
-			case RANDOM:	 buildOptionsStream << " -D SAMPLE_RANDOM";		 break;
-			case UNIFORM:	 buildOptionsStream << " -D SAMPLE_UNIFORM";		 break;
-			default: break;
-			}
-			buildOptionsStream << " -D MAX_REFLECTION_NUMBER=" << globalVars.rayMaxDepth;
-			buildOptionsStream << " -D IMAGE_WIDTH=" << globalVars.imageWidth;
-			buildOptionsStream << " -D IMAGE_HEIGHT=" << globalVars.imageHeight;
-			buildOptionsStream << " -D LIGHTS_SIZE=" << globalVars.lightsSize;
-
-			if(false) // if we want to use the intel OpenCL debugger (which doesn't work...)
-				buildOptionsStream << "-g -s \"" << program_source << "\"";
-
-			std::string buildOptionsString = buildOptionsStream.str();
+			std::string buildOptionsString = OpenCL_BuildOptions(globalVars, sampler);
 
 			err = clBuildProgram(opencl__program, 0, NULL, buildOptionsString.c_str(), NULL, NULL);
 			if (err != CL_SUCCESS)

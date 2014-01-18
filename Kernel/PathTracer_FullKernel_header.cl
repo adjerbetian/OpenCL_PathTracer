@@ -18,25 +18,32 @@
 // Debug log
 
 // if you want to have some OpenCL log info, uncomment this line
-#define LOG_INFO
-
 #ifdef LOG_INFO
 
 #define DEBUG_ITEM_CONDITION false
-//#define DEBUG_ITEM_CONDITION true get_global_id(0) < 0 && get_global_id(1) < 0
-#define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2) if(DEBUG_ITEM_CONDITION) printf( message " --> "infoString1" : \t "infoString2" \n", infoVal1, infoVal2 )
-#define PRINT_DEBUG_INFO_1(message, infoString1, infoVal1) PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, "", 0)
-#define PRINT_DEBUG_INFO_0(message) PRINT_DEBUG_INFO_1(message, "", 0)
-#define ASSERT(message, validityTest) if(!(validityTest)) { printf("***************  ERROR ******************* : "message" : global id : ( %v2i ) : \t error : "#validityTest"\n", (int2) (get_global_id(0) , get_global_id(1)) ); }
-#define ASSERT_AND_INFO(message, validityTest, infoString, infoVal) if(!(validityTest)) { printf("***************  ERROR ******************* : "message" : global id : ( %v2i ) : \t error : "#validityTest" :\t information : "infoString"\n", (int2) (get_global_id(0) , get_global_id(1)), infoVal ); }
+//#define DEBUG_ITEM_CONDITION get_global_id(0) == 548 && get_global_id(1) == 437
+
+#define PRINT_DEBUG_INFO_3(message, infoString1, infoVal1, infoString2, infoVal2, infoString3, infoVal3)	if(DEBUG_ITEM_CONDITION) printf("\t" message " --> "infoString1" \t "infoString2" \t "infoString3	" \r\n", infoVal1, infoVal2, infoVal3 )
+#define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2)							if(DEBUG_ITEM_CONDITION) printf("\t" message " --> "infoString1" \t "infoString2						" \r\n", infoVal1, infoVal2 )
+#define PRINT_DEBUG_INFO_1(message, infoString1, infoVal1)													if(DEBUG_ITEM_CONDITION) printf("\t" message " --> "infoString1										" \r\n", infoVal1 )
+#define PRINT_DEBUG_INFO_0(message)																			if(DEBUG_ITEM_CONDITION) printf("\t" message														" \r\n" )
+
+#define ASSERT_AND_INFO(message, validityTest, infoString, infoVal)	if(!(validityTest)) { printf("\t*************  ERROR *****************   >>> "message" : global id : ( %v2i ) \t error : "#validityTest" \t information : "infoString"\r\n", (int2) (get_global_id(0) , get_global_id(1)), infoVal ); }
+#define ASSERT(message, validityTest) ASSERT_AND_INFO(message, validityTest, "", 0)
+
+#define WARNING_AND_INFO(message, validityTest, infoString, infoVal)	if(!(validityTest)) { printf("\t************  WARNING ****************   >>> "message" : global id : ( %v2i ) \t error : "#validityTest" \t information : "infoString"\r\n", (int2) (get_global_id(0) , get_global_id(1)), infoVal ); }
+#define WARNING(message, validityTest) WARNING_AND_INFO(message, validityTest, "", 0)
 
 #else
 
+#define PRINT_DEBUG_INFO_3(message, infoString1, infoVal1, infoString2, infoVal2, infoString3, infoVal3)
 #define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2)
 #define PRINT_DEBUG_INFO_1(message, infoString1, infoVal1)
 #define PRINT_DEBUG_INFO_0(message)
-#define ASSERT(X,Y)
 #define ASSERT_AND_INFO(message, validityTest, infoString, infoVal)
+#define ASSERT(X,Y)
+#define WARNING_AND_INFO(message, validityTest, infoString, infoVal)
+#define WARNING(X,Y)
 
 #endif
 
@@ -524,6 +531,7 @@ __kernel void Kernel_Main(
 
 	volatile float4	__global *global__imageColor,
 	volatile float	__global *global__imageRayNb,
+	volatile float4	__global *global__imageV,
 	volatile uint	__global *global__rayDepths,
 	volatile uint	__global *global__rayIntersectionBBx,
 	volatile uint	__global *global__rayIntersectionTri,

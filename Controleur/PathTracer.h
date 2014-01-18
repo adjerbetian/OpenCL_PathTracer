@@ -25,15 +25,15 @@ namespace PathTracerNS
 
 	void	PathTracer_SetImporter				(PathTracerImporter* importer);
 
-	bool	PathTracer_Main						(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayDepth);
-	void	PathTracer_Initialize				(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth);
+	bool	PathTracer_Main						(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayDepth, bool printLogInfos);
+	void	PathTracer_Initialize				(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth, bool printLogInfos);
 	void	PathTracer_InitializeImage			();
 	void	PathTracer_InitializeWindow			(bool saveRenderedImages);
 	void	PathTracer_Export					();
 	void	PathTracer_Clear					();
 	void	PathTracer_PaintLoadingScreen		();
 	bool	PathTracer_UpdateWindow				();
-	void	PathTracer_ComputeStatistics		(uint numImageToRender, double loadingTime, double bvhBuildingTime, double openclSettingTime, double pathTracingTime, double displayTime);
+	void	PathTracer_ComputeStatistics		(uint numImageToRender, double loadingTime, double bvhBuildingTime, double openclSettingTime, double pathTracingTime, double memoryTime, double displayTime);
 
 	//	Fonction d'impression
 

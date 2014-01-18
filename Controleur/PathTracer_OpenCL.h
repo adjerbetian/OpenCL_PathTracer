@@ -14,10 +14,10 @@
 namespace PathTracerNS
 {
 
-	void	OpenCL_RunKernel		(GlobalVars& globalVars, bool (*UpdateWindowFunc)(void), uint numImagesToRender, double* pathTracingTime, double* displayTime);
-	void	OpenCL_InitializeMemory	(GlobalVars& globalVars);
-	void	OpenCL_SetupContext		(GlobalVars& globalVars, Sampler sampler);
-
+	void			OpenCL_RunKernel			(GlobalVars& globalVars, bool (*UpdateWindowFunc)(void), uint numImagesToRender, double* pathTracingTime, double* memoryTime, double* displayTime);
+	void			OpenCL_InitializeMemory		(GlobalVars& globalVars);
+	void			OpenCL_SetupContext			(GlobalVars& globalVars, Sampler sampler);
+	std::string		OpenCL_BuildOptions			(GlobalVars& globalVars, Sampler sampler);
 	char*			OpenCL_ReadSources			(const char *fileName);
 	cl_platform_id	OpenCL_GetIntelOCLPlatform	();
 	void			OpenCL_BuildFailLog			(cl_program program, cl_device_id device_id );

@@ -839,7 +839,7 @@ namespace PathTracerNS
 		l.cosOfOuterFallOffAngle	= (float) cos(fnLight.coneAngle()/2 + fnLight.penumbraAngle());
 		l.direction					= normalize(permute_xyz_to_zxy(MVector(0,0,-1)*M));
 		l.position					= permute_xyz_to_zxy(MPoint()*M);
-		l.power						= fnLight.intensity();
+		l.power						= 3*fnLight.intensity();
 	};
 
 	void PathTracerMayaImporter::Material_Create(Material *This)
@@ -879,8 +879,8 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnPhongShader const& fn)
 	{
 		//Material type
-		//This->type = MAT_VARNHISHED;
-		This->type = MAT_STANDART;
+		This->type = MAT_VARNHISHED;
+		//This->type = MAT_STANDART;
 
 		//Texture
 		This->textureId = GetTextureId(fn);
@@ -903,8 +903,8 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnBlinnShader const& fn)
 	{
 		//Material type
-		//This->type = MAT_VARNHISHED;
-		This->type = MAT_STANDART;
+		This->type = MAT_VARNHISHED;
+		//This->type = MAT_STANDART;
 
 		//Texture
 		This->textureId = GetTextureId(fn);

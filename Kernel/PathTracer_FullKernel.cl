@@ -1,6 +1,7 @@
 
 
-#include "PathTracer_FullKernel_header.cl"
+//#include "PathTracer_FullKernel_header.cl"
+#include "C:\Users\djerbeti\Documents\Visual Studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Utilitaires
@@ -179,20 +180,8 @@ float Material_BRDF( Material const *This, float4 const *incidentDirection, floa
 	
 	if(This->type == MAT_VARNHISHED)
 	{
-		//	La lumière entre entre
 		float rFresnel1 = Material_FresnelVarnishReflectionFraction(This, incidentDirection, N, false, NULL);
-	
-		//	on cherche la direction de de diffusion originelle de rr
-		float4 originalRefractionDirection;
-		Material_FresnelVarnishReflectionFraction(This, reflectedDirection, N, false, &originalRefractionDirection);
-	
-		//	Calcul du deuxième coefficient de Fresnel
-		float4 originalRefractionDirectionOpposite = -originalRefractionDirection;
-		float4 NOpposite = -(*N);
-	
-		float rFresnel2 = Material_FresnelVarnishReflectionFraction(This, &originalRefractionDirectionOpposite, &NOpposite, true, NULL);
-	
-		return (1 - rFresnel1) * (1 - rFresnel2) * PATH_PI_INVERSE;
+		return (1 - rFresnel1) * PATH_PI_INVERSE;
 	}
 
 	ASSERT("Material_BRDF - Non standart material", false);
@@ -266,8 +255,8 @@ float Material_FresnelWaterReflectionFraction( Material const *This, float4 cons
 
 float Material_FresnelVarnishReflectionFraction( Material const *This, float4 const* incidentDirection , float4 const *N, bool isInVarnish, float4 *refractionDirection)
 {
-	ASSERT("Material_FresnelVarnishReflectionFraction material not varnished", This->type == MAT_VARNHISHED);
-	ASSERT("Material_FresnelVarnishReflectionFraction incorrect incident direction", dot(*incidentDirection, *N) <= 0 );
+	ASSERT("VARNISH REFLECTION FRACTION - material not varnished", This->type == MAT_VARNHISHED);
+	WARNING_AND_INFO("VARNISH REFLECTION FRACTION - incorrect incident direction", dot(*incidentDirection, *N) <= 0, "dot(*incidentDirection, *N) = %f", dot(*incidentDirection, *N) );
 
 	float n1, n2;
 
@@ -282,7 +271,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, float4 co
 		n2 = MATERIAL_N_VARNISH;
 	}
 
-	float cos1 = fmin(1.f , - dot(*incidentDirection, *N) );
+	float cos1 = fmax(0.f, fmin(1.f , - dot(*incidentDirection, *N) ));
 	float sin1 = sqrt(1 - cos1 * cos1);
 	float sin2 = n1 * sin1 / n2;
 	if(sin2 >= 1) // Totalement réfléchi
@@ -294,7 +283,7 @@ float Material_FresnelVarnishReflectionFraction( Material const *This, float4 co
 
 	float rFresnel = (rPara*rPara + rPerp*rPerp)/2.0f;
 
-	ASSERT("Material_FresnelVarnishReflectionFraction incorrect rFresnel", rFresnel <= 1);
+	ASSERT_AND_INFO("Material_FresnelVarnishReflectionFraction incorrect rFresnel", rFresnel <= 1, "rFresnel : %f", rFresnel);
 
 	if(refractionDirection != NULL)
 		*refractionDirection = *incidentDirection * (n1/n2) + (*N) * (n1/n2 * cos1 - cos2);
@@ -529,7 +518,7 @@ RGBAColor Sky_GetFaceColorValue( Sky __global const *This, uchar4 __global const
 
 bool Triangle_Intersects(Texture __global const *global__textures, Material __global const *global__materiaux, uchar4 __global const *global__texturesData, Triangle const *This, Ray3D *r, float *squaredDistance)
 {
-	PRINT_DEBUG_INFO_2("Triangle_Intersects - START \t\t\t", "Triangle id : %u", This->id, "r.numIntersectedTri : %u", r->numIntersectedTri);
+	PRINT_DEBUG_INFO_2("TRIANGLE_INTERSECTS - START \t\t", "Triangle id : %u", This->id, "r.numIntersectedTri : %u", r->numIntersectedTri);
 
 	r->numIntersectedTri++;
 
@@ -807,6 +796,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangl
 
 	if(mat->type == MAT_STANDART)
 	{
+		PRINT_DEBUG_INFO_0("COMPUTE RADIANCE - MATERIAL STANDART");
 		*transferFunction *= r->intersectionColor;
 		radianceToCompute = (*directIlluminationRadiance) * (*transferFunction);
 		outDirection = Material_CosineSampleHemisphere(seed, Ns);
@@ -814,6 +804,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangl
 	}
 	else if(mat->type == MAT_GLASS)
 	{
+		PRINT_DEBUG_INFO_0("COMPUTE RADIANCE - MATERIAL GLASS");
 		float rFresnel = Material_FresnelGlassReflectionFraction(mat, &r->direction, Ns);
 
 		//	Reflection
@@ -831,6 +822,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangl
 
 	else if(mat->type == MAT_WATER)
 	{
+		PRINT_DEBUG_INFO_0("COMPUTE RADIANCE - MATERIAL WATER");
 		float4 refractedDirection;
 		float refractionMultCoeff;
 		float rFresnel = Material_FresnelWaterReflectionFraction(mat, &r->direction, Ns, r->isInWater, &refractedDirection, &refractionMultCoeff);
@@ -852,6 +844,7 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangl
 
 	else if(mat->type == MAT_VARNHISHED)
 	{
+		PRINT_DEBUG_INFO_1("COMPUTE RADIANCE - MATERIAL VARNHISHED \t", "transferFunction : %v4f", *transferFunction);
 		//	Illumination directe
 		radianceToCompute += *directIlluminationRadiance * r->intersectionColor * (*transferFunction);
 
@@ -861,17 +854,24 @@ RGBAColor Scene_ComputeRadiance(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *r, Triangl
 		//	Reflection
 		if(random(seed) < rFresnel1)
 		{
+			PRINT_DEBUG_INFO_1("COMPUTE RADIANCE - VARNHISHED REFLECTION", "rFresnel1 : %f", rFresnel1);
 			outDirection = Material_FresnelReflection(mat, &r->direction, Ns);
 		}
 
 		//	Refraction (ignoree) + rebond diffus + refraction
 		else
 		{
+			outDirection = Material_CosineSampleHemisphere(seed, Ns);
+			*transferFunction *= r->intersectionColor;
+
+			/*
 			float rFresnel2;
 			float4 NsOposite = -*Ns;
-			outDirection = Material_CosineSampleHemisphere(seed, Ns);
-			rFresnel2 = Material_FresnelVarnishReflectionFraction(mat, &r->direction, &NsOposite, true, &outDirection);
+			float4 intermetdiateOutDirection = Material_CosineSampleHemisphere(seed, Ns);
+			rFresnel2 = Material_FresnelVarnishReflectionFraction(mat, &intermetdiateOutDirection, &NsOposite, true, &outDirection);
+			PRINT_DEBUG_INFO_2("COMPUTE RADIANCE - VARNHISHED REFRACTION", "rFresnel2 : %f", rFresnel2, "r->intersectionColor : %v4f", r->intersectionColor);
 			*transferFunction *= r->intersectionColor * (1-rFresnel2);
+			*/
 		}
 	}
 
@@ -923,7 +923,7 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *
 	//}
 	//else
 	//{
-
+						
 	float BRDF;
 	if(LIGHTS_SIZE > 0)
 	{
@@ -937,7 +937,9 @@ RGBAColor Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR_DECLARATION, Ray3D *
 
 			float lightDistance = light.type == LIGHT_DIRECTIONNAL ? INFINITY : length(fullRay);
 			float4 oppositeDirection = - lightRay.direction;
+			PRINT_DEBUG_INFO_0("DIRECT ILLUMINATION 1 \t\t\t");
 			BRDF = Material_BRDF(mat, &oppositeDirection, N, &cameraRay->direction);
+			PRINT_DEBUG_INFO_0("DIRECT ILLUMINATION 2 \t\t\t");
 
 			if(!BVH_IntersectShadowRay(KERNEL_GLOBAL_VAR, &lightRay, lightDistance, &tint) )
 				L += Light_PowerToward(&light, &cameraRay->intersectionPoint, N) * BRDF * tint * light.color;
@@ -1160,6 +1162,7 @@ __kernel void Kernel_Main(
 
 	volatile float4	__global *global__imageColor,
 	volatile float	__global *global__imageRayNb,
+	volatile float4	__global *global__imageV,
 	volatile uint	__global *global__rayDepths,
 	volatile uint	__global *global__rayIntersectionBBx,
 	volatile uint	__global *global__rayIntersectionTri,
@@ -1188,7 +1191,7 @@ __kernel void Kernel_Main(
 
 	ASSERT_AND_INFO("SAMPLER - invalid pixel", r.sample.x >= -0.5 && r.sample.y >= -0.5 && r.sample.x <= 0.5 && r.sample.y <= 0.5, "sample : %v2f", r.sample);
 
-	PRINT_DEBUG_INFO_1("KERNEL MAIN - START \t\t\t\t", "seedValue : %i" , *seed);
+	PRINT_DEBUG_INFO_1("KERNEL MAIN - START \t\t\t", "seedValue : %i" , *seed);
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	///					INITIALISATION DES VARIABLES DE PARCOURS
@@ -1214,7 +1217,7 @@ __kernel void Kernel_Main(
 
 	while(activeRay && r.reflectionId < MAX_REFLECTION_NUMBER)
 	{
-		PRINT_DEBUG_INFO_2("KERNEL MAIN - ACTIVE LOOP \t\t\t", "r.reflectionId : %u" , r.reflectionId, "r.numIntersectedTri : %u", r.numIntersectedTri);
+		PRINT_DEBUG_INFO_3("KERNEL MAIN - ACTIVE LOOP \t\t", "r.reflectionId : %u" , r.reflectionId, "r.numIntersectedTri : %u", r.numIntersectedTri, "transferFunction : %v4f", transferFunction);
 
 		if(BVH_IntersectRay(KERNEL_GLOBAL_VAR, &r))
 		{
@@ -1238,10 +1241,9 @@ __kernel void Kernel_Main(
 			float4 Ns = Triangle_GetSmoothNormal(&intersectedTriangle, !areRayAndNormalInSameDirection,r.s,r.t);
 			float4 rOpositeDirection = - r.direction;
 			Vector_PutInSameHemisphereAs(&Ns, &rOpositeDirection);
-
 			Ns = normalize(Ns);
 			ASSERT("Kernel_Main incorrect normals", dot(r.direction, Ns) < 0 && dot(r.direction, Ng) < 0);
-			
+
 			RGBAColor directIlluminationRadiance = Scene_ComputeDirectIllumination(KERNEL_GLOBAL_VAR, &r, &intersectedMaterial, &Ns);
 			radianceToCompute += Scene_ComputeRadiance(KERNEL_GLOBAL_VAR, &r, &intersectedTriangle, &intersectedMaterial, &directIlluminationRadiance, &transferFunction, &Ng, &Ns);
 			r.reflectionId++;
@@ -1266,7 +1268,7 @@ __kernel void Kernel_Main(
 			maxContribution = Vector_Max(&transferFunction);
 			if(maxContribution <= MIN_CONTRIBUTION_VALUE)
 			{
-				PRINT_DEBUG_INFO_1("KERNEL MAIN - MAX CONTRIBUTION STOP ", "maxContribution : %f", maxContribution);
+				PRINT_DEBUG_INFO_1("KERNEL MAIN - MAX CONTRIBUTION STOP \t", "maxContribution : %f", maxContribution);
 				activeRay = false;
 			}
 		}
@@ -1282,7 +1284,7 @@ __kernel void Kernel_Main(
 		//}
 	}
 
-	PRINT_DEBUG_INFO_1("KERNEL MAIN - END \t\t\t\t", "radianceToCompute : %v4f", radianceToCompute);
+	PRINT_DEBUG_INFO_1("KERNEL MAIN - END \t\t\t", "radianceToCompute : %v4f", radianceToCompute);
 
 	{ // Statistics
 		atomic_inc(&global__rayDepths[r.reflectionId]);
@@ -1303,10 +1305,13 @@ __kernel void Kernel_Main(
 
 	int globalImageOffset = pixel.y * IMAGE_WIDTH + pixel.x;
 	ASSERT_AND_INFO("KERNEL MAIN - global offset to large", globalImageOffset < IMAGE_WIDTH*IMAGE_HEIGHT, "r.pixel : %v2i", r.sample);
-	//printf( "KERNEL MAIN - pixel --> %v2i --> %v2i \n", (int2) (get_global_id(0), get_global_id(1)), pixel );
 
-	global__imageRayNb[globalImageOffset] += 1;
-	global__imageColor[globalImageOffset] += radianceToCompute; // should be atomic... neglected
-	global__imageColor[globalImageOffset] += radianceToCompute; // should be atomic... neglected
+	float4 sumBefore = global__imageColor[globalImageOffset];
+	float4 sumAfter  = sumBefore + radianceToCompute;
+	uint nRayBefore  = global__imageRayNb[globalImageOffset];
+	uint nRayAfter   = nRayBefore + 1;
 
+	global__imageRayNb[globalImageOffset] = nRayAfter;
+	global__imageColor[globalImageOffset] = sumAfter;
+	global__imageV    [globalImageOffset] += (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
 }

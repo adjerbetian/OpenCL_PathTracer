@@ -1147,6 +1147,36 @@ float2 sampler(Ray3D *r, int *seed, uint kernel__iterationNum)
 	return sample;
 }
 
+bool superSamplingStopCriteria(
+	float  __global const *global__imageRayNb,
+	float4 __global const *global__imageV,
+	Ray3D const *r,
+	int *seed)
+{
+	int2 pixel = (int2) ( (int) ((r->sample.x+0.5) * IMAGE_WIDTH), ( (int) ((r->sample.y+0.5) * IMAGE_HEIGHT) ) );
+	pixel = min(pixel, (int2) (IMAGE_WIDTH-1, IMAGE_HEIGHT-1) );
+	int globalImageOffset = pixel.y * IMAGE_WIDTH + pixel.x;
+
+	float n = global__imageRayNb[globalImageOffset];
+	if(n < 0.5f)
+		return false;
+
+	float4 sigma4_n = global__imageV[globalImageOffset] / n;
+	float sigma_n = ( sigma4_n.x + sigma4_n.y + sigma4_n.z ) / n;
+
+	bool stop = random(seed) > sigma_n;
+	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "n : %f" , n);
+	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma4_n : %v4f" , sigma4_n);
+	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma_n : %f" , sigma_n);
+	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "stop : %u" , stop);
+	if(stop)
+	{
+		PRINT_DEBUG_INFO_1("SUPERSAMPLING - STOP \t\t", "sigma_n : %f" , sigma_n);
+	}
+	return stop;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						KERNEL
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1190,6 +1220,9 @@ __kernel void Kernel_Main(
 	r.sample = sample;
 
 	ASSERT_AND_INFO("SAMPLER - invalid pixel", r.sample.x >= -0.5 && r.sample.y >= -0.5 && r.sample.x <= 0.5 && r.sample.y <= 0.5, "sample : %v2f", r.sample);
+
+	if(superSamplingStopCriteria(global__imageRayNb, global__imageV, &r, seed))
+		return;
 
 	PRINT_DEBUG_INFO_1("KERNEL MAIN - START \t\t\t", "seedValue : %i" , *seed);
 
@@ -1313,5 +1346,8 @@ __kernel void Kernel_Main(
 
 	global__imageRayNb[globalImageOffset] = nRayAfter;
 	global__imageColor[globalImageOffset] = sumAfter;
-	global__imageV    [globalImageOffset] += (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
+	if(kernel__iterationNum == 1)
+		global__imageV[globalImageOffset] += radianceToCompute*(radianceToCompute - sumAfter/nRayAfter);
+	else if(kernel__iterationNum > 1)
+		global__imageV[globalImageOffset] += (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
 }

@@ -1,7 +1,7 @@
 
 
-//#include "PathTracer_FullKernel_header.cl"
-#include "C:\Users\djerbeti\Documents\Visual Studio 2012\Projects\OpenCL_PathTracer\src\Kernel\PathTracer_FullKernel_header.cl"
+#include "PathTracer_FullKernel_header.cl"
+#include "X2inv.cl"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 ///						Utilitaires
@@ -1136,12 +1136,14 @@ float2 sampler(Ray3D *r, int *seed, uint kernel__iterationNum)
 
 #elif defined(SAMPLE_RANDOM)
 	sample = (float2) (random(seed), random(seed));
+	sample *= 0.9f;
+	sample += 0.05f;
 	sample -= 0.5f;
 
 #else // SAMPLE_JITTERED
 
-	sample.x = (get_global_id(0) + random(seed)) / ((float) IMAGE_WIDTH ) - 0.5f;
-	sample.y = (get_global_id(1) + random(seed)) / ((float) IMAGE_HEIGHT) - 0.5f;
+	sample.x = (get_global_id(0) + 0.9f*random(seed) + 0.05f) / ((float) IMAGE_WIDTH ) - 0.5f;
+	sample.y = (get_global_id(1) + 0.9f*random(seed) + 0.05f) / ((float) IMAGE_HEIGHT) - 0.5f;
 #endif
 
 	return sample;
@@ -1150,6 +1152,7 @@ float2 sampler(Ray3D *r, int *seed, uint kernel__iterationNum)
 bool superSamplingStopCriteria(
 	float  __global const *global__imageRayNb,
 	float4 __global const *global__imageV,
+	float4 __global		  *global__imageColor,
 	Ray3D const *r,
 	int *seed)
 {
@@ -1162,17 +1165,34 @@ bool superSamplingStopCriteria(
 		return false;
 
 	float4 sigma4_n = global__imageV[globalImageOffset] / n;
-	float sigma_n = ( sigma4_n.x + sigma4_n.y + sigma4_n.z ) / n;
+	float sigma_n = fmax( fmax( sigma4_n.x , sigma4_n.y) , sigma4_n.z );
 
-	bool stop = random(seed) > sigma_n;
-	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "n : %f" , n);
-	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma4_n : %v4f" , sigma4_n);
-	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma_n : %f" , sigma_n);
-	WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "stop : %u" , stop);
+	bool stop = random(seed) > 100000*sigma_n*sigma_n / X2inv[(uint) n];
+	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "globalImageOffset : %u" , globalImageOffset);
+	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "n : %f" , n);
+	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma4_n : %v4f" , sigma4_n);
+	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma_n : %f" , sigma_n);
+	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "stop : %u" , stop);
+
+	int4 error4 = isnan( global__imageV[globalImageOffset] );
+	int error = abs(error4.x + error4.y + error4.z);
+
 	if(stop)
 	{
+		//global__imageColor[globalImageOffset] = (float4) (0,1000,0,0);
 		PRINT_DEBUG_INFO_1("SUPERSAMPLING - STOP \t\t", "sigma_n : %f" , sigma_n);
 	}
+	//else
+	//{
+	//	//global__imageColor[globalImageOffset] = (float4) (1000,0,0,0);
+	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "error4 : %v4i" , error4);
+	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "globalImageOffset : %u" , globalImageOffset);
+	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "n : %f" , n);
+	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "sigma4_n : %v4f" , sigma4_n);
+	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "sigma_n : %f" , sigma_n);
+	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "stop : %u" , stop);
+	//}
+	//return false;
 	return stop;
 }
 
@@ -1221,7 +1241,7 @@ __kernel void Kernel_Main(
 
 	ASSERT_AND_INFO("SAMPLER - invalid pixel", r.sample.x >= -0.5 && r.sample.y >= -0.5 && r.sample.x <= 0.5 && r.sample.y <= 0.5, "sample : %v2f", r.sample);
 
-	if(superSamplingStopCriteria(global__imageRayNb, global__imageV, &r, seed))
+	if(kernel__iterationNum > MIN_REFLECTION_NUMBER && superSamplingStopCriteria(global__imageRayNb, global__imageV, global__imageColor, &r, seed))
 		return;
 
 	PRINT_DEBUG_INFO_1("KERNEL MAIN - START \t\t\t", "seedValue : %i" , *seed);
@@ -1341,13 +1361,19 @@ __kernel void Kernel_Main(
 
 	float4 sumBefore = global__imageColor[globalImageOffset];
 	float4 sumAfter  = sumBefore + radianceToCompute;
-	uint nRayBefore  = global__imageRayNb[globalImageOffset];
-	uint nRayAfter   = nRayBefore + 1;
+	float nRayBefore  = global__imageRayNb[globalImageOffset];
+	float nRayAfter   = nRayBefore + 1.f;
 
 	global__imageRayNb[globalImageOffset] = nRayAfter;
 	global__imageColor[globalImageOffset] = sumAfter;
-	if(kernel__iterationNum == 1)
-		global__imageV[globalImageOffset] += radianceToCompute*(radianceToCompute - sumAfter/nRayAfter);
-	else if(kernel__iterationNum > 1)
-		global__imageV[globalImageOffset] += (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
+	//WARNING_AND_INFO("KERNEL MAIN - END 1 ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "radianceToCompute  : %v4f", radianceToCompute);
+	//WARNING_AND_INFO("KERNEL MAIN - END 2 ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sumAfter/nRayAfter : %v4f", sumAfter/nRayAfter);
+	//WARNING_AND_INFO("KERNEL MAIN - END 3 ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "Total calcul       : %v4f", radianceToCompute*(radianceToCompute - sumAfter/nRayAfter));
+	if(kernel__iterationNum == 0)
+		global__imageV[globalImageOffset] = 0;
+	else if(kernel__iterationNum > 0)
+	{
+		float4 Vincr = (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
+		global__imageV[globalImageOffset] += Vincr;
+	}
 }

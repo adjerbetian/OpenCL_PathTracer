@@ -51,9 +51,8 @@ namespace PathTracerNS
 
 #ifdef MAYA
 
-		//if(imageIndex%20 == 0)
+		if(true)
 		{
-
 			/////////////////////////////////////////////////////////////////////////////
 			/// Print in Maya:
 			/////////////////////////////////////////////////////////////////////////////
@@ -82,10 +81,11 @@ namespace PathTracerNS
 			// Fill buffer with uniform color
 			for (unsigned int index = 0; index < pathTracerWidth * pathTracerHeight; ++index )
 			{
-				pixels[index].r = imageColor[index].x * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-				pixels[index].g = imageColor[index].y * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-				pixels[index].b = imageColor[index].z * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
-				pixels[index].a = imageColor[index].w * 255.0f / ( imageRay == NULL ? 1.f : imageRay[index] );
+				float c = 255.0f / imageRay[index];
+				pixels[index].r = imageColor[index].x * c;
+				pixels[index].g = imageColor[index].y * c;
+				pixels[index].b = imageColor[index].z * c;
+				pixels[index].a = imageColor[index].w * c;
 			}
 
 			// Pushing buffer to Render View
@@ -106,6 +106,83 @@ namespace PathTracerNS
 				return false;
 			}
 		}
+
+		if(false)
+		{
+			static float* imageRay2 = NULL;
+			if(imageRay2 ==NULL)
+			{
+				imageRay2 = new float[pathTracerWidth * pathTracerHeight];
+				memset(imageRay2, 0, pathTracerWidth * pathTracerHeight * sizeof(float));
+			}
+
+			/////////////////////////////////////////////////////////////////////////////
+			/// Print in Maya:
+			/////////////////////////////////////////////////////////////////////////////
+
+			MStatus stat = MS::kSuccess;
+
+			// Check if the render view exists. It should always exist, unless
+			// Maya is running in batch mode.
+			//
+			if (!MRenderView::doesRenderEditorExist())
+			{
+				CONSOLE_LOG << "Cannot renderViewInteractiveRender in batch render mode." << ENDL;
+				CONSOLE_LOG << "Run in interactive mode, so that the render editor exists." << ENDL;
+				return false;
+			};
+
+			bool doNotClearBackground = true;
+
+			if (MRenderView::startRender( pathTracerWidth, pathTracerHeight, doNotClearBackground, true) != MS::kSuccess)
+			{
+				CONSOLE_LOG << "renderViewInteractiveRender: error occurred in startRender." << ENDL;
+				return false;
+			}
+			
+			float nbRayMin = imageRay[0];
+			float nbRayMax = nbRayMin;
+			for(int i=0; i<pathTracerWidth * pathTracerHeight; i++)
+			{
+				nbRayMax = max(nbRayMax, imageRay[i]);
+				nbRayMin = min(nbRayMin, imageRay[i]);
+			}
+
+			RV_PIXEL* pixels = new RV_PIXEL[pathTracerWidth * pathTracerHeight];
+			// Fill buffer with uniform color
+			for (unsigned int index = 0; index < pathTracerWidth * pathTracerHeight; ++index )
+			{
+				//float c = 255.f*(imageRay[index]-nbRayMin) / (nbRayMax-nbRayMin);
+				float c = 255.f*(imageRay[index] - imageRay2[index]);
+				pixels[index].r = c;
+				pixels[index].g = c;
+				pixels[index].b = c;
+				pixels[index].a = 1;
+			}
+
+			memcpy(imageRay2, imageRay, pathTracerWidth * pathTracerHeight * sizeof(float));
+
+			// Pushing buffer to Render View
+			if (MRenderView::updatePixels(0, pathTracerWidth-1, 0, pathTracerHeight-1, pixels) 
+				!= MS::kSuccess)
+			{
+				CONSOLE_LOG << "renderViewInteractiveRender: error occurred in updatePixels." << ENDL;
+				delete[] pixels;
+				return false;
+			}
+			delete[] pixels;
+
+			// Inform the Render View that we have completed rendering the entire image.
+			//
+			if (MRenderView::endRender() != MS::kSuccess)
+			{
+				CONSOLE_LOG << "renderViewInteractiveRender: error occurred in endRender.";
+				return false;
+			}
+		}
+
+
+
 #endif // END MAYA
 
 		imageIndex++;

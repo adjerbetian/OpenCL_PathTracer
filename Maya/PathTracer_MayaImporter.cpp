@@ -903,8 +903,8 @@ namespace PathTracerNS
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnBlinnShader const& fn)
 	{
 		//Material type
-		This->type = MAT_VARNHISHED;
-		//This->type = MAT_STANDART;
+		//This->type = MAT_VARNHISHED;
+		This->type = MAT_STANDART;
 
 		//Texture
 		This->textureId = GetTextureId(fn);

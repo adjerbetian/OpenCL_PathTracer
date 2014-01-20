@@ -20,8 +20,8 @@
 // if you want to have some OpenCL log info, uncomment this line
 #ifdef LOG_INFO
 
-//#define DEBUG_ITEM_CONDITION false
-#define DEBUG_ITEM_CONDITION get_global_id(0) == 1027 && get_global_id(1) == 480
+#define DEBUG_ITEM_CONDITION false
+//#define DEBUG_ITEM_CONDITION get_global_id(0) == 1027 && get_global_id(1) == 480
 
 #define PRINT_DEBUG_INFO_3(message, infoString1, infoVal1, infoString2, infoVal2, infoString3, infoVal3)	if(DEBUG_ITEM_CONDITION) printf("\t" message " --> "infoString1" \t "infoString2" \t "infoString3	" \r\n", infoVal1, infoVal2, infoVal3 )
 #define PRINT_DEBUG_INFO_2(message, infoString1, infoVal1, infoString2, infoVal2)							if(DEBUG_ITEM_CONDITION) printf("\t" message " --> "infoString1" \t "infoString2						" \r\n", infoVal1, infoVal2 )

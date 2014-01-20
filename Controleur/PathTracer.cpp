@@ -22,7 +22,7 @@ namespace PathTracerNS
 	}
 
 
-	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayMaxDepth, bool printLogInfos)
+	bool PathTracer_Main(uint image_width, uint image_height, uint numImagesToRender, bool saveRenderedImages, bool loadSky, bool exportScene, Sampler sampler, uint rayMaxDepth, bool printLogInfos, bool superSampling)
 	{
 		try
 		{
@@ -44,7 +44,7 @@ namespace PathTracerNS
 			bool noError = true;
 
 			PathTracer_PrintSection("LOADING MAYA SCENE"); start = clock();
-			PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth, printLogInfos);
+			PathTracer_Initialize(image_width, image_height, saveRenderedImages, loadSky, rayMaxDepth, printLogInfos, superSampling);
 			loadingTime = clock()-start;
 
 			PathTracer_PrintSection("BUILDING BVH"); start = clock();
@@ -112,9 +112,10 @@ namespace PathTracerNS
 	/*	Gestion des différents initialiseurs
 	*/
 
-	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth, bool printLogInfos)
+	void PathTracer_Initialize(uint image_width, uint image_height, bool saveRenderedImages, bool loadSky, uint rayMaxDepth, bool printLogInfos, bool superSampling)
 	{
 		globalVars.printLogInfos = printLogInfos;
+		globalVars.superSampling = superSampling;
 		globalVars.importer->Initialize(globalVars);
 
 		globalVars.importer->Import(image_width, image_height, loadSky);

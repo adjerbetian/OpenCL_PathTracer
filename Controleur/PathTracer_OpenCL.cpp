@@ -307,8 +307,8 @@ namespace PathTracerNS
 		buildOptionsStream << " -D IMAGE_HEIGHT=" << globalVars.imageHeight;
 		buildOptionsStream << " -D LIGHTS_SIZE=" << globalVars.lightsSize;
 
-		if(globalVars.printLogInfos)
-			buildOptionsStream << " -D LOG_INFO";
+		if(globalVars.printLogInfos) buildOptionsStream << " -D LOG_INFO";
+		if(globalVars.superSampling) buildOptionsStream << " -D SUPER_SAMPLING";
 
 		return buildOptionsStream.str();
 	}

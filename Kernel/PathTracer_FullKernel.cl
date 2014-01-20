@@ -1165,33 +1165,9 @@ bool superSamplingStopCriteria(
 	float4 sigma2_n_4 = global__imageV[globalImageOffset] / n;
 	float sigma2_n = fmax( fmax( sigma2_n_4.x , sigma2_n_4.y) , sigma2_n_4.z );
 
-	bool stop = random(seed) > 1000*sigma2_n/X2inv[(uint) n] + 0.2;
+	bool stop = random(seed) > 100*sigma2_n/X2inv[(uint) n] + 0.05;
 	PRINT_DEBUG_INFO_3("SUPERSAMPLING", "n : %f" , n, "sigma2_n_4 : %v4f" , sigma2_n_4, "stop : %u" , stop);
 
-	//if(get_global_id(0) == 1027 && get_global_id(1) == 480)
-	//{
-	//	global__imageColor[globalImageOffset] = (float4)(n,0,0,0);
-	//}
-
-	//global__imageColor[globalImageOffset] = (float4) (n*sigma_n*sigma_n / X2inv[(uint) n]);
-	/*
-	if(stop)
-	{
-		//global__imageColor[globalImageOffset] = (float4) (0,1000,0,0);
-		PRINT_DEBUG_INFO_1("SUPERSAMPLING - STOP \t\t", "sigma_n : %f" , sigma_n);
-	}
-	//else
-	//{
-	//	//global__imageColor[globalImageOffset] = (float4) (1000,0,0,0);
-	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "error4 : %v4i" , error4);
-	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "globalImageOffset : %u" , globalImageOffset);
-	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "n : %f" , n);
-	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "sigma4_n : %v4f" , sigma4_n);
-	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "sigma_n : %f" , sigma_n);
-	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "stop : %u" , stop);
-	//}
-	return stop;
-	*/
 	return stop;
 }
 
@@ -1240,8 +1216,10 @@ __kernel void Kernel_Main(
 
 	ASSERT_AND_INFO("SAMPLER - invalid pixel", r.sample.x >= -0.5 && r.sample.y >= -0.5 && r.sample.x <= 0.5 && r.sample.y <= 0.5, "sample : %v2f", r.sample);
 
+#if SUPER_SAMPLING
 	if(kernel__iterationNum > MIN_REFLECTION_NUMBER && superSamplingStopCriteria(global__imageRayNb, global__imageV, global__imageColor, &r, seed))
 		return;
+#endif
 
 	PRINT_DEBUG_INFO_1("KERNEL MAIN - START \t\t\t", "seedValue : %i" , *seed);
 

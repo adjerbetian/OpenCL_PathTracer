@@ -1161,22 +1161,20 @@ bool superSamplingStopCriteria(
 	int globalImageOffset = pixel.y * IMAGE_WIDTH + pixel.x;
 
 	float n = global__imageRayNb[globalImageOffset];
-	if(n < 0.5f)
-		return false;
 
-	float4 sigma4_n = global__imageV[globalImageOffset] / n;
-	float sigma_n = fmax( fmax( sigma4_n.x , sigma4_n.y) , sigma4_n.z );
+	float4 sigma2_n_4 = global__imageV[globalImageOffset] / n;
+	float sigma2_n = fmax( fmax( sigma2_n_4.x , sigma2_n_4.y) , sigma2_n_4.z );
 
-	bool stop = random(seed) > 100000*sigma_n*sigma_n / X2inv[(uint) n];
-	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "globalImageOffset : %u" , globalImageOffset);
-	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "n : %f" , n);
-	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma4_n : %v4f" , sigma4_n);
-	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sigma_n : %f" , sigma_n);
-	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "stop : %u" , stop);
+	bool stop = random(seed) > 1000*sigma2_n/X2inv[(uint) n] + 0.2;
+	PRINT_DEBUG_INFO_3("SUPERSAMPLING", "n : %f" , n, "sigma2_n_4 : %v4f" , sigma2_n_4, "stop : %u" , stop);
 
-	int4 error4 = isnan( global__imageV[globalImageOffset] );
-	int error = abs(error4.x + error4.y + error4.z);
+	//if(get_global_id(0) == 1027 && get_global_id(1) == 480)
+	//{
+	//	global__imageColor[globalImageOffset] = (float4)(n,0,0,0);
+	//}
 
+	//global__imageColor[globalImageOffset] = (float4) (n*sigma_n*sigma_n / X2inv[(uint) n]);
+	/*
 	if(stop)
 	{
 		//global__imageColor[globalImageOffset] = (float4) (0,1000,0,0);
@@ -1192,7 +1190,8 @@ bool superSamplingStopCriteria(
 	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "sigma_n : %f" , sigma_n);
 	//	//WARNING_AND_INFO("SUPERSAMPLING - STOP ", false, "stop : %u" , stop);
 	//}
-	//return false;
+	return stop;
+	*/
 	return stop;
 }
 
@@ -1366,14 +1365,8 @@ __kernel void Kernel_Main(
 
 	global__imageRayNb[globalImageOffset] = nRayAfter;
 	global__imageColor[globalImageOffset] = sumAfter;
-	//WARNING_AND_INFO("KERNEL MAIN - END 1 ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "radianceToCompute  : %v4f", radianceToCompute);
-	//WARNING_AND_INFO("KERNEL MAIN - END 2 ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "sumAfter/nRayAfter : %v4f", sumAfter/nRayAfter);
-	//WARNING_AND_INFO("KERNEL MAIN - END 3 ", (get_global_id(0) != 0) || (get_global_id(1) != 0), "Total calcul       : %v4f", radianceToCompute*(radianceToCompute - sumAfter/nRayAfter));
 	if(kernel__iterationNum == 0)
 		global__imageV[globalImageOffset] = 0;
-	else if(kernel__iterationNum > 0)
-	{
-		float4 Vincr = (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
-		global__imageV[globalImageOffset] += Vincr;
-	}
+	else
+		global__imageV[globalImageOffset] += (radianceToCompute - sumBefore/nRayBefore)*(radianceToCompute - sumAfter/nRayAfter);
 }

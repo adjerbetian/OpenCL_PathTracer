@@ -73,7 +73,7 @@ namespace PathTracerNS
 
 		cl_uint imageId = 0;
 
-		while(true && imageId < numImagesToRender)
+		while(imageId < numImagesToRender)
 		{
 			startTime = clock();
 			CONSOLE_LOG << "Computing sample number " << imageId << ENDL;

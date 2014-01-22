@@ -161,7 +161,7 @@ namespace PathTracerNS
 		info.biHeight = height;
 		info.biPlanes = 1;	
 		info.biBitCount = 24;
-		info.biCompression = BI_RGB;	
+		info.biCompression = BI_RGB;
 		info.biSizeImage = 0;
 		info.biXPelsPerMeter = 0x0ec4;  
 		info.biYPelsPerMeter = 0x0ec4;     

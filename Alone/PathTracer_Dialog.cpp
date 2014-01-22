@@ -23,31 +23,6 @@ namespace PathTracerNS
 
 	bool PathTracerDialog::PaintWindow(RGBAColor const * imageColor, float const * imageRay)
 	{
-		if(saveRenderedImages)
-		{
-
-			std::wostringstream oss;
-			oss << exportFolderPath;
-			if(imageIndex / 100 == 0)
-			{
-				oss << "0";
-				if(imageIndex / 10 == 0)
-					oss << "0";
-			}
-			oss << imageIndex << ".bmp";
-
-			std::wstring sFilePath = oss.str();
-			LPCWSTR filePath = sFilePath.c_str();
-
-			long newBufferSize = 0;
-			BYTE* buffer = ConvertRGBAToBMPBuffer(imageColor, imageRay, pathTracerWidth, pathTracerHeight, &newBufferSize);
-			if(!SaveBMP(buffer, pathTracerWidth, pathTracerHeight, newBufferSize, filePath))
-			{
-				CONSOLE_LOG << "WARNING : unable to save rendered picture in the folder \"" << exportFolderPath << "\". Aborting saving." << ENDL;
-				saveRenderedImages = false;
-			}
-			delete[] buffer;
-		}
 
 #ifdef MAYA
 
@@ -106,8 +81,7 @@ namespace PathTracerNS
 				return false;
 			}
 		}
-
-		if(false)
+		else
 		{
 			static float* imageRay2 = NULL;
 			if(imageRay2 ==NULL)
@@ -181,9 +155,36 @@ namespace PathTracerNS
 			}
 		}
 
-
-
 #endif // END MAYA
+
+
+		if(saveRenderedImages || imageIndex==500)
+		{
+
+			std::wostringstream oss;
+			oss << exportFolderPath;
+			if(imageIndex / 100 == 0)
+			{
+				oss << "0";
+				if(imageIndex / 10 == 0)
+					oss << "0";
+			}
+			oss << imageIndex << ".bmp";
+
+			std::wstring sFilePath = oss.str();
+			LPCWSTR filePath = sFilePath.c_str();
+
+			long newBufferSize = 0;
+			BYTE* buffer = ConvertRGBAToBMPBuffer(imageColor, imageRay, pathTracerWidth, pathTracerHeight, &newBufferSize);
+			if(!SaveBMP(buffer, pathTracerWidth, pathTracerHeight, newBufferSize, filePath))
+			{
+				CONSOLE_LOG << "WARNING : unable to save rendered picture in the folder \"" << exportFolderPath << "\". Aborting saving." << ENDL;
+				saveRenderedImages = false;
+			}
+			delete[] buffer;
+		}
+
+
 
 		imageIndex++;
 		return true;

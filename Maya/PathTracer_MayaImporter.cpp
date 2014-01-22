@@ -242,6 +242,9 @@ namespace PathTracerNS
 					Float4 s2 = permute_xyz_to_zxy(meshPoints[triangleVertices[1]]);
 					Float4 s3 = permute_xyz_to_zxy(meshPoints[triangleVertices[2]]);
 
+					if(!Triangle_isValid(s1,s2,s3))
+						continue;
+
 					// --------  Get Normals  --------
 
 					// (triangleVertices) is the object-relative vertex indices
@@ -377,8 +380,14 @@ namespace PathTracerNS
 		fnMesh.getConnectedShaders(0,Shaders,FaceIndices);
 
 		int shaderLength = Shaders.length();
+		if(Shaders.length() == 0)
+		{
+			CONSOLE_LOG << "WARNING : the mesh " << fnMesh.name() << " has no material. We will take a standart lambertian grey material." << ENDL;
+			return 0;
+		}
+
 		if(Shaders.length() != 1)
-			CONSOLE_LOG << "WARNING : the mesh " << fnMesh.name() << " has more than one or no material. We will take only the first." << ENDL;
+			CONSOLE_LOG << "WARNING : the mesh " << fnMesh.name() << " has more than one material. We will take only the first." << ENDL;
 
 		MString shaderName = GetShaderName( Shaders[0] );
 
@@ -683,8 +692,6 @@ namespace PathTracerNS
 
 
 
-
-
 	int PathTracerMayaImporter::LoadSkyAndAllocateTextureMemory(bool loadSky)
 	{
 		ptr__global__sky->cosRotationAngle = 1;
@@ -850,7 +857,7 @@ namespace PathTracerNS
 		This->isSimpleColor = true;
 		This->hasAlphaMap = false;
 		This->opacity = 1;
-		This->simpleColor = RGBAColor(0,0,0,0);
+		This->simpleColor = RGBAColor(0.5,0.5,0.5,0);
 	}
 
 	void PathTracerMayaImporter::Material_Create(Material *This, MFnLambertShader const& fn)
@@ -922,6 +929,15 @@ namespace PathTracerNS
 		if(This->simpleColor.x < 0.01 && This->simpleColor.y < 0.01 && This->simpleColor.z < 0.01)
 			This->simpleColor = RGBAColor(1,1,1,0)*0.8f;
 
+	}
+
+	bool PathTracerMayaImporter::Triangle_isValid(Float4 const& s1, Float4 const& s2, Float4 const& s3)
+	{
+		bool isValid = true;
+		isValid &= ((s1.x != s2.x) || (s1.y != s2.y) || (s1.z != s2.z));
+		isValid &= ((s1.x != s3.x) || (s1.y != s3.y) || (s1.z != s3.z));
+		isValid &= ((s2.x != s3.x) || (s2.y != s3.y) || (s2.z != s3.z));
+		return isValid;
 	}
 
 	void PathTracerMayaImporter::Triangle_Create(Triangle *This,

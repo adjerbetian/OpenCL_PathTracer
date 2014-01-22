@@ -80,8 +80,8 @@ void RayTracer::loadArgs(MArgList argList, uint& image_width, uint& image_height
 
 	if( parser.isFlagSet(long_flag_loadSky)    )     loadSky = true;
 	if( parser.isFlagSet(long_flag_save)       )     saveRenderedImages = true;
-	if( parser.isFlagSet(long_flag_sSampling)  )     printLogInfos = true;
-	if( parser.isFlagSet(long_flag_log)        )     superSampling = true;
+	if( parser.isFlagSet(long_flag_log)        )     printLogInfos = true;
+	if( parser.isFlagSet(long_flag_sSampling)  )     superSampling = true;
 	if( parser.isFlagSet(long_flag_width)      )     parser.getFlagArgument( long_flag_width  , 0, image_width      );
 	if( parser.isFlagSet(long_flag_height)     )     parser.getFlagArgument( long_flag_height , 0, image_height     );
 	if( parser.isFlagSet(long_flag_images)     )     parser.getFlagArgument( long_flag_images , 0, numImageToRender );

@@ -71,6 +71,7 @@ namespace PathTracerNS
 		void Material_Create			(Material *This, MFnLambertShader const& fn);
 		void Material_Create			(Material *This, MFnBlinnShader   const& fn);
 
+		bool Triangle_isValid			(Float4 const& s1, Float4 const& s2, Float4 const& s3);
 		void Triangle_Create			(Triangle *This,
 			Float4 const& s1,	Float4 const& s2,	Float4 const& s3,
 			Float2 const& uvp1, Float2 const& uvp2, Float2 const& uvp3,

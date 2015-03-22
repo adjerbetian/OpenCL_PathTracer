@@ -4,7 +4,12 @@
 
 #include <maya/MFnPlugin.h>
 
+using namespace std;
 
+extern "C"
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
 MStatus initializePlugin(MObject obj)
 { 
 	MFnPlugin plugin(obj, "IS", "1.0", "Any");
@@ -14,6 +19,10 @@ MStatus initializePlugin(MObject obj)
 }
 
 
+extern "C"
+#ifdef _WIN32
+__declspec(dllexport)
+#endif
 MStatus uninitializePlugin(MObject obj)
 {
 	MFnPlugin plugin(obj);

@@ -276,9 +276,13 @@ namespace PathTracerNS
 					}
 
 					// UVs are:
-					Float2 uv1 = Float2(u[uvID[0]], v[uvID[0]]);
-					Float2 uv2 = Float2(u[uvID[1]], v[uvID[1]]);
-					Float2 uv3 = Float2(u[uvID[2]], v[uvID[2]]);
+                    Float2 uv1(0.f, 0.f), uv2(0.f, 0.f), uv3(0.f, 0.f);
+                    if (u.length() > (unsigned int)uvID[0] && v.length() > (unsigned int)uvID[0])
+					    uv1 = Float2(u[uvID[0]], v[uvID[0]]);
+                    if (u.length() > (unsigned int)uvID[1] && v.length() > (unsigned int)uvID[1])
+                        uv2 = Float2(u[uvID[1]], v[uvID[1]]);
+                    if (u.length() > (unsigned int)uvID[2] && v.length() > (unsigned int)uvID[2])
+                        uv3 = Float2(u[uvID[2]], v[uvID[2]]);
 
 					Triangle_Create(
 						*ptr__global__triangulation + triangleId,

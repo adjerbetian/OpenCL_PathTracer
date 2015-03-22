@@ -17,14 +17,16 @@ int main()
 	bool exportScene = false;
 	bool saveRenderedImages = true;
 	bool loadSky = true;
-	unsigned int image_width = 1920;
+    bool printLogInfos = true;
+    bool superSampling = false;
+    unsigned int image_width = 1920;
 	unsigned int image_height = 1080;
 	unsigned int numImageToRender = 1;
 	PathTracerNS::Sampler sampler = PathTracerNS::Sampler::JITTERED;
 	unsigned int rayMaxDepth = 10;
 
 	PathTracerNS::PathTracer_SetImporter(new PathTracerNS::PathTracerFileImporter());
-	bool success = PathTracerNS::PathTracer_Main(image_width, image_height, numImageToRender, saveRenderedImages, loadSky, exportScene, sampler, rayMaxDepth);
+    bool success = PathTracerNS::PathTracer_Main(image_width, image_height, numImageToRender, saveRenderedImages, loadSky, exportScene, sampler, rayMaxDepth, printLogInfos, superSampling);
 
 	CONSOLE_LOG.close();
 	if(success)	PlaySound(L"C:\\Windows\\Media\\notify.wav", NULL, SND_ASYNC );
